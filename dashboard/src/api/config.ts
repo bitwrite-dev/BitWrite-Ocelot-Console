@@ -5,6 +5,8 @@
  * they are statically replaced at build time — do not read them dynamically.
  */
 
+import { readSelectedEnvironment } from '@/lib/environment'
+
 function readString(value: unknown, fallback: string): string {
   return typeof value === 'string' && value.length > 0 ? value : fallback
 }
@@ -39,6 +41,20 @@ export function getApiBaseUrl(): string {
  */
 export function getApiEnvironment(): string {
   return readString(import.meta.env.VITE_API_ENVIRONMENT, '')
+}
+
+/**
+ * The environment requests are sent for: the operator's choice when there is
+ * one, the build's configured environment otherwise.
+ *
+ * This is the same resolution the HTTP client applies to `X-Environment`, and
+ * it is exported so a request body can name the environment the request itself
+ * is sent for. The API refuses a publication whose body names anything else,
+ * because that is how one environment's configuration would reach another
+ * environment's gateways.
+ */
+export function getEffectiveEnvironment(): string {
+  return readSelectedEnvironment() || getApiEnvironment()
 }
 
 export interface ApiClientOptions {

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useApi } from '@/app-providers'
 import type {
+  GatewayResponse,
   SnapshotDeploymentResponse,
   SnapshotListResponse,
   SnapshotResponse,
@@ -36,6 +37,50 @@ export const snapshotKeys = {
   compare: (version: number, compareWith: number) =>
     ['snapshots', 'compare', version, compareWith] as const,
   deployment: (version: number) => ['snapshots', 'deployment', version] as const,
+  publishTargets: () => ['snapshots', 'publish-targets'] as const,
+}
+
+/** One page of the gateway list. Any realistic environment fits in a single page. */
+const PUBLISH_TARGET_PAGE_SIZE = 100
+
+/**
+ * The gateways a publication will be delivered to.
+ *
+ * The API refuses a publication whose target list is empty, so the confirmation
+ * has to know the gateways before it offers to send one. The list endpoint is
+ * paged, and the loop below is what makes the answer "every gateway of this
+ * environment" rather than "the first page of them": an environment with more
+ * gateways than a page is published to all of them, which a single page would
+ * silently cut short.
+ */
+export function usePublishTargetGateways() {
+  const api = useApi()
+
+  return useQuery({
+    queryKey: snapshotKeys.publishTargets(),
+    queryFn: async ({ signal }) => {
+      const collected: GatewayResponse[] = []
+
+      for (let page = 1; ; page += 1) {
+        const response = await api.resources.gateways.list({
+          page,
+          pageSize: PUBLISH_TARGET_PAGE_SIZE,
+          signal,
+        })
+
+        collected.push(...response.gateways)
+
+        // A short page means the list is exhausted; the count is the check for
+        // a server that fills pages but reports fewer rows than it returns.
+        if (
+          response.gateways.length < PUBLISH_TARGET_PAGE_SIZE ||
+          collected.length >= response.totalCount
+        ) {
+          return collected
+        }
+      }
+    },
+  })
 }
 
 export function useSnapshots(page: number, pageSize: number, status: SnapshotStatusFilter = null) {

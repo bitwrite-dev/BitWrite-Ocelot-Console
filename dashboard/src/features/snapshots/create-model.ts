@@ -73,12 +73,13 @@ export function useLatestPublishedSnapshot() {
 }
 
 /**
- * Resolves and validates the artifact a snapshot would contain.
+ * Resolves the artifact a snapshot would contain.
  *
- * Kept out of the automatic query cache on purpose: it is a server round trip
- * whose result is only meaningful for the step the operator is looking at, and
- * serving a stale preview after they changed a route would show a verdict for a
- * configuration that no longer exists.
+ * Loaded with the page rather than on demand: step 1 shows the configuration
+ * the snapshot would capture, and the counts beside the source options say how
+ * much there is while this shows what it is. Step 2 re-runs it, so the
+ * validation verdict is always for the state as it is then rather than for
+ * whatever was on screen when the page loaded.
  */
 export function usePreviewSnapshot() {
   const api = useApi()
@@ -86,9 +87,6 @@ export function usePreviewSnapshot() {
   const query = useQuery({
     queryKey: ['snapshots', 'preview'],
     queryFn: ({ signal }) => api.resources.snapshots.preview({ signal }),
-    // Not run on mount — the page triggers it when the operator reaches step 2,
-    // so arriving at the step is what does the work.
-    enabled: false,
     // The management state can move under the operator, so a preview is never
     // reused across a revisit without an explicit re-run.
     staleTime: 0,

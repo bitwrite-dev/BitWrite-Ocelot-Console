@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { ArrowRight, Check, Download, FlaskConical, Layers, X } from 'lucide-react'
+import { ArrowRight, Check, Download, FlaskConical, Layers, RefreshCw, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
+import { JsonHighlight } from '@/components/json-highlight'
 import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -85,23 +86,24 @@ export function CreateSnapshotPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           {step === 1 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Snapshot source</CardTitle>
-                <CardDescription>
-                  The API builds from the current management state. A baseline only records what this
-                  snapshot will be judged against.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <SourceOption
-                  selected
-                  title="Current management state"
-                  badge="Recommended"
-                  description="Resolve the latest saved Routes, Services, Global Configuration, and enabled plugin configuration."
-                  counts={source.counts}
-                  draftStatus={source.draftStatus}
-                />
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Snapshot source</CardTitle>
+                  <CardDescription>
+                    The API builds from the current management state. A baseline only records what this
+                    snapshot will be judged against.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <SourceOption
+                    selected
+                    title="Current management state"
+                    badge="Recommended"
+                    description="Resolve the latest saved Routes, Services, Global Configuration, and enabled plugin configuration."
+                    counts={source.counts}
+                    draftStatus={source.draftStatus}
+                  />
 
                 <label
                   className={
@@ -140,6 +142,9 @@ export function CreateSnapshotPage() {
                 </label>
               </CardContent>
             </Card>
+
+            <SourcePreviewPanel preview={preview} />
+            </>
           ) : null}
 
           {step === 2 ? (
@@ -351,6 +356,98 @@ function CountChip({ label, value, draft }: { label: string; value: number | nul
     <span className="rounded border px-1.5 py-0.5 text-xs text-muted-foreground">
       {value === null ? `— ${label}` : draft && draft > 0 ? `${value} ${label} ({draft} draft)` : `${value} ${label}`}
     </span>
+  )
+}
+
+/** What the preview hook hands the panel; the shape it already returns. */
+interface SourcePreview {
+  data: PreviewSnapshotResponse | null
+  isFetching: boolean
+  isError: boolean
+  error: unknown
+  run: () => void
+}
+
+/**
+ * The artifact step 1 is asking the operator to accept.
+ *
+ * The counts and draft badges say how much will be captured; this shows what it
+ * is, because "2 routes and 1 service" and the routes and the service are
+ * different questions. The document is the one the API resolves from the
+ * current management state — the same one step 2 validates and step 3 seals —
+ * so what is on screen is what the snapshot would contain, short of the seal
+ * itself. Refresh is offered because the state can move while the operator
+ * reads.
+ */
+function SourcePreviewPanel({ preview }: { preview: SourcePreview }) {
+  const { data, isFetching, isError, error } = preview
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
+        <div className="space-y-1.5">
+          <CardTitle>Configuration to capture</CardTitle>
+          <CardDescription>
+            Resolved from the current management state. This is the document the
+            snapshot will seal.
+          </CardDescription>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="shrink-0"
+          disabled={isFetching}
+          onClick={preview.run}
+        >
+          <RefreshCw
+            aria-hidden="true"
+            className={isFetching ? 'size-4 animate-spin' : 'size-4'}
+          />
+          {isFetching ? 'Resolving…' : 'Refresh'}
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {data ? (
+          <>
+            {/* Only what the source card above cannot already say: it carries
+                the counts, and repeating them here would be two places to read
+                the same number rather than more information. */}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+              <span>Ocelot {data.ocelotVersion}</span>
+              <span aria-hidden="true">·</span>
+              <span>Would seal as #{data.nextVersion}</span>
+            </div>
+            {data.content ? (
+              <JsonHighlight payload={data.content} />
+            ) : (
+              // Not a failure to dress up as one: the state has nothing that
+              // resolves into a configuration, and sealing that would produce a
+              // snapshot of nothing.
+              <Alert>
+                <AlertTitle>Nothing to capture yet</AlertTitle>
+                <AlertDescription>
+                  The current management state did not resolve into a configuration,
+                  so a snapshot of it would seal nothing. Add routes or services
+                  first.
+                </AlertDescription>
+              </Alert>
+            )}
+          </>
+        ) : isFetching ? (
+          <Skeleton className="h-48 w-full" />
+        ) : isError ? (
+          // The step stays usable: continuing re-runs the preview in step 2,
+          // where a failure is reported against the rules that were checked.
+          <Alert variant="destructive">
+            <AlertTitle>The configuration could not be resolved</AlertTitle>
+            <AlertDescription>
+              {error instanceof Error ? error.message : String(error)} You can still
+              continue — the next step resolves it again and reports what it found.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+      </CardContent>
+    </Card>
   )
 }
 

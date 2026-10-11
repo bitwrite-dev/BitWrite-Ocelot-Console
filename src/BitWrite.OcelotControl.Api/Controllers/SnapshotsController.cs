@@ -298,7 +298,7 @@ public class SnapshotsController : BaseApiController
                 request.InitiatedBy,
                 BitWrite.OcelotControl.Domain.ValueObjects.Configuration.EnvironmentName.From(request.Environment),
                 CorrelationId: "",
-                request.TargetGatewayIds.Select(id => id.ToString()).ToList());
+                request.TargetGatewayIds.ToList());
 
             var publicationId = await _publishSnapshotCommandHandler.HandleAsync(command);
 

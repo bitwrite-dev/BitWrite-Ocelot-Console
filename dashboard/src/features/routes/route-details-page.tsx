@@ -37,7 +37,7 @@ import {
   useServiceOptions,
   useServiceRoutes,
 } from './queries'
-import { JsonHighlight, copyToClipboard } from './json-highlight'
+import { JsonHighlight, copyToClipboard } from '@/components/json-highlight'
 
 /** One labelled value in the configuration view. */
 function Row({ label, children }: { label: string; children: React.ReactNode }) {

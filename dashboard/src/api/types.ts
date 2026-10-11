@@ -686,11 +686,33 @@ export interface CreateSnapshotRequest {
 
 export interface SnapshotPublishRequest {
   initiatedBy: string
-  targetGatewayIds?: string[]
+  /**
+   * The environment this publication is for.
+   *
+   * Required, and it has to name the same environment the request was sent
+   * for (`X-Environment`): the API refuses a mismatch rather than handing one
+   * environment's gateways another environment's routes.
+   */
+  environment: string
+  /**
+   * The gateways this publication is delivered to, by id.
+   *
+   * Required, and an empty list is refused rather than read as "every
+   * gateway" — a publication that reached nobody would report success while
+   * changing nothing.
+   */
+  targetGatewayIds: string[]
 }
 
 export interface SnapshotRollbackRequest {
   initiatedBy: string
+  /**
+   * The environment this rollback is for.
+   *
+   * Required, and it has to name the same environment the request was sent
+   * for (`X-Environment`), for the same reason a publication has to.
+   */
+  environment: string
   /** The version to go back to. */
   targetVersion: number
   reason: string
