@@ -116,9 +116,68 @@ const listOnly =
       ? ok(list(snapshots))
       : fail(404, `unexpected request: ${url}`)
 
+/** A registered gateway, as the list endpoint returns it. Ids are GUIDs. */
+const GATEWAY = {
+  id: '3f2504e0-4f89-11d3-9a0c-0305e82c3301',
+  name: 'edge-1',
+  description: null,
+  status: 'Active',
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
+}
+
+/** The environment the requests below are for, as the sidebar selector stores it. */
+const ENVIRONMENT = 'development'
+
+function gatewayListPayload(gateways: unknown[], totalCount = gateways.length) {
+  return { gateways, totalCount, page: 1, pageSize: 100 }
+}
+
+/**
+ * Answers the gateway list the publish confirmation reads its target ids from.
+ *
+ * The API refuses a publication that names no gateways, so the dialog fetches
+ * them before offering to send one; a handler that 404s the list would leave the
+ * confirmation disabled and the tests asserting on it stuck.
+ */
+const withGateways =
+  (handler: Handler): Handler =>
+  (url, method, body) =>
+    url.includes('/api/v1/gateways')
+      ? ok(gatewayListPayload([GATEWAY]))
+      : handler(url, method, body)
+
+/** Selects the environment the requests are for, as the sidebar selector does. */
+function selectEnvironment(name: string) {
+  localStorage.setItem('dashboard:environment', name)
+}
+
+/** Serves the publication the confirmation sends, and the lists it reads. */
+function publishingHandler(): Handler {
+  return (url, method, body) =>
+    method === 'POST' ? ok(PUBLISHED_DEPLOYMENT) : withGateways(listOnly([BASE]))(url, method, body)
+}
+
+/**
+ * Clicks the confirmation's own button, once it is one that can be sent.
+ *
+ * The dialog reads the gateway list before it can publish, and until that
+ * arrives the button is deliberately disabled: publishing would otherwise be
+ * offered while the request could only be refused for naming no gateways.
+ */
+async function confirmPublish() {
+  const confirm = await screen.findByRole('button', { name: /publish #4/i })
+  await waitFor(() => expect(confirm).toBeEnabled())
+  await userEvent.click(confirm)
+}
+
 describe('SnapshotsPage', () => {
   beforeEach(() => {
     vi.useRealTimers()
+    // The selector's choice is persisted, so it has to be cleared between
+    // tests: one test publishing for 'staging' would otherwise leave the next
+    // one's requests naming an environment nobody chose in it.
+    localStorage.clear()
   })
 
   it('lists each snapshot with its version, status, contents and creator', async () => {
@@ -422,11 +481,13 @@ describe('SnapshotsPage', () => {
   })
 
   it('publishes a snapshot when asked', async () => {
-    const { calls } = renderSnapshots((url, method) =>
-      method === 'POST' ? ok(PUBLISHED_DEPLOYMENT) : listOnly([BASE])(url, method, undefined),
-    )
+    selectEnvironment(ENVIRONMENT)
+    const { calls } = renderSnapshots(publishingHandler())
 
-    await userEvent.click(await screen.findByRole('button', { name: /publish #4/i }))
+    // Publishing now happens from the detail sheet, behind a confirmation.
+    await userEvent.click(await screen.findByRole('button', { name: 'View' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Publish' }))
+    await confirmPublish()
 
     await waitFor(() => {
       expect(calls.some((call) => call.url.endsWith('/4/publish') && call.method === 'POST')).toBe(
@@ -435,90 +496,111 @@ describe('SnapshotsPage', () => {
     })
   })
 
-  it('will not let a rollback through without a reason, because the API requires one', async () => {
-    renderSnapshots(listOnly([BASE, EARLIER]))
+  it('names the selected environment and its gateways in the publication', async () => {
+    // The API refuses a publication that names no environment, one that
+    // disagrees with the environment the request was sent for, or one that
+    // names no gateways. The body therefore carries all three, and the
+    // environment is the one the operator selected rather than the build's
+    // configured one — which is what fixed publications that only ever named
+    // nothing and were refused before anything ran.
+    selectEnvironment('staging')
+    const { calls } = renderSnapshots(publishingHandler())
 
-    await userEvent.click(await screen.findByRole('button', { name: /roll back to #4/i }))
-
-    const confirm = await screen.findByRole('button', { name: /roll back to #3/i })
-    await userEvent.click(confirm)
-
-    // The reason is an audit record, not a nicety: an empty one would be
-    // rejected by the API after the operator thought it was accepted.
-    expect(
-      await screen.findByText(/the api requires a reason, so this cannot be submitted blank/i),
-    ).toBeInTheDocument()
-  })
-
-  it('says that a rollback republishes rather than deletes', async () => {
-    renderSnapshots(listOnly([BASE, EARLIER]))
-
-    await userEvent.click(await screen.findByRole('button', { name: /roll back to #4/i }))
-
-    expect(
-      await screen.findByText(/every gateway will be published #3 again/i),
-    ).toBeInTheDocument()
-  })
-
-  it('sends the target version and the reason when a rollback is confirmed', async () => {
-    const { calls } = renderSnapshots((url, method) =>
-      method === 'POST'
-        ? ok({ ...PUBLISHED_DEPLOYMENT, snapshotVersion: 3, status: 'Completed' })
-        : listOnly([BASE, EARLIER])(url, method, undefined),
-    )
-
-    await userEvent.click(await screen.findByRole('button', { name: /roll back to #4/i }))
-    await userEvent.type(await screen.findByLabelText(/reason/i), 'bad route change')
-    await userEvent.click(screen.getByRole('button', { name: /roll back to #3/i }))
+    await userEvent.click(await screen.findByRole('button', { name: 'View' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Publish' }))
+    await confirmPublish()
 
     await waitFor(() => {
-      const rollback = calls.find((call) => call.url.endsWith('/4/rollback'))
-      expect(rollback).toBeDefined()
-      expect(rollback?.body).toMatchObject({ targetVersion: 3, reason: 'bad route change' })
+      expect(calls.some((call) => call.url.endsWith('/4/publish'))).toBe(true)
+    })
+
+    const publish = calls.find((call) => call.url.endsWith('/4/publish'))
+    expect(publish?.body).toEqual({
+      initiatedBy: 'dashboard',
+      environment: 'staging',
+      targetGatewayIds: [GATEWAY.id],
     })
   })
 
-  it('reports what the rollback actually did, rather than only that it was accepted', async () => {
-    renderSnapshots((url, method) =>
-      method === 'POST'
-        ? ok({ ...PUBLISHED_DEPLOYMENT, snapshotVersion: 3, status: 'Completed' })
-        : listOnly([BASE, EARLIER])(url, method, undefined),
-    )
+  it('asks for confirmation before publishing and does not send on the sheet button alone', async () => {
+    selectEnvironment(ENVIRONMENT)
+    const { calls } = renderSnapshots(publishingHandler())
 
-    await userEvent.click(await screen.findByRole('button', { name: /roll back to #4/i }))
-    await userEvent.type(await screen.findByLabelText(/reason/i), 'bad route change')
-    await userEvent.click(screen.getByRole('button', { name: /roll back to #3/i }))
+    await userEvent.click(await screen.findByRole('button', { name: 'View' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Publish' }))
 
-    // "It worked" hides whether the intended version is what gateways now run.
-    expect(await screen.findByText('Snapshot #3 was applied.')).toBeInTheDocument()
+    // The confirmation names what will change, so it has to appear before
+    // anything is sent.
+    expect(await screen.findByText(/publish snapshot #4\?/i)).toBeInTheDocument()
+    expect(calls.some((call) => call.method === 'POST')).toBe(false)
+
+    // Backing out of the confirmation must leave the snapshot unpublished.
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(calls.some((call) => call.method === 'POST')).toBe(false)
   })
 
-  it('explains a refused rollback instead of closing the dialog as if it succeeded', async () => {
-    renderSnapshots((url, method) =>
+  it('explains a refused publication instead of closing the dialog as if it succeeded', async () => {
+    selectEnvironment(ENVIRONMENT)
+    renderSnapshots((url, method, body) =>
       method === 'POST'
-        ? fail(409, 'snapshot 3 is not deployable')
-        : listOnly([BASE, EARLIER])(url, method, undefined),
+        ? fail(409, 'snapshot 4 is not deployable')
+        : withGateways(listOnly([BASE]))(url, method, body),
     )
 
-    await userEvent.click(await screen.findByRole('button', { name: /roll back to #4/i }))
-    await userEvent.type(await screen.findByLabelText(/reason/i), 'bad route change')
-    await userEvent.click(screen.getByRole('button', { name: /roll back to #3/i }))
+    await userEvent.click(await screen.findByRole('button', { name: 'View' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Publish' }))
+    await confirmPublish()
 
-    expect(await screen.findByText('The rollback was refused')).toBeInTheDocument()
+    expect(await screen.findByText('The publication was refused')).toBeInTheDocument()
     expect(screen.getByText(/not deployable/i)).toBeInTheDocument()
   })
 
-  it('names the permission a rollback needs when the API refuses on role', async () => {
-    renderSnapshots((url, method) =>
-      method === 'POST' ? fail(403, 'forbidden') : listOnly([BASE, EARLIER])(url, method, undefined),
+  it('names the permission a publication needs when the API refuses on role', async () => {
+    selectEnvironment(ENVIRONMENT)
+    renderSnapshots((url, method, body) =>
+      method === 'POST'
+        ? fail(403, 'forbidden')
+        : withGateways(listOnly([BASE]))(url, method, body),
     )
 
-    await userEvent.click(await screen.findByRole('button', { name: /roll back to #4/i }))
-    await userEvent.type(await screen.findByLabelText(/reason/i), 'bad route change')
-    await userEvent.click(screen.getByRole('button', { name: /roll back to #3/i }))
+    await userEvent.click(await screen.findByRole('button', { name: 'View' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Publish' }))
+    await confirmPublish()
 
     expect(await screen.findByText('Not permitted')).toBeInTheDocument()
     expect(screen.getByText(/snapshotmanager or admin role/i)).toBeInTheDocument()
+  })
+
+  it('shows the configuration the snapshot will publish, as JSON', async () => {
+    renderSnapshots(
+      listOnly([
+        {
+          ...BASE,
+          content: '{"routes":[{"upstreamPathTemplate":"/orders"}]}',
+        },
+      ]),
+    )
+
+    await userEvent.click(await screen.findByRole('button', { name: 'View' }))
+
+    // The sheet is where an operator decides whether to publish, so it has to
+    // carry the document itself rather than only its hash and counts.
+    const sheet = await screen.findByRole('dialog')
+    expect(sheet.textContent).toContain('"upstreamPathTemplate"')
+    expect(sheet.textContent).toContain('"/orders"')
+  })
+
+  it('offers only view and compare in the row actions', async () => {
+    renderSnapshots(listOnly([BASE, EARLIER]))
+
+    const row = await screen.findByRole('row', { name: /#4/ })
+
+    // Publishing a snapshot rewrites what every gateway serves, so it belongs
+    // in the detail sheet behind a confirmation rather than in a one-click row.
+    within(row).getByRole('button', { name: 'View' })
+    within(row).getByRole('button', { name: 'Compare' })
+    expect(within(row).queryByRole('button', { name: /publish/i })).not.toBeInTheDocument()
+    expect(within(row).queryByRole('button', { name: /roll back/i })).not.toBeInTheDocument()
   })
 })
 

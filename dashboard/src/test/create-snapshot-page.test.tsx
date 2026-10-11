@@ -125,12 +125,33 @@ describe('the three steps', () => {
     expect(screen.getByRole('button', { name: /continue to validation/i })).toBeInTheDocument()
   })
 
-  it('does not run the validation before the operator asks for it', () => {
-    // A preview is a server round trip; running it on arrival would resolve an
-    // artifact for a page the operator may immediately leave.
+  it('resolves the configuration with the page, because step 1 shows it', async () => {
+    // The source step displays what would be captured, so the artifact is
+    // resolved rather than deferred: an operator cannot read a document nobody
+    // fetched.
     const { calls } = renderCreate(baseline())
 
-    expect(calls.some((call) => call.url.endsWith('/preview'))).toBe(false)
+    await waitFor(() => {
+      expect(calls.some((call) => call.url.endsWith('/preview'))).toBe(true)
+    })
+    expect(await screen.findByText('Configuration to capture')).toBeInTheDocument()
+  })
+
+  it('re-runs the preview when the operator moves on, so the verdict is for the current state', async () => {
+    // The state can move while the operator reads, so reaching step 2 resolves
+    // again rather than trusting what was on screen when the page loaded.
+    const { calls } = renderCreate(baseline())
+
+    await waitFor(() => {
+      expect(calls.some((call) => call.url.endsWith('/preview'))).toBe(true)
+    })
+    await userEvent.click(await screen.findByRole('button', { name: /continue to validation/i }))
+
+    await waitFor(() => {
+      const previews = calls.filter((call) => call.url.endsWith('/preview'))
+      expect(previews.length).toBeGreaterThan(1)
+    })
+    expect(await screen.findByText('Step 2 of 3')).toBeInTheDocument()
   })
 
   it('really runs the validation when the step is reached', async () => {
@@ -284,6 +305,45 @@ describe('what the source step shows', () => {
 
     expect(await screen.findByText('2 routes')).toBeInTheDocument()
     expect(screen.getByText('1 services')).toBeInTheDocument()
+  })
+
+  it('shows the configuration the snapshot would capture, as JSON', async () => {
+    renderCreate(
+      baseline({
+        ...CLEAN_PREVIEW,
+        content: '{"Routes":[{"UpstreamPathTemplate":"/orders"}]}',
+      }),
+    )
+
+    // The document the operator is agreeing to seal, not a description of it:
+    // "2 routes and 1 service" says how much, and this says what.
+    expect(await screen.findByText('Configuration to capture')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(document.body.textContent).toContain('"UpstreamPathTemplate"')
+      expect(document.body.textContent).toContain('"/orders"')
+    })
+    expect(screen.getByText(/would seal as #105/i)).toBeInTheDocument()
+  })
+
+  it('says plainly when the state did not resolve into a configuration', async () => {
+    renderCreate(baseline({ ...CLEAN_PREVIEW, content: null, hash: null }))
+
+    expect(await screen.findByText('Nothing to capture yet')).toBeInTheDocument()
+    expect(screen.getByText(/a snapshot of it would seal nothing/i)).toBeInTheDocument()
+  })
+
+  it('explains a failed resolution without failing the step', async () => {
+    renderCreate((url, method) =>
+      url.endsWith('/preview')
+        ? fail(500, 'resolver unavailable')
+        : baseline()(url, method, undefined),
+    )
+
+    expect(await screen.findByText('The configuration could not be resolved')).toBeInTheDocument()
+    expect(screen.getByText(/resolver unavailable/i)).toBeInTheDocument()
+    // The step still works: continuing resolves it again, where a failure is
+    // reported against the rules that were checked.
+    expect(screen.getByRole('button', { name: /continue to validation/i })).toBeEnabled()
   })
 
   it('does not claim zero when the counts could not be read', async () => {

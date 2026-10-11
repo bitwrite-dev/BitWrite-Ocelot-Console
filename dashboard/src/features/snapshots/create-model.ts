@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { useApi } from '@/app-providers'
-import type { PreviewSnapshotResponse, SnapshotListResponse } from '@/api'
+import type { PreviewSnapshotResponse, SnapshotListResponse, GlobalConfigurationResponse, RouteListResponse, ServiceListResponse } from '@/api'
 
 import { useSnapshotMutations } from './queries'
 
@@ -13,13 +13,12 @@ import { useSnapshotMutations } from './queries'
  * supports one screen.
  */
 
-/** What the current management state holds, by count. */
+/** What the current management state holds, by count and draft status. */
 export function useCreateSourceCounts() {
   const api = useApi()
 
   const routes = useQuery({
     queryKey: ['routes', 'list', 1, 1],
-    // Only the total is read, so one row is enough.
     queryFn: ({ signal }) => api.resources.routes.list({ page: 1, pageSize: 1, signal }),
     staleTime: 30_000,
   })
@@ -30,14 +29,22 @@ export function useCreateSourceCounts() {
     staleTime: 30_000,
   })
 
+  const globalConfig = useQuery({
+    queryKey: ['global-configuration', 'current'],
+    queryFn: ({ signal }) => api.resources.globalConfiguration.get({ signal }),
+    staleTime: 30_000,
+  })
+
   return {
-    isPending: routes.isPending || services.isPending,
-    // null means the count could not be read, which the page shows as a dash.
-    // It must not show 0: "no routes" would suggest an empty artifact is about
-    // to be sealed.
+    isPending: routes.isPending || services.isPending || globalConfig.isPending,
     counts: {
       routes: routes.data ? routes.data.totalCount : null,
       services: services.data ? services.data.totalCount : null,
+    },
+    draftStatus: {
+      routes: routes.data ? routes.data.routes.filter((r) => r.isDraft).length : null,
+      services: services.data ? services.data.services.filter((s) => s.isDraft).length : null,
+      globalConfig: globalConfig.data && globalConfig.data.isDraft ? 1 : 0,
     },
   }
 }
@@ -66,12 +73,13 @@ export function useLatestPublishedSnapshot() {
 }
 
 /**
- * Resolves and validates the artifact a snapshot would contain.
+ * Resolves the artifact a snapshot would contain.
  *
- * Kept out of the automatic query cache on purpose: it is a server round trip
- * whose result is only meaningful for the step the operator is looking at, and
- * serving a stale preview after they changed a route would show a verdict for a
- * configuration that no longer exists.
+ * Loaded with the page rather than on demand: step 1 shows the configuration
+ * the snapshot would capture, and the counts beside the source options say how
+ * much there is while this shows what it is. Step 2 re-runs it, so the
+ * validation verdict is always for the state as it is then rather than for
+ * whatever was on screen when the page loaded.
  */
 export function usePreviewSnapshot() {
   const api = useApi()
@@ -79,9 +87,6 @@ export function usePreviewSnapshot() {
   const query = useQuery({
     queryKey: ['snapshots', 'preview'],
     queryFn: ({ signal }) => api.resources.snapshots.preview({ signal }),
-    // Not run on mount — the page triggers it when the operator reaches step 2,
-    // so arriving at the step is what does the work.
-    enabled: false,
     // The management state can move under the operator, so a preview is never
     // reused across a revisit without an explicit re-run.
     staleTime: 0,

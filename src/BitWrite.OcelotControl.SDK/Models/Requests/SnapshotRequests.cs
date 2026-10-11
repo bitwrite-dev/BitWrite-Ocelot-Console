@@ -31,11 +31,13 @@ public record ExportSnapshotRequest(
 public record PublishSnapshotRequest(
     [Required] int Version,
     [Required] string InitiatedBy,
+    [Required] string Environment,
     List<string>? TargetGatewayIds
 );
 
 public record RollbackSnapshotRequest(
     [Required] string InitiatedBy,
     [Required] int TargetVersion,
+    [Required] string Environment,
     [Required] string Reason
 );

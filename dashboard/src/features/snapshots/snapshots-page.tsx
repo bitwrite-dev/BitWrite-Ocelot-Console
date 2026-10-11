@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Copy, GitCompare, Plus, RotateCcw, Send } from 'lucide-react'
+import { Check, ClipboardCopy, Copy, GitCompare, Plus, Send } from 'lucide-react'
 
+import { JsonHighlight, copyToClipboard } from '@/components/json-highlight'
 import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
@@ -14,7 +15,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -40,6 +40,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { isPermissionError } from '@/lib/api-error'
+import { getEffectiveEnvironment } from '@/api/config'
 import { useNavigate } from 'react-router-dom'
 import type { SnapshotResponse } from '@/api'
 
@@ -51,6 +52,7 @@ import {
   shortHash,
   snapshotSummary,
   validationResultsOf,
+  usePublishTargetGateways,
   useSnapshotComparison,
   useSnapshotDeployment,
   useSnapshotMutations,
@@ -271,11 +273,11 @@ function SnapshotRow({
         <StatusBadge status={validation.label} />
       </TableCell>
       <TableCell>
-        <div>
+        <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={publication.label} />
         </div>
         <div className="mt-1 text-xs text-muted-foreground">
-          {rollbackNote(snapshot, previous)}
+          {publicationNote(snapshot)}
         </div>
       </TableCell>
       <TableCell>
@@ -293,8 +295,6 @@ function SnapshotRow({
           >
             Compare
           </Button>
-          <RowPublish snapshot={snapshot} />
-          <RowRollback snapshot={snapshot} previous={previous} />
         </div>
       </TableCell>
     </TableRow>
@@ -304,68 +304,14 @@ function SnapshotRow({
 /**
  * The publication column's second line.
  *
- * A snapshot that was published once and has been replaced can still be
- * published again, which is what makes a rollback possible. That is worth
- * saying, because "Archived" alone reads as "finished".
+ * A snapshot that has been published keeps that timestamp even after another
+ * snapshot replaced it, so the date is the fact worth carrying here. Nothing
+ * claims the snapshot is what gateways run right now — that is what the badge
+ * next to it is for.
  */
-function rollbackNote(snapshot: SnapshotResponse, previous: number | null): string {
-  if (previous === null) return 'The earliest loaded snapshot'
-  if (snapshot.publishedAt) return `Can be published again to roll back from #${previous}`
+function publicationNote(snapshot: SnapshotResponse): string {
+  if (snapshot.publishedAt) return `Published on ${formatTimestamp(snapshot.publishedAt)}`
   return 'Never published'
-}
-
-function RowPublish({ snapshot }: { snapshot: SnapshotResponse }) {
-  const { publish } = useSnapshotMutations()
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="size-7"
-      aria-label={`Publish #${snapshot.version}`}
-      disabled={publish.isPending}
-      onClick={() =>
-        publish.mutate({ version: snapshot.version, body: { initiatedBy: CURRENT_OPERATOR } })
-      }
-    >
-      <Send aria-hidden="true" className="size-3.5" />
-    </Button>
-  )
-}
-
-function RowRollback({
-  snapshot,
-  previous,
-}: {
-  snapshot: SnapshotResponse
-  previous: number | null
-}) {
-  const [rollingBack, setRollingBack] = useState(false)
-
-  return (
-    <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="size-7"
-        aria-label={`Roll back to #${snapshot.version}`}
-        // Rolling back to the first snapshot would be a no-op, and offering it
-        // invites a pointless confirmation.
-        disabled={!previous}
-        onClick={() => setRollingBack(true)}
-      >
-        <RotateCcw aria-hidden="true" className="size-3.5" />
-      </Button>
-
-      {rollingBack && previous !== null ? (
-        <RollbackDialog
-          snapshot={snapshot}
-          targetVersion={previous}
-          onDone={() => setRollingBack(false)}
-        />
-      ) : null}
-    </>
-  )
 }
 
 /** The hash, truncated for reading and copyable in full. */
@@ -455,49 +401,75 @@ function SummaryCards({
 }
 
 /**
- * Rolling back, behind a confirmation that says what it will do.
+ * Publishing, behind a confirmation that names what it will change.
  *
- * A rollback is not a delete: the snapshot stays, and an earlier one becomes
- * current. The wording reflects that, because "are you sure" on something that
- * rewrites what every gateway is running would be a poor summary of it.
+ * A publish rewrites what every gateway in one environment serves, so the
+ * confirmation names the environment and the gateways the publication reaches
+ * rather than asking a bare "are you sure" whose subject is ambiguous while the
+ * sheet is still on screen. Both facts are also what the API requires: a
+ * publication has to name its environment, it has to match the one the request
+ * was sent for, and it has to name its target gateways — so the dialog reads
+ * them from the same places the request does rather than discovering the
+ * refusal after the operator has already agreed.
  */
-function RollbackDialog({
+function PublishDialog({
   snapshot,
-  targetVersion,
   onDone,
 }: {
   snapshot: SnapshotResponse
-  targetVersion: number
   onDone: () => void
 }) {
-  const [reason, setReason] = useState('')
-  const { rollback } = useSnapshotMutations()
+  const { publish } = useSnapshotMutations()
   const [outcome, setOutcome] = useState<string | null>(null)
+  const environment = getEffectiveEnvironment()
+  const { data: gateways, isPending, isError } = usePublishTargetGateways()
+  const targetGatewayIds = (gateways ?? []).map((gateway) => gateway.id)
+
+  // Nothing is sent while either half is missing: the API would refuse it, and a
+  // refusal after the operator has agreed to the change reads as a surprise
+  // rather than as a precondition.
+  const blocked =
+    environment === '' || isPending || targetGatewayIds.length === 0 || publish.isPending
 
   return (
     <AlertDialog open onOpenChange={(open) => !open && onDone()}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Roll back to #{targetVersion}?</AlertDialogTitle>
+          <AlertDialogTitle>Publish snapshot #{snapshot.version}?</AlertDialogTitle>
           <AlertDialogDescription>
-            Every gateway will be published #{targetVersion} again. Snapshot #
-            {snapshot.version} is kept — nothing is deleted — but it will no longer be
-            what gateways are running.
+            Every gateway in {environment || 'the selected environment'} will serve
+            the {describeComposition(snapshot)} this snapshot carries. The snapshot
+            is kept — nothing is deleted — and it can be published again later to
+            roll back.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="rollback-reason">Reason</Label>
-          <Input
-            id="rollback-reason"
-            value={reason}
-            placeholder="Recorded in the audit log"
-            onChange={(event) => setReason(event.target.value)}
-          />
+        {environment === '' ? (
+          <Alert variant="destructive">
+            <AlertTitle>No environment is selected</AlertTitle>
+            <AlertDescription>
+              A publication has to name the environment it is for. Pick one in the
+              sidebar, then open this again.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {isPending ? (
           <p className="text-xs text-muted-foreground">
-            The API requires a reason, so this cannot be submitted blank.
+            Looking up the gateways this publication will reach…
           </p>
-        </div>
+        ) : null}
+
+        {!isPending && targetGatewayIds.length === 0 ? (
+          <Alert variant="destructive">
+            <AlertTitle>No gateways to publish to</AlertTitle>
+            <AlertDescription>
+              {isError
+                ? `The gateway list for ${environment} could not be read, and a publication has to name the gateways it reaches. Close this and try again.`
+                : `There are no gateways registered in ${environment}, and a publication has to name at least one. Register a gateway, then try again.`}
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
         {outcome ? (
           <Alert>
@@ -506,17 +478,17 @@ function RollbackDialog({
           </Alert>
         ) : null}
 
-        {rollback.error ? (
+        {publish.error ? (
           <Alert variant="destructive">
             <AlertTitle>
-              {isPermissionError(rollback.error) ? 'Not permitted' : 'The rollback was refused'}
+              {isPermissionError(publish.error) ? 'Not permitted' : 'The publication was refused'}
             </AlertTitle>
             <AlertDescription>
-              {isPermissionError(rollback.error)
-                ? 'Rolling back needs the SnapshotManager or Admin role.'
-                : rollback.error instanceof Error
-                  ? rollback.error.message
-                  : String(rollback.error)}
+              {isPermissionError(publish.error)
+                ? 'Publishing needs the SnapshotManager or Admin role.'
+                : publish.error instanceof Error
+                  ? publish.error.message
+                  : String(publish.error)}
             </AlertDescription>
           </Alert>
         ) : null}
@@ -525,16 +497,15 @@ function RollbackDialog({
           <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
           <Button
             type="button"
-            variant="destructive"
-            disabled={rollback.isPending}
+            disabled={blocked}
             onClick={() =>
-              rollback.mutate(
+              publish.mutate(
                 {
                   version: snapshot.version,
                   body: {
                     initiatedBy: CURRENT_OPERATOR,
-                    targetVersion,
-                    reason,
+                    environment,
+                    targetGatewayIds,
                   },
                 },
                 {
@@ -543,7 +514,7 @@ function RollbackDialog({
               )
             }
           >
-            {rollback.isPending ? 'Rolling back…' : `Roll back to #${targetVersion}`}
+            {publish.isPending ? 'Publishing…' : `Publish #${snapshot.version}`}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -551,7 +522,10 @@ function RollbackDialog({
   )
 }
 
-/** The detail view: what this snapshot contains, and what gateways run it. */
+/**
+ * The detail view: the configuration this snapshot will publish, and what
+ * gateways are running.
+ */
 function SnapshotSheet({
   snapshot,
   onClose,
@@ -565,112 +539,170 @@ function SnapshotSheet({
 }) {
   const { data: deployment } = useSnapshotDeployment(snapshot.version, true)
   const results = validationResultsOf(snapshot)
+  const publish = useSnapshotMutations().publish
+  const [confirming, setConfirming] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const copy = async () => {
+    const ok = await copyToClipboard(snapshot.content)
+    if (ok) {
+      setCopied(true)
+      // Without the reset the button keeps claiming success indefinitely.
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
 
   return (
-    <Sheet open onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
-        <SheetHeader>
-          <SheetTitle>Snapshot #{snapshot.version}</SheetTitle>
-          <SheetDescription>
-            Created by {snapshot.createdBy} on {formatTimestamp(snapshot.createdAt)}
-          </SheetDescription>
-        </SheetHeader>
+    <>
+      <Sheet open onOpenChange={(open) => !open && onClose()}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
+          <SheetHeader>
+            <SheetTitle>Snapshot #{snapshot.version}</SheetTitle>
+            <SheetDescription>
+              Created by {snapshot.createdBy} on {formatTimestamp(snapshot.createdAt)}
+            </SheetDescription>
+          </SheetHeader>
 
-        <div className="space-y-4 px-4 pb-6">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={snapshot.status} />
-            <StatusBadge status={validationVerdict(snapshot).label} />
-            <StatusBadge status={publicationState(snapshot).label} />
-          </div>
+          <div className="space-y-4 px-4 pb-6">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge status={snapshot.status} />
+              <StatusBadge status={validationVerdict(snapshot).label} />
+              <StatusBadge status={publicationState(snapshot).label} />
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Integrity hash</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <HashCell hash={snapshot.hash} />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Validation</CardTitle>
-              <CardDescription>
-                {results === null
-                  ? 'Not reported by the API'
-                  : `${results.length} rules checked`}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-1.5">
-              {results === null ? (
-                // The column was missing, which points at the server rather than
-                // at this snapshot. Saying "no results" would blame the snapshot
-                // for something it never reported.
-                <p className="text-xs text-muted-foreground">
-                  This response did not include validation results, so nothing can be said about
-                  whether this snapshot passed.
-                </p>
-              ) : results.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  No results were recorded. That is not the same as passing.
-                </p>
-              ) : (
-                results.map((result) => (
-                  <div key={result.rule} className="flex items-start gap-2 text-xs">
-                    <StatusBadge status={result.isValid ? 'Passed' : 'Failed'} className="shrink-0" />
-                    <div>
-                      <div className="font-medium">{result.rule}</div>
-                      {result.message ? (
-                        <div className="text-muted-foreground">{result.message}</div>
-                      ) : null}
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Gateway deployment</CardTitle>
-              <CardDescription>What gateways are running, per publication</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {deployment ? (
-                <div className="space-y-2 text-xs">
-                  <div className="flex items-center gap-2">
-                    <StatusBadge status={deployment.status} />
-                    <span className="text-muted-foreground">
-                      {formatTimestamp(deployment.startedAt)}
-                    </span>
-                  </div>
-                  <dl className="grid gap-1 sm:grid-cols-[110px_1fr] text-muted-foreground">
-                    <dt>Publication</dt>
-                    <dd className="truncate font-mono">{deployment.publicationId}</dd>
-                    <dt>Finished</dt>
-                    <dd>{formatTimestamp(deployment.completedAt)}</dd>
-                  </dl>
-                  {deployment.failureReason ? (
-                    <p className="text-destructive">{deployment.failureReason}</p>
-                  ) : null}
+            <Card>
+              <CardHeader className="flex flex-row items-start justify-between gap-4">
+                <div className="space-y-1.5">
+                  <CardTitle>Configuration</CardTitle>
+                  <CardDescription>
+                    The Ocelot configuration this snapshot publishes to every gateway.
+                  </CardDescription>
                 </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  This snapshot has never been published, so no gateway is running it.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copy}
+                    disabled={!snapshot.content}
+                  >
+                    {copied ? (
+                      <Check className="size-4" aria-hidden="true" />
+                    ) : (
+                      <ClipboardCopy className="size-4" aria-hidden="true" />
+                    )}
+                    {copied ? 'Copied' : 'Copy'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={snapshot.status === 'Archived' || publish.isPending}
+                    onClick={() => setConfirming(true)}
+                  >
+                    <Send aria-hidden="true" className="mr-1 size-4" />
+                    Publish
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {snapshot.content ? (
+                  <JsonHighlight payload={snapshot.content} />
+                ) : (
+                  // The list answered without the document, which is a partial
+                  // response rather than an empty configuration.
+                  <p className="text-xs text-muted-foreground">
+                    This response did not include the configuration document, so there
+                    is nothing to preview.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
 
-          {canCompare ? (
-            <Button variant="outline" onClick={onCompare}>
-              <GitCompare aria-hidden="true" className="size-4" />
-              Compare with the previous snapshot
-            </Button>
-          ) : null}
-        </div>
-      </SheetContent>
-    </Sheet>
+            <Card>
+              <CardHeader>
+                <CardTitle>Validation</CardTitle>
+                <CardDescription>
+                  {results === null
+                    ? 'Not reported by the API'
+                    : `${results.length} rules checked`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-1.5">
+                {results === null ? (
+                  // The column was missing, which points at the server rather than
+                  // at this snapshot. Saying "no results" would blame the snapshot
+                  // for something it never reported.
+                  <p className="text-xs text-muted-foreground">
+                    This response did not include validation results, so nothing can be
+                    said about whether this snapshot passed.
+                  </p>
+                ) : results.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No results were recorded. That is not the same as passing.
+                  </p>
+                ) : (
+                  results.map((result) => (
+                    <div key={result.rule} className="flex items-start gap-2 text-xs">
+                      <StatusBadge
+                        status={result.isValid ? 'Passed' : 'Failed'}
+                        className="shrink-0"
+                      />
+                      <div>
+                        <div className="font-medium">{result.rule}</div>
+                        {result.message ? (
+                          <div className="text-muted-foreground">{result.message}</div>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Gateway deployment</CardTitle>
+                <CardDescription>What gateways are running, per publication</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {deployment ? (
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={deployment.status} />
+                      <span className="text-muted-foreground">
+                        {formatTimestamp(deployment.startedAt)}
+                      </span>
+                    </div>
+                    <dl className="grid gap-1 sm:grid-cols-[110px_1fr] text-muted-foreground">
+                      <dt>Publication</dt>
+                      <dd className="truncate font-mono">{deployment.publicationId}</dd>
+                      <dt>Finished</dt>
+                      <dd>{formatTimestamp(deployment.completedAt)}</dd>
+                    </dl>
+                    {deployment.failureReason ? (
+                      <p className="text-destructive">{deployment.failureReason}</p>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    This snapshot has never been published, so no gateway is running it.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {canCompare ? (
+              <Button variant="outline" onClick={onCompare}>
+                <GitCompare aria-hidden="true" className="size-4" />
+                Compare with the previous snapshot
+              </Button>
+            ) : null}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {confirming ? (
+        <PublishDialog snapshot={snapshot} onDone={() => setConfirming(false)} />
+      ) : null}
+    </>
   )
 }
 

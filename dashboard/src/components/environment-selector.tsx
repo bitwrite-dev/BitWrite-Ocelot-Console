@@ -1,7 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-const STORAGE_KEY = 'dashboard:environment'
+import { getApiEnvironment } from '@/api/config'
+import {
+  ENVIRONMENTS,
+  readSelectedEnvironment,
+  storeSelectedEnvironment,
+} from '@/lib/environment'
 
 /**
  * Runtime environment selector.
@@ -9,22 +14,27 @@ const STORAGE_KEY = 'dashboard:environment'
  * The control plane stores routes, services and snapshots per environment,
  * so every request must name the environment it operates on via the
  * `X-Environment` header. This selector persists the choice in localStorage
- * so it survives page reloads.
+ * so it survives page reloads; the request itself sends it because the HTTP
+ * client reads the same stored choice (see `lib/environment`).
  */
 export function EnvironmentSelector() {
-  const [environment, setEnvironment] = useState<string>('development')
-
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) setEnvironment(stored)
-  }, [])
+  // What the request would send right now is what the selector has to show:
+  // the stored choice if there is one, otherwise the build's configured
+  // environment, and a plain default only when neither is set.
+  const [environment, setEnvironment] = useState(
+    () => readSelectedEnvironment() || getApiEnvironment() || 'development',
+  )
 
   const handleChange = (value: string) => {
+    storeSelectedEnvironment(value)
     setEnvironment(value)
-    localStorage.setItem(STORAGE_KEY, value)
-    // Force a page reload so the HTTP client picks up the new environment
+    // Reload so every open view refetches under the new environment: the query
+    // caches are keyed per endpoint rather than per environment, and without a
+    // reload the pages would keep showing the previous environment's data.
     window.location.reload()
   }
+
+  const label = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
 
   return (
     <div className="mx-3 mt-4">
@@ -36,9 +46,11 @@ export function EnvironmentSelector() {
           <SelectValue placeholder="Select environment" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="development">Development</SelectItem>
-          <SelectItem value="staging">Staging</SelectItem>
-          <SelectItem value="production">Production</SelectItem>
+          {ENVIRONMENTS.map((value) => (
+            <SelectItem key={value} value={value}>
+              {label(value)}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
       <p className="mt-1 text-xs text-muted-foreground">

@@ -1,6 +1,10 @@
 import type { AccessTokenProvider } from './auth'
 import { anonymousTokenProvider } from './auth'
-import { getApiBaseUrl, getApiEnvironment, type ApiClientOptions } from './config'
+import {
+  getApiBaseUrl,
+  getEffectiveEnvironment,
+  type ApiClientOptions,
+} from './config'
 import { ApiError, normalizeError, normalizeNetworkError } from './errors'
 
 export type QueryParams = Record<
@@ -19,7 +23,7 @@ export interface RequestOptions {
   /**
    * Overrides the environment for one request, as `X-Environment`.
    *
-   * The configured environment is what a switch of the environment selector changes;
+   * The environment the operator selected is what a request sends by default;
    * this is for the one call that has to name a different one.
    */
   environment?: string
@@ -74,7 +78,10 @@ export function createHttpClient(
   // option and a trailing slash would otherwise yield `//api/v1/...`.
   const baseUrl = (options.baseUrl ?? getApiBaseUrl()).replace(/\/+$/, '')
   const doFetch = options.fetchImpl ?? globalThis.fetch.bind(globalThis)
-  const environment = options.environment ?? getApiEnvironment()
+  // A per-client override wins when set (mainly tests); otherwise the request
+  // resolves the environment below, so a client built before the operator
+  // chose still sends the current choice.
+  const environment = options.environment
 
   async function request<T>(path: string, requestOptions: RequestOptions = {}): Promise<T> {
     const { method = 'GET', query, body, signal, onUnauthorized } = requestOptions
@@ -82,10 +89,17 @@ export function createHttpClient(
     const headers: Record<string, string> = { Accept: 'application/json' }
     if (body !== undefined) headers['Content-Type'] = 'application/json'
 
-    // Every request names the environment it operates on. Sent only when one is
-    // configured: an unset value has to look unset to the API rather than defaulting
-    // to some environment's data behind the operator's back.
-    const selected = requestOptions.environment ?? environment
+    // Every request names the environment it operates on, and it is the one the
+    // operator selected rather than the one the build was configured with. The
+    // two disagree as soon as the selector is used, and a publication checks
+    // that the environment it names is the one the request was sent for — so
+    // resolving the choice here is what keeps them the same thing.
+    //
+    // Sent only when one is known: an unset value has to look unset to the API
+    // rather than defaulting to some environment's data behind the operator's
+    // back.
+    const selected =
+      requestOptions.environment ?? environment ?? getEffectiveEnvironment()
     if (selected) headers['X-Environment'] = selected
 
     const token = tokenProvider.getAccessToken()

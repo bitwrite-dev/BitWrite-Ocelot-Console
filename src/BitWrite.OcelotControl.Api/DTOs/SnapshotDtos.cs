@@ -86,18 +86,24 @@ public record SnapshotCompareResponse(
 );
 
 /// <summary>
-/// The environment a publication is for.
+/// What a publication is for, and where it goes.
 /// </summary>
 /// <remarks>
-/// Required, and not defaulted. A publication has to name the environment it serves
-/// because routes, services and snapshots are stored per environment, and answering
-/// a request that names none would publish one environment's snapshot to another
-/// environment's gateways without anyone saying so.
+/// The environment is required and not defaulted: routes, services and snapshots
+/// are stored per environment, so a publication that named none would publish one
+/// environment's snapshot to another environment's gateways without anyone saying
+/// so. The controller additionally refuses the request when it disagrees with the
+/// environment the request itself was sent for.
+///
+/// Gateway ids are GUIDs, so they are strings: the handler resolves each one with
+/// <c>GatewayId.From</c>, which rejects anything that is not a GUID. An empty list
+/// is rejected rather than read as "every gateway", because a publication that
+/// reached nobody would report success while changing nothing.
 /// </remarks>
 public record SnapshotPublishRequest(
     [Required] string InitiatedBy,
     [Required] string Environment,
-    [Required] int[] TargetGatewayIds
+    [Required] string[] TargetGatewayIds
 );
 
 /// <summary>

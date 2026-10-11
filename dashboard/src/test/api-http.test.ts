@@ -111,6 +111,27 @@ describe('createHttpClient', () => {
     expect(headers['X-Environment']).toBeUndefined()
   })
 
+  it('names the environment the selector chose, read per request', async () => {
+    // The selector's choice is what the operator believes every request is for.
+    // It is read per request, so a client built before the choice — or a choice
+    // changed while the app is open — does not keep sending a stale name.
+    const fetchImpl = vi.fn().mockImplementation(async () => jsonResponse({}))
+    const http = createHttpClient(
+      { getAccessToken: () => null },
+      { baseUrl: 'http://api.test', fetchImpl: fetchImpl as unknown as typeof fetch },
+    )
+
+    localStorage.setItem('dashboard:environment', 'staging')
+    await http.get('/api/v1/routes')
+    localStorage.setItem('dashboard:environment', 'production')
+    await http.get('/api/v1/routes')
+
+    const first = fetchImpl.mock.calls[0][1].headers as Record<string, string>
+    const second = fetchImpl.mock.calls[1][1].headers as Record<string, string>
+    expect(first['X-Environment']).toBe('staging')
+    expect(second['X-Environment']).toBe('production')
+  })
+
   it('lets one request name a different environment than the client does', async () => {
     const fetchImpl = vi.fn().mockImplementation(async () => jsonResponse({}))
     const http = createHttpClient(
@@ -245,6 +266,7 @@ describe('resources', () => {
     await resources.snapshots.compare(7, 5)
     await resources.snapshots.rollback(3, {
       initiatedBy: 'operator',
+      environment: 'development',
       targetVersion: 2,
       reason: 'regression',
     })
