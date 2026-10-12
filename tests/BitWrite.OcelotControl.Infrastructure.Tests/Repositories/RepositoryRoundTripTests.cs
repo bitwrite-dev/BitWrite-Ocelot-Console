@@ -247,4 +247,68 @@ public class RepositoryRoundTripTests
         loaded!.CreatedAt.Should().Be(created.CreatedAt);
         loaded.UpdatedAt.Should().Be(created.UpdatedAt);
     }
+
+    [Fact]
+    public async Task Route_ShouldPreserveThePendingCaptureFlag()
+    {
+        var repository = NewRoutes();
+        var created = Route.Create(
+            HttpMethod.Parse("GET"),
+            UpstreamPath.From("/api/users"),
+            ServiceId.New(),
+            new List<DownstreamTarget> { DownstreamTarget.Create("http", "host-a", 5001) });
+
+        created.MarkAsCaptured();
+        await repository.AddAsync(created);
+
+        var loaded = await repository.GetAsync(created.Id);
+
+        loaded!.IsDraft.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Service_ShouldPreserveThePendingCaptureFlag()
+    {
+        var repository = NewServices();
+        var created = Service.Create("user-service");
+        created.AddHost("host-a", 5001);
+
+        await repository.AddAsync(created);
+
+        var loaded = await repository.GetAsync(created.Id);
+
+        // A service is created pending capture; if the flag were dropped on the
+        // write the page would report nothing pending immediately after a change.
+        loaded!.IsDraft.Should().BeTrue();
+
+        created.MarkAsCaptured();
+        await repository.UpdateAsync(created);
+        loaded = await repository.GetAsync(created.Id);
+
+        loaded!.IsDraft.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ARecordStoredBeforeTheFlagExisted_ReadsAsCaptured()
+    {
+        // Migration correctness: rows written before the field carries none. They
+        // must not read as everything pending, which would claim a change the
+        // operator never made after every upgrade.
+        var repository = NewRoutes();
+        var created = Route.Create(
+            HttpMethod.Parse("GET"),
+            UpstreamPath.From("/api/users"),
+            ServiceId.New(),
+            new List<DownstreamTarget> { DownstreamTarget.Create("http", "host-a", 5001) });
+
+        await repository.AddAsync(created);
+
+        // Drop the field the way an older row would have stored it.
+        var key = _store.Keys.Single();
+        _store[key] = _store[key].Where(e => e.Name != "IsDraft").ToArray();
+
+        var loaded = await repository.GetAsync(created.Id);
+
+        loaded!.IsDraft.Should().BeFalse();
+    }
 }

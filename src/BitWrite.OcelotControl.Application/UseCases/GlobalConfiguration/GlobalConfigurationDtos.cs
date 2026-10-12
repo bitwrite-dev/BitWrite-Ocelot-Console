@@ -15,5 +15,6 @@ public record GlobalConfigurationResponse(
     QoSConfig? QoS,
     HttpHandlerConfig? HttpHandler,
     ServiceDiscoveryConfig? ServiceDiscovery,
-    DateTimeOffset UpdatedAt
+    DateTimeOffset UpdatedAt,
+    bool IsDraft
 );

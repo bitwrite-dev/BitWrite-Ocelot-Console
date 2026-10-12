@@ -453,7 +453,8 @@ public class RoutesController : BaseApiController
                     route.HttpClientOptions.UseTracing),
             route.TimeoutSeconds,
             route.CreatedAt,
-            route.UpdatedAt);
+            route.UpdatedAt,
+            route.IsDraft);
 
     private static ApiDtos.TransformationsResponse? ToTransformationsResponse<TTransform>(
         IReadOnlyList<TTransform>? add,

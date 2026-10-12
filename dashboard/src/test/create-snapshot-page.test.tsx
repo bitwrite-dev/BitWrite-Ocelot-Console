@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createApiClient } from '@/api'
 import { ApiClientContext } from '@/app-providers'
 import { CreateSnapshotPage } from '@/features/snapshots/create-snapshot-page'
+import { pendingCaptureCount } from '@/features/snapshots/create-model'
 import type { PreviewSnapshotResponse, SnapshotResponse } from '@/api'
 
 const PUBLISHED: SnapshotResponse = {
@@ -91,6 +92,33 @@ function renderCreate(handler: Handler) {
   return { calls }
 }
 
+/**
+ * A route as the list endpoint returns it.
+ *
+ * Only what the page reads is filled in: the counts and the pending-capture
+ * flag. The pending flag is the field the whole question turns on, so a fixture
+ * that omits it cannot say whether anything is left to capture.
+ */
+const routeFixture = (id: string, isDraft: boolean) => ({
+  id,
+  key: `GET:/${id}`,
+  method: 'GET',
+  upstreamPath: `/${id}`,
+  host: null,
+  serviceId: 'svc-1',
+  isDraft,
+})
+
+const serviceFixture = (id: string, isDraft: boolean) => ({
+  id,
+  name: 'orders',
+  description: null,
+  downstreamTargets: [],
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
+  isDraft,
+})
+
 const baseline =
   (preview: PreviewSnapshotResponse = CLEAN_PREVIEW, created?: SnapshotResponse): Handler =>
   (url, method) => {
@@ -99,16 +127,56 @@ const baseline =
       return ok(created ?? { ...PUBLISHED, version: 105, status: 'Ready', publishedAt: null })
     }
     if (url.includes('/api/v1/routes')) {
-      return ok({ routes: [], totalCount: 2, page: 1, pageSize: 1 })
+      return ok({
+        routes: [routeFixture('r-1', true), routeFixture('r-2', true)],
+        totalCount: 2,
+        page: 1,
+        pageSize: 50,
+      })
     }
     if (url.includes('/api/v1/services')) {
-      return ok({ services: [], totalCount: 1, page: 1, pageSize: 1 })
+      return ok({
+        services: [serviceFixture('s-1', true)],
+        totalCount: 1,
+        page: 1,
+        pageSize: 50,
+      })
     }
     if (url.includes('/api/v1/snapshots')) {
       return ok({ snapshots: [PUBLISHED], totalCount: 1, page: 1, pageSize: 20 })
     }
     return ok({})
   }
+
+/**
+ * The same installation with nothing pending capture.
+ *
+ * Every route and the service have been sealed by a snapshot, so the page is
+ * looking at a state a snapshot already carries.
+ */
+const settledBaseline: Handler = (url) => {
+  if (url.endsWith('/preview')) return ok(CLEAN_PREVIEW)
+  if (url.includes('/api/v1/routes')) {
+    return ok({
+      routes: [routeFixture('r-1', false), routeFixture('r-2', false)],
+      totalCount: 2,
+      page: 1,
+      pageSize: 50,
+    })
+  }
+  if (url.includes('/api/v1/services')) {
+    return ok({
+      services: [serviceFixture('s-1', false)],
+      totalCount: 1,
+      page: 1,
+      pageSize: 50,
+    })
+  }
+  if (url.includes('/api/v1/snapshots')) {
+    return ok({ snapshots: [PUBLISHED], totalCount: 1, page: 1, pageSize: 20 })
+  }
+  return ok({})
+}
 
 /** Walks from step 1 to step 3, which is what a passing validation unlocks. */
 async function advanceToSeal() {
@@ -300,11 +368,47 @@ describe('the three steps', () => {
 })
 
 describe('what the source step shows', () => {
-  it('counts what is about to be sealed', async () => {
+  it('counts what is about to be sealed, and how much of it is still pending', async () => {
     renderCreate(baseline())
 
-    expect(await screen.findByText('2 routes')).toBeInTheDocument()
-    expect(screen.getByText('1 services')).toBeInTheDocument()
+    // The counts beside the source say what exists; the draft counts say what a
+    // snapshot has not taken yet. The two were the same number before, because
+    // the flag they read did not exist.
+    expect(await screen.findByText('2 routes (2 draft)')).toBeInTheDocument()
+    expect(screen.getByText('1 services (1 draft)')).toBeInTheDocument()
+  })
+
+  it('says so and pauses when nothing has changed since the last snapshot', async () => {
+    renderCreate(settledBaseline)
+
+    // A re-seal of an unchanged configuration is exactly what the operator asked
+    // not to be offered, so the step says why rather than sending them on.
+    expect(
+      await screen.findByText('Nothing has changed since the last snapshot'),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /continue to validation/i })).toBeDisabled()
+  })
+
+  it('still lets a deliberate re-seal through', async () => {
+    renderCreate(settledBaseline)
+
+    // The pause is not a refusal: a fresh baseline or a cleanup snapshot is
+    // occasionally deliberate, and hiding the way through would break it.
+    await userEvent.click(await screen.findByRole('button', { name: /continue anyway/i }))
+
+    expect(await screen.findByText('Step 2 of 3')).toBeInTheDocument()
+  })
+
+  it('cannot claim nothing to capture from a partial read', () => {
+    // The counts answer from one page, and a page that holds no drafts says
+    // nothing about the rows behind it. "Nothing pending" is a claim about the
+    // whole state, so a partial read answers null rather than zero — and the
+    // page reads null as "keep going".
+    expect(pendingCaptureCount({ routes: 0, services: 0, globalConfig: 0 }, false)).toBeNull()
+
+    // Read in full, the same answer is a claim the gate can act on.
+    expect(pendingCaptureCount({ routes: 0, services: 0, globalConfig: 0 }, true)).toBe(0)
+    expect(pendingCaptureCount({ routes: 1, services: 2, globalConfig: 1 }, true)).toBe(4)
   })
 
   it('shows the configuration the snapshot would capture, as JSON', async () => {

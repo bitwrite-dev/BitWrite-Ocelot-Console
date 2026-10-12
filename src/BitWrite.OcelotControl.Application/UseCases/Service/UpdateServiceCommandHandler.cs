@@ -103,15 +103,6 @@ public class UpdateServiceCommandHandler
         return MapToResponse(service);
     }
 
-    private static ServiceResponse MapToResponse(DomainService service)
-    {
-        return new ServiceResponse(
-            service.Id,
-            service.Name,
-            service.Description,
-            service.Endpoints.Select(e => new ServiceEndpoint(e.Host, e.Port, e.Weight, e.IsActive)).ToList(),
-            service.CreatedAt,
-            service.UpdatedAt
-        );
-    }
+    private static ServiceResponse MapToResponse(DomainService service) =>
+        ServiceResponseMapper.Map(service);
 }

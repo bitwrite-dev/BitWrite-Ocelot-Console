@@ -33,7 +33,8 @@ public record RouteResponse(
     HttpClientOptions? HttpClientOptions,
     int? TimeoutSeconds,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt
+    DateTimeOffset UpdatedAt,
+    bool IsDraft
 );
 
 public record RouteListResponse(

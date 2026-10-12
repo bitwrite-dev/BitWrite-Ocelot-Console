@@ -104,6 +104,7 @@ describe('serviceDraftFrom', () => {
       ],
       createdAt: '',
       updatedAt: '',
+      isDraft: false,
     })
 
     expect(draft.name).toBe('users-api')
@@ -119,6 +120,7 @@ describe('serviceDraftFrom', () => {
       downstreamTargets: [],
       createdAt: '',
       updatedAt: '',
+      isDraft: false,
     })
 
     expect(draft.description).toBeNull()

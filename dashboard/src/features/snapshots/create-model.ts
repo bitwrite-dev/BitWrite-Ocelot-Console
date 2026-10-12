@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { useApi } from '@/app-providers'
-import type { PreviewSnapshotResponse, SnapshotListResponse, GlobalConfigurationResponse, RouteListResponse, ServiceListResponse } from '@/api'
+import type { PreviewSnapshotResponse, SnapshotListResponse } from '@/api'
 
 import { useSnapshotMutations } from './queries'
 
@@ -17,15 +17,23 @@ import { useSnapshotMutations } from './queries'
 export function useCreateSourceCounts() {
   const api = useApi()
 
+  // One page wide enough for a realistic installation. The page has to read the
+  // routes themselves, not only their total, because the pending question is
+  // about which of them are draft — and a page of one route would answer that
+  // about one route.
+  const SOURCE_PAGE_SIZE = 50
+
   const routes = useQuery({
-    queryKey: ['routes', 'list', 1, 1],
-    queryFn: ({ signal }) => api.resources.routes.list({ page: 1, pageSize: 1, signal }),
+    queryKey: ['routes', 'list', 1, SOURCE_PAGE_SIZE],
+    queryFn: ({ signal }) =>
+      api.resources.routes.list({ page: 1, pageSize: SOURCE_PAGE_SIZE, signal }),
     staleTime: 30_000,
   })
 
   const services = useQuery({
-    queryKey: ['services', 'list', 1, 1],
-    queryFn: ({ signal }) => api.resources.services.list({ page: 1, pageSize: 1, signal }),
+    queryKey: ['services', 'list', 1, SOURCE_PAGE_SIZE],
+    queryFn: ({ signal }) =>
+      api.resources.services.list({ page: 1, pageSize: SOURCE_PAGE_SIZE, signal }),
     staleTime: 30_000,
   })
 
@@ -35,8 +43,18 @@ export function useCreateSourceCounts() {
     staleTime: 30_000,
   })
 
+  // Whether the whole of both lists was read. A shorter page than the total says
+  // the rest was not, and a pending count computed from a partial read would
+  // understate — the failure mode that blocks a snapshot that should be created.
+  const allRead =
+    routes.data !== undefined &&
+    services.data !== undefined &&
+    routes.data.routes.length >= routes.data.totalCount &&
+    services.data.services.length >= services.data.totalCount
+
   return {
     isPending: routes.isPending || services.isPending || globalConfig.isPending,
+    allRead,
     counts: {
       routes: routes.data ? routes.data.totalCount : null,
       services: services.data ? services.data.totalCount : null,
@@ -47,6 +65,26 @@ export function useCreateSourceCounts() {
       globalConfig: globalConfig.data && globalConfig.data.isDraft ? 1 : 0,
     },
   }
+}
+
+/**
+ * How much of the management state is still pending capture, or null when that
+ * cannot be said.
+ *
+ * Null rather than zero when the lists were not read in full: "nothing to
+ * capture" is a claim about the whole state, and a claim made from a page of it
+ * would block exactly the snapshot that should have been created.
+ */
+export function pendingCaptureCount(
+  draftStatus: {
+    routes: number | null
+    services: number | null
+    globalConfig: number | null
+  },
+  allRead: boolean,
+): number | null {
+  if (!allRead) return null
+  return (draftStatus.routes ?? 0) + (draftStatus.services ?? 0) + (draftStatus.globalConfig ?? 0)
 }
 
 /**

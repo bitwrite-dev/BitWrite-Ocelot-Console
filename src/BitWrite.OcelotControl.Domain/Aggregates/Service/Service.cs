@@ -16,6 +16,17 @@ public class Service
     public ServiceId Id { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }
+
+    /// <summary>
+    /// Whether this service has changed since a snapshot last captured it.
+    /// </summary>
+    /// <remarks>
+    /// Set by every change to the service and cleared when a snapshot is created,
+    /// because a snapshot captures the whole current management state — so a
+    /// service that is not draft was sealed exactly as it stands. See
+    /// <see cref="Route.Route.IsDraft"/> for why the flag exists.
+    /// </remarks>
+    public bool IsDraft { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
 
@@ -37,6 +48,7 @@ public class Service
             Id = ServiceId.New(),
             Name = name.Trim(),
             Description = description?.Trim(),
+            IsDraft = true,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
@@ -62,6 +74,7 @@ public class Service
         string? description,
         DateTimeOffset createdAt,
         DateTimeOffset updatedAt,
+        bool isDraft = false,
         IReadOnlyList<ServiceEndpoint>? endpoints = null)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -72,6 +85,7 @@ public class Service
             Id = id,
             Name = name.Trim(),
             Description = description?.Trim(),
+            IsDraft = isDraft,
             CreatedAt = createdAt,
             UpdatedAt = updatedAt
         };
@@ -85,6 +99,33 @@ public class Service
         }
 
         return service;
+    }
+
+    /// <summary>
+    /// Marks this service as captured by the snapshot being created.
+    /// </summary>
+    /// <remarks>
+    /// Called for every service when a snapshot is sealed, because the snapshot is
+    /// built from the whole management state. Does not stamp
+    /// <see cref="UpdatedAt"/>: clearing the flag records that the content was
+    /// taken, not that it changed.
+    /// </remarks>
+    public void MarkAsCaptured(string correlationId = "")
+    {
+        IsDraft = false;
+    }
+
+    /// <summary>
+    /// The one place a change to this service is recorded.
+    /// </summary>
+    /// <remarks>
+    /// Every mutator goes through here so a change cannot stamp
+    /// <see cref="UpdatedAt"/> without flagging the service as pending capture.
+    /// </remarks>
+    private void MarkDirty()
+    {
+        UpdatedAt = DateTimeOffset.UtcNow;
+        IsDraft = true;
     }
 
     /// <summary>
@@ -113,7 +154,7 @@ public class Service
         };
 
         _endpoints.Add(endpoint);
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
 
         AddDomainEvent(new ServiceHostAdded(Id, endpoint.Host, endpoint.Port));
     }
@@ -133,7 +174,7 @@ public class Service
             throw new DomainException("Service must have at least one endpoint", "NO_ENDPOINTS");
 
         _endpoints.Remove(endpoint);
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
 
         AddDomainEvent(new ServiceHostRemoved(Id, host, port));
     }
@@ -153,7 +194,7 @@ public class Service
             throw new DomainException($"Endpoint {host}:{port} not found", "ENDPOINT_NOT_FOUND");
 
         endpoint.Weight = weight;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -168,7 +209,7 @@ public class Service
             throw new DomainException($"Endpoint {host}:{port} not found", "ENDPOINT_NOT_FOUND");
 
         endpoint.IsActive = isActive;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -181,7 +222,7 @@ public class Service
 
         var oldName = Name;
         Name = name.Trim();
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
 
         AddDomainEvent(new ServiceUpdated(Id));
     }
@@ -192,7 +233,7 @@ public class Service
     public void UpdateDescription(string? description)
     {
         Description = description?.Trim();
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
 
         AddDomainEvent(new ServiceUpdated(Id));
     }
@@ -207,7 +248,7 @@ public class Service
 
         Name = name.Trim();
         Description = description?.Trim();
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
 
         AddDomainEvent(new ServiceUpdated(Id));
     }

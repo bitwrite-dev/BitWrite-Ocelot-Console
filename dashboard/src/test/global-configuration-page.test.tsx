@@ -34,6 +34,7 @@ const CONFIG: GlobalConfigurationResponse = {
     configuration: { PollingInterval: '5000' },
   },
   updatedAt: '2026-01-02T03:04:05Z',
+  isDraft: true,
 }
 
 type Handler = (url: string, method: string, body: unknown) => Response

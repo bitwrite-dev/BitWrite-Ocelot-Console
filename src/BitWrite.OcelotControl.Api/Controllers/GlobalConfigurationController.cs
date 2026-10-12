@@ -105,7 +105,8 @@ public class GlobalConfigurationController : BaseApiController
                 config.ServiceDiscovery.Port,
                 config.ServiceDiscovery.Type,
                 config.ServiceDiscovery.Configuration ?? new Dictionary<string, string>()) : null,
-            config.UpdatedAt
+            config.UpdatedAt,
+            config.IsDraft
         );
     }
 }

@@ -15,6 +15,7 @@ import { isPermissionError } from '@/lib/api-error'
 import type { PreviewSnapshotResponse, SnapshotResponse } from '@/api'
 
 import {
+  pendingCaptureCount,
   useCreateSourceCounts,
   useLatestPublishedSnapshot,
   usePreviewSnapshot,
@@ -57,6 +58,21 @@ export function CreateSnapshotPage() {
   const published = useLatestPublishedSnapshot()
   const source = useCreateSourceCounts()
   const { create, isPending, error, data: created } = useSnapshotCreate()
+
+  /**
+   * Whether the state has anything a snapshot has not captured yet.
+   *
+   * Null until the counts answer, because "nothing to capture" is a statement
+   * about the state and not about a request still in flight. An installation
+   * with no routes is deliberately not this case — that is "nothing
+   * configured", which step 2 reports as a warning and the operator decides,
+   * since sealing an empty configuration is how a gateway gets cleared.
+   */
+  const pendingCount = pendingCaptureCount(source.draftStatus, source.allRead)
+  const nothingToCapture =
+    pendingCount !== null &&
+    pendingCount === 0 &&
+    (source.counts.routes ?? 0) + (source.counts.services ?? 0) > 0
 
   const goToValidate = async () => {
     setStep(2)
@@ -216,10 +232,34 @@ export function CreateSnapshotPage() {
             <Card>
               <CardContent className="space-y-2 pt-6">
                 {step === 1 ? (
-                  <Button className="w-full" onClick={goToValidate}>
-                    Continue to validation
-                    <ArrowRight aria-hidden="true" className="size-4" />
-                  </Button>
+                  <>
+                    {nothingToCapture ? (
+                      <Alert>
+                        <AlertTitle>Nothing has changed since the last snapshot</AlertTitle>
+                        <AlertDescription>
+                          Every route, service and setting has been captured already.
+                          Sealing another snapshot would record the same configuration
+                          under a new version, and publishing it would change nothing.
+                        </AlertDescription>
+                      </Alert>
+                    ) : null}
+                    <Button
+                      className="w-full"
+                      disabled={nothingToCapture}
+                      onClick={goToValidate}
+                    >
+                      Continue to validation
+                      <ArrowRight aria-hidden="true" className="size-4" />
+                    </Button>
+                    {nothingToCapture ? (
+                      // The escape hatch, and it is explicit: a re-seal of an
+                      // unchanged configuration is occasionally deliberate, and
+                      // hiding the way through would make the pause a refusal.
+                      <Button variant="ghost" className="w-full" onClick={goToValidate}>
+                        Continue anyway
+                      </Button>
+                    ) : null}
+                  </>
                 ) : (
                   <>
                     <Button variant="outline" className="w-full" onClick={goToValidate}>
@@ -354,7 +394,7 @@ function SourceOption({
 function CountChip({ label, value, draft }: { label: string; value: number | null; draft?: number | null }) {
   return (
     <span className="rounded border px-1.5 py-0.5 text-xs text-muted-foreground">
-      {value === null ? `— ${label}` : draft && draft > 0 ? `${value} ${label} ({draft} draft)` : `${value} ${label}`}
+      {value === null ? `— ${label}` : draft && draft > 0 ? `${value} ${label} (${draft} draft)` : `${value} ${label}`}
     </span>
   )
 }

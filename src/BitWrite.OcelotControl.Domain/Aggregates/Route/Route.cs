@@ -23,6 +23,18 @@ public class Route
     public UpstreamPath UpstreamPath { get; private set; } = default!;
     public ServiceId ServiceId { get; private set; } = default!;
     public bool IsEnabled { get; private set; } = true;
+
+    /// <summary>
+    /// Whether this route has changed since a snapshot last captured it.
+    /// </summary>
+    /// <remarks>
+    /// Set by every change to the route and cleared when a snapshot is created,
+    /// because a snapshot captures the whole current management state — so a
+    /// route that is not draft was sealed exactly as it stands. That is what
+    /// lets the create page say what is still pending capture, and refuse a
+    /// silent re-seal of a configuration that has not moved.
+    /// </remarks>
+    public bool IsDraft { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
 
@@ -171,6 +183,7 @@ public class Route
             Key = key?.Trim(),
             Host = host?.ToLowerInvariant().Trim(),
             IsEnabled = true,
+            IsDraft = true,
             CreatedAt = DateTimeOffset.UtcNow,
             UpdatedAt = DateTimeOffset.UtcNow
         };
@@ -207,6 +220,7 @@ public class Route
         bool isEnabled,
         DateTimeOffset createdAt,
         DateTimeOffset updatedAt,
+        bool isDraft = false,
         string? key = null,
         string? host = null,
         int priority = 0,
@@ -241,6 +255,7 @@ public class Route
             Key = key?.Trim(),
             Host = host?.ToLowerInvariant().Trim(),
             IsEnabled = isEnabled,
+            IsDraft = isDraft,
             CreatedAt = createdAt,
             UpdatedAt = updatedAt,
             Priority = priority,
@@ -289,6 +304,37 @@ public class Route
     }
 
     /// <summary>
+    /// Marks this route as captured by the snapshot being created.
+    /// </summary>
+    /// <remarks>
+    /// Called for every route when a snapshot is sealed: the snapshot is built
+    /// from the whole management state, so nothing is left uncaptured by one.
+    /// Deliberately does not stamp <see cref="UpdatedAt"/> — clearing the flag
+    /// records that the content was taken, not that the content changed, and a
+    /// timestamp here would make the route look edited by the act of sealing it.
+    /// </remarks>
+    public void MarkAsCaptured(string correlationId = "")
+    {
+        IsDraft = false;
+    }
+
+    /// <summary>
+    /// The one place a change to this route is recorded.
+    /// </summary>
+    /// <remarks>
+    /// Every mutator goes through here rather than stamping the two fields
+    /// itself, because a change that stamped <see cref="UpdatedAt"/> without
+    /// setting the flag would leave the route looking captured while its content
+    /// had moved — and the create page would then offer a snapshot it believed
+    /// was unchanged.
+    /// </remarks>
+    private void MarkDirty()
+    {
+        UpdatedAt = DateTimeOffset.UtcNow;
+        IsDraft = true;
+    }
+
+    /// <summary>
     /// Enables the route.
     /// </summary>
     public void Enable(string correlationId = "")
@@ -297,7 +343,7 @@ public class Route
             return;
 
         IsEnabled = true;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
         AddDomainEvent(new RouteEnabled(Id));
     }
 
@@ -310,7 +356,7 @@ public class Route
             return;
 
         IsEnabled = false;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
         AddDomainEvent(new RouteDisabled(Id));
     }
 
@@ -320,7 +366,7 @@ public class Route
     public void SetAuthentication(AuthenticationOptions? options)
     {
         AuthenticationOptions = options;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -329,7 +375,7 @@ public class Route
     public void SetAuthorization(AuthorizationOptions? options)
     {
         AuthorizationOptions = options;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -338,7 +384,7 @@ public class Route
     public void SetRateLimit(RateLimitOptions? options)
     {
         RateLimitOptions = options;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -347,7 +393,7 @@ public class Route
     public void SetQoS(QoSOptions? options)
     {
         QoSOptions = options;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -356,7 +402,7 @@ public class Route
     public void SetCache(CacheOptions? options)
     {
         CacheOptions = options;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -365,7 +411,7 @@ public class Route
     public void SetLoadBalancer(LoadBalancerOptions? options)
     {
         LoadBalancerOptions = options;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -374,7 +420,7 @@ public class Route
     public void SetHeaders(HeaderOptions? options)
     {
         HeaderOptions = options;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -383,7 +429,7 @@ public class Route
     public void SetClaims(ClaimOptions? options)
     {
         ClaimOptions = options;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -392,7 +438,7 @@ public class Route
     public void SetQuery(QueryOptions? options)
     {
         QueryOptions = options;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -407,7 +453,7 @@ public class Route
             throw new DomainException("Downstream target already exists", "DUPLICATE_DOWNSTREAM_TARGET");
 
         _downstreamTargets.Add(target);
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -420,7 +466,7 @@ public class Route
 
         if (_downstreamTargets.Remove(target))
         {
-            UpdatedAt = DateTimeOffset.UtcNow;
+            MarkDirty();
         }
     }
 
@@ -430,7 +476,7 @@ public class Route
     public void UpdateKey(string? key)
     {
         Key = key?.Trim();
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -439,7 +485,7 @@ public class Route
     public void UpdateHost(string? host)
     {
         Host = host?.ToLowerInvariant().Trim();
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -524,7 +570,7 @@ public class Route
         SetHttpClientOptions(httpClientOptions);
         SetTimeout(timeoutSeconds);
 
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
         AddDomainEvent(new RouteUpdated(Id));
     }
 
@@ -566,7 +612,7 @@ public class Route
         }
 
         DownstreamTemplate = template;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -575,7 +621,7 @@ public class Route
     public void SetDownstreamMethod(HttpMethod? method, string correlationId = "")
     {
         DownstreamMethod = method;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -619,7 +665,7 @@ public class Route
 
         DownstreamHttpVersion = version;
         DownstreamHttpVersionPolicy = policy;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -628,7 +674,7 @@ public class Route
     public void SetAcceptAnyServerCertificate(bool accept, string correlationId = "")
     {
         DangerousAcceptAnyServerCertificateValidator = accept;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -656,13 +702,13 @@ public class Route
             }
         }
 
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     public void SetHttpClientOptions(HttpClientOptions? options, string correlationId = "")
     {
         HttpClientOptions = options;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     /// <summary>
@@ -678,7 +724,7 @@ public class Route
         }
 
         TimeoutSeconds = seconds;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
     }
 
     private void AddDomainEvent(DomainEvent domainEvent)

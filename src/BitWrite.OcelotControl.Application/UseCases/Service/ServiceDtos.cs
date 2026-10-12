@@ -9,7 +9,8 @@ public record ServiceResponse(
     string? Description,
     IReadOnlyList<ServiceEndpoint> Endpoints,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt
+    DateTimeOffset UpdatedAt,
+    bool IsDraft
 );
 
 public record ServiceEndpoint(
@@ -48,5 +49,6 @@ public record RouteSummary(
     string Key,
     string Method,
     string UpstreamPath,
-    bool IsEnabled
+    bool IsEnabled,
+    bool IsDraft
 );

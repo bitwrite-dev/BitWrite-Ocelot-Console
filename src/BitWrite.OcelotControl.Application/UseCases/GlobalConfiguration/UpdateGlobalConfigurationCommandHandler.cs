@@ -84,7 +84,8 @@ public class UpdateGlobalConfigurationCommandHandler
             config.QoS,
             config.HttpHandler,
             config.ServiceDiscovery,
-            config.UpdatedAt
+            config.UpdatedAt,
+            config.IsDraft
         );
     }
 }

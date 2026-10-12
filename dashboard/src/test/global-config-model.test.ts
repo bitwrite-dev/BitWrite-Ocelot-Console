@@ -35,6 +35,7 @@ const CONFIG: GlobalConfigurationResponse = {
     configuration: { PollingInterval: '5000' },
   },
   updatedAt: '2026-01-02T03:04:05Z',
+  isDraft: true,
 }
 
 const errors = (draft: GlobalConfigurationDraft) => configurationErrors(draft)

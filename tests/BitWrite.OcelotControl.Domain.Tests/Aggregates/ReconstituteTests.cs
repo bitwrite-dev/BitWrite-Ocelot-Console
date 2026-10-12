@@ -74,7 +74,7 @@ public class ReconstituteTests
         seed.AddHost("localhost", 5002);
 
         var service = Service.Reconstitute(
-            ServiceId.New(), "s", null, Created, Updated, seed.Endpoints);
+            ServiceId.New(), "s", null, Created, Updated, endpoints: seed.Endpoints);
 
         service.Endpoints.Should().HaveCount(2);
         service.Endpoints[0].Port.Should().Be(5001);
