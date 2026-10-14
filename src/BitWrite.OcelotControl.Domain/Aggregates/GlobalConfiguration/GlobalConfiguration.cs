@@ -20,6 +20,16 @@ public class GlobalConfiguration
     public QoSConfig? QoS { get; private set; }
     public HttpHandlerConfig? HttpHandler { get; private set; }
     public ServiceDiscoveryConfig? ServiceDiscovery { get; private set; }
+
+    /// <summary>
+    /// Whether this configuration has changed since a snapshot last captured it.
+    /// </summary>
+    /// <remarks>
+    /// Set by every change and cleared when a snapshot is created, because a
+    /// snapshot captures the whole current management state — the settings
+    /// included. See <see cref="Route.Route.IsDraft"/> for why the flag exists.
+    /// </remarks>
+    public bool IsDraft { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
 
     public IReadOnlyList<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();
@@ -38,6 +48,7 @@ public class GlobalConfiguration
             RequestIdKey = "X-Request-Id",
             DownstreamScheme = "http",
             Timeout = 90000,
+            IsDraft = true,
             UpdatedAt = DateTimeOffset.UtcNow
         };
     }
@@ -58,10 +69,11 @@ public class GlobalConfiguration
         string? downstreamScheme,
         int? timeout,
         RateLimitConfig? rateLimit,
-        QoSConfig? qos,
+        QoSConfig? qoS,
         HttpHandlerConfig? httpHandler,
         ServiceDiscoveryConfig? serviceDiscovery,
-        DateTimeOffset updatedAt)
+        DateTimeOffset updatedAt,
+        bool isDraft = false)
     {
         var config = new GlobalConfiguration
         {
@@ -71,13 +83,42 @@ public class GlobalConfiguration
             DownstreamScheme = downstreamScheme,
             Timeout = timeout,
             RateLimit = rateLimit,
-            QoS = qos,
+            QoS = qoS,
             HttpHandler = httpHandler,
             ServiceDiscovery = serviceDiscovery,
+            IsDraft = isDraft,
             UpdatedAt = updatedAt
         };
 
         return config;
+    }
+
+    /// <summary>
+    /// Marks the configuration as captured by the snapshot being created.
+    /// </summary>
+    /// <remarks>
+    /// Called when a snapshot is sealed, because the snapshot is built from the
+    /// whole management state, settings included. Does not stamp
+    /// <see cref="UpdatedAt"/>: clearing the flag records that the settings were
+    /// taken, not that they changed.
+    /// </remarks>
+    public void MarkAsCaptured(string correlationId = "")
+    {
+        IsDraft = false;
+    }
+
+    /// <summary>
+    /// The one place a change to this configuration is recorded.
+    /// </summary>
+    /// <remarks>
+    /// Every mutator goes through here so a change cannot stamp
+    /// <see cref="UpdatedAt"/> without flagging the configuration as pending
+    /// capture.
+    /// </remarks>
+    private void MarkDirty()
+    {
+        UpdatedAt = DateTimeOffset.UtcNow;
+        IsDraft = true;
     }
 
     /// <summary>
@@ -86,7 +127,7 @@ public class GlobalConfiguration
     public void SetBaseUrl(string? baseUrl)
     {
         BaseUrl = baseUrl?.Trim();
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
         AddDomainEvent(new GlobalConfigurationUpdated());
     }
 
@@ -96,7 +137,7 @@ public class GlobalConfiguration
     public void SetRequestIdKey(string? requestIdKey)
     {
         RequestIdKey = requestIdKey?.Trim();
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
         AddDomainEvent(new GlobalConfigurationUpdated());
     }
 
@@ -113,7 +154,7 @@ public class GlobalConfiguration
         }
 
         DownstreamScheme = scheme?.Trim();
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
         AddDomainEvent(new GlobalConfigurationUpdated());
     }
 
@@ -126,7 +167,7 @@ public class GlobalConfiguration
             throw new DomainException("Timeout must be positive", "INVALID_TIMEOUT");
 
         Timeout = timeout;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
         AddDomainEvent(new GlobalConfigurationUpdated());
     }
 
@@ -136,7 +177,7 @@ public class GlobalConfiguration
     public void SetRateLimit(RateLimitConfig? config)
     {
         RateLimit = config;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
         AddDomainEvent(new GlobalConfigurationUpdated());
     }
 
@@ -146,7 +187,7 @@ public class GlobalConfiguration
     public void SetQoS(QoSConfig? config)
     {
         QoS = config;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
         AddDomainEvent(new GlobalConfigurationUpdated());
     }
 
@@ -156,7 +197,7 @@ public class GlobalConfiguration
     public void SetHttpHandler(HttpHandlerConfig? config)
     {
         HttpHandler = config;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
         AddDomainEvent(new GlobalConfigurationUpdated());
     }
 
@@ -166,7 +207,7 @@ public class GlobalConfiguration
     public void SetServiceDiscovery(ServiceDiscoveryConfig? config)
     {
         ServiceDiscovery = config;
-        UpdatedAt = DateTimeOffset.UtcNow;
+        MarkDirty();
         AddDomainEvent(new GlobalConfigurationUpdated());
     }
 

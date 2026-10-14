@@ -33,7 +33,8 @@ public class GetGlobalConfigurationQueryHandler
             config.QoS,
             config.HttpHandler,
             config.ServiceDiscovery,
-            config.UpdatedAt
+            config.UpdatedAt,
+            config.IsDraft
         );
     }
 }

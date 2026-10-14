@@ -35,6 +35,9 @@ public class RedisServiceRepository : RedisRepositoryBase, IServiceRepository
             GetEntry(entries, "Description"),
             DateTimeOffset.Parse(GetEntry(entries, "CreatedAt")),
             DateTimeOffset.Parse(GetEntry(entries, "UpdatedAt")),
+            // Stored before the flag existed reads as captured — see the route
+            // repository's note on the same field.
+            bool.TryParse(GetEntry(entries, "IsDraft"), out var isDraft) && isDraft,
             endpoints);
     }
 
@@ -71,6 +74,7 @@ public class RedisServiceRepository : RedisRepositoryBase, IServiceRepository
             new("Description", service.Description ?? ""),
             new("CreatedAt", service.CreatedAt.ToString("O")),
             new("UpdatedAt", service.UpdatedAt.ToString("O")),
+            new("IsDraft", service.IsDraft.ToString()),
             // Endpoints were never persisted, so they could not survive a reload.
             new("Endpoints", RedisSerializer.Serialize(SerializeEndpoints(service.Endpoints)))
         };

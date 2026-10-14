@@ -198,6 +198,32 @@ public class CreateSnapshotCommandHandler
         // 7. Persist Snapshot
         await _snapshotRepository.AddAsync(snapshot, cancellationToken);
 
+        // 7.5 Clear the pending-capture flag on everything the snapshot sealed.
+        //
+        // A snapshot is built from the whole management state, so one seal
+        // captures every route, service and the settings: "not draft" afterwards
+        // is a fact about the content, not a rating of it. An edit re-flags
+        // exactly the entity that moved, which is what lets the create page say
+        // what is still pending rather than offering a silent re-seal.
+        //
+        // Cleared only after the snapshot itself is stored, so a failed seal
+        // leaves the state flagged as pending instead of claiming a capture that
+        // does not exist.
+        foreach (var route in routes)
+        {
+            route.MarkAsCaptured();
+            await _routeRepository.UpdateAsync(route, cancellationToken);
+        }
+
+        foreach (var service in services)
+        {
+            service.MarkAsCaptured();
+            await _serviceRepository.UpdateAsync(service, cancellationToken);
+        }
+
+        globalConfig.MarkAsCaptured();
+        await _globalConfigRepository.UpdateAsync(globalConfig, cancellationToken);
+
         // 8. Raise domain event
         var createdEvent = new SnapshotCreated(version, hash, command.InitiatedBy);
         await _eventDispatcher.DispatchAsync(createdEvent, cancellationToken);

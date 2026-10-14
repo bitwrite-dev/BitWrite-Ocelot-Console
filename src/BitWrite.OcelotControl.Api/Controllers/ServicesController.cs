@@ -187,7 +187,8 @@ public class ServicesController : BaseApiController
                 .Select(e => new ApiDtos.ServiceEndpointResponse(e.Host, e.Port, e.Weight, e.IsActive))
                 .ToList(),
             service.CreatedAt,
-            service.UpdatedAt
+            service.UpdatedAt,
+            service.IsDraft
         );
     }
 
@@ -225,7 +226,11 @@ public class ServicesController : BaseApiController
             null,
             null,
             DateTimeOffset.MinValue,
-            DateTimeOffset.MinValue
+            DateTimeOffset.MinValue,
+            // The reduced summary carries the flag even where it reports no
+            // option blocks, because this is one field it does have: whether the
+            // route has changed since a snapshot captured it.
+            route.IsDraft
         );
     }
 }

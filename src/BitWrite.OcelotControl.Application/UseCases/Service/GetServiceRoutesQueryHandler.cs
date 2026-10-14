@@ -35,7 +35,8 @@ public class GetServiceRoutesQueryHandler
                 r.Key,
                 r.Method.Value,
                 r.UpstreamPath.Value,
-                r.IsEnabled
+                r.IsEnabled,
+                r.IsDraft
             )).ToList()
         );
 

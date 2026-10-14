@@ -41,5 +41,6 @@ public static class RouteResponseMapper
             route.HttpClientOptions,
             route.TimeoutSeconds,
             route.CreatedAt,
-            route.UpdatedAt);
+            route.UpdatedAt,
+            route.IsDraft);
 }

@@ -47,7 +47,15 @@ public record GlobalConfigurationResponse(
     QoSConfigResponse? QoS,
     HttpHandlerConfigResponse? HttpHandler,
     ServiceDiscoveryConfigResponse? ServiceDiscovery,
-    DateTimeOffset UpdatedAt
+    DateTimeOffset UpdatedAt,
+    /// <summary>
+    /// Whether the settings have changed since a snapshot last captured them.
+    /// </summary>
+    /// <remarks>
+    /// A snapshot captures the settings as well as the routes and services, so
+    /// the create page counts this as one of the things pending capture.
+    /// </remarks>
+    bool IsDraft
 );
 
 public record RateLimitConfigResponse(

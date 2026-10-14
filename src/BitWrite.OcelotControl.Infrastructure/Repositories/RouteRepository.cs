@@ -54,6 +54,10 @@ public class RedisRouteRepository : RedisRepositoryBase, IRouteRepository
             bool.TryParse(GetEntry(entries, "IsEnabled"), out var isEnabled) && isEnabled,
             DateTimeOffset.Parse(GetEntry(entries, "CreatedAt")),
             DateTimeOffset.Parse(GetEntry(entries, "UpdatedAt")),
+            // A route stored before the flag existed reads as captured: its
+            // content either predates the first snapshot or has been sealed, and
+            // the read-time fallback in the API covers the gap either way.
+            bool.TryParse(GetEntry(entries, "IsDraft"), out var isDraft) && isDraft,
             // Fall back to the signature for rows written before FriendlyKey existed.
             key: GetEntry(entries, "FriendlyKey") is { Length: > 0 } friendly
                 ? friendly
@@ -134,6 +138,7 @@ public class RedisRouteRepository : RedisRepositoryBase, IRouteRepository
             new("Host", route.Host ?? ""),
             new("ServiceId", route.ServiceId.Value.ToString()),
             new("IsEnabled", route.IsEnabled.ToString()),
+            new("IsDraft", route.IsDraft.ToString()),
             new("Priority", route.Priority.ToString()),
             new("RouteIsCaseSensitive", route.RouteIsCaseSensitive.ToString()),
             new("DownstreamTemplate", route.DownstreamTemplate?.Value ?? ""),

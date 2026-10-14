@@ -63,7 +63,10 @@ public class RedisGlobalConfigurationRepository : RedisRepositoryBase, IGlobalCo
             document.QoS,
             document.HttpHandler,
             document.ServiceDiscovery,
-            document.UpdatedAt);
+            // A stored document without the field deserialises it as false, which
+            // reads as captured — see the route repository's note on the same field.
+            document.UpdatedAt,
+            document.IsDraft);
     }
 
     public async Task AddAsync(GlobalConfiguration globalConfiguration, CancellationToken cancellationToken = default)
@@ -79,6 +82,7 @@ public class RedisGlobalConfigurationRepository : RedisRepositoryBase, IGlobalCo
             QoS = globalConfiguration.QoS,
             HttpHandler = globalConfiguration.HttpHandler,
             ServiceDiscovery = globalConfiguration.ServiceDiscovery,
+            IsDraft = globalConfiguration.IsDraft,
             UpdatedAt = globalConfiguration.UpdatedAt,
         };
 
@@ -106,6 +110,7 @@ public class RedisGlobalConfigurationRepository : RedisRepositoryBase, IGlobalCo
         public QoSConfig? QoS { get; set; }
         public HttpHandlerConfig? HttpHandler { get; set; }
         public ServiceDiscoveryConfig? ServiceDiscovery { get; set; }
+        public bool IsDraft { get; set; }
         public DateTimeOffset UpdatedAt { get; set; }
     }
 

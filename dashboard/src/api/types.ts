@@ -104,6 +104,13 @@ export interface GlobalConfigurationResponse {
   httpHandler: HttpHandlerConfigResponse | null
   serviceDiscovery: ServiceDiscoveryConfigResponse | null
   updatedAt: string
+  /**
+   * Whether these settings have changed since a snapshot last captured them.
+   *
+   * A snapshot captures the settings as well as the routes and services, so the
+   * create page counts this among what is pending capture.
+   */
+  isDraft: boolean
 }
 
 export interface HttpHandlerConfigResponse {
@@ -419,6 +426,15 @@ export interface RouteResponse {
   loadBalancerOptions: LoadBalancerOptionsResponse | null
   createdAt: string
   updatedAt: string
+  /**
+   * Whether this route has changed since a snapshot last captured it.
+   *
+   * Set by every change and cleared when a snapshot is created, because a
+   * snapshot captures the whole management state. The create page counts these,
+   * so an operator reads what is still pending capture before sealing another
+   * snapshot — and is told when there is nothing.
+   */
+  isDraft: boolean
 }
 
 /**
@@ -585,6 +601,8 @@ export interface ServiceResponse {
   downstreamTargets: ServiceEndpointResponse[]
   createdAt: string
   updatedAt: string
+  /** See <see cref="RouteResponse.isDraft" /> — services are captured the same way. */
+  isDraft: boolean
 }
 
 export interface CreateServiceRequest {

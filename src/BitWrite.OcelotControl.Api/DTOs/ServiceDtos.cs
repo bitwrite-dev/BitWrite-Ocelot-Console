@@ -51,7 +51,14 @@ public record ServiceResponse(
     string? Description,
     List<ServiceEndpointResponse> DownstreamTargets,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt
+    DateTimeOffset UpdatedAt,
+    /// <summary>
+    /// Whether this service has changed since a snapshot last captured it.
+    /// </summary>
+    /// <remarks>
+    /// The create page counts these; see <see cref="RouteResponse.IsDraft"/>.
+    /// </remarks>
+    bool IsDraft
 );
 
 public record ServiceListResponse(

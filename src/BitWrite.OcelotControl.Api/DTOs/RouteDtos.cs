@@ -194,7 +194,15 @@ public record RouteResponse(
     HttpClientOptionsResponse? HttpClientOptions,
     int? TimeoutSeconds,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt
+    DateTimeOffset UpdatedAt,
+    /// <summary>
+    /// Whether this route has changed since a snapshot last captured it.
+    /// </summary>
+    /// <remarks>
+    /// The create page counts these, so an operator reads how much of the
+    /// configuration is still pending capture before sealing another snapshot.
+    /// </remarks>
+    bool IsDraft
 );
 
 public record HttpClientOptionsResponse(
