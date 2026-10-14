@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 
 
-namespace BitWrite.OcelotControl.Gateway.Configuration;
+namespace ocelot.gateway.node1.Configuration;
 
 /// <summary>
 /// Writes the configuration Ocelot reads, and nothing else.

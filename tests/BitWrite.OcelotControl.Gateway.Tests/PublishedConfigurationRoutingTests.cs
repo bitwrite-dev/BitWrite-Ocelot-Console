@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text.Json;
-using BitWrite.OcelotControl.Gateway.Configuration;
 using FluentAssertions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -10,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using ocelot.gateway.node1.Configuration;
 using Ocelot.Configuration.Repository;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
@@ -172,6 +172,11 @@ public class PublishedConfigurationRoutingTests : IAsyncLifetime
 
                 web.ConfigureServices(services =>
                 {
+                    // The node's identity, stated rather than read: this test hosts the
+                    // pipeline itself rather than starting the node's own Program, and
+                    // everything that keys on the environment takes it from here.
+                    services.AddSingleton(PublishedEnvironment.For("Production"));
+
                     services.AddOcelot(
                         new ConfigurationBuilder()
                             .SetBasePath(_contentRoot)

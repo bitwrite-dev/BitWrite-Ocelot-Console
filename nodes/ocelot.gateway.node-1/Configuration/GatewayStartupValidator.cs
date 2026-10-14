@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
-namespace BitWrite.OcelotControl.Gateway.Configuration;
+namespace ocelot.gateway.node1.Configuration;
 
 /// <summary>
 /// Validates that the published configuration matches this gateway's environment at startup.
@@ -19,13 +19,16 @@ namespace BitWrite.OcelotControl.Gateway.Configuration;
 internal sealed class GatewayStartupValidator
 {
     private readonly IConnectionMultiplexer _connectionMultiplexer;
+    private readonly PublishedEnvironment _environment;
     private readonly ILogger<GatewayStartupValidator> _logger;
 
     public GatewayStartupValidator(
         IConnectionMultiplexer connectionMultiplexer,
+        PublishedEnvironment environment,
         ILogger<GatewayStartupValidator> logger)
     {
         _connectionMultiplexer = connectionMultiplexer;
+        _environment = environment;
         _logger = logger;
     }
 
@@ -37,14 +40,14 @@ internal sealed class GatewayStartupValidator
     {
         var db = _connectionMultiplexer.GetDatabase();
 
-        var currentKey = PublishedEnvironment.RuntimeCurrentKey();
+        var currentKey = _environment.RuntimeCurrentKey();
         var current = await db.StringGetAsync(currentKey);
 
         if (current.IsNullOrEmpty)
         {
             _logger.LogInformation(
                 "No published version recorded for environment {Environment}; gateway will wait for publication",
-                PublishedEnvironment.KeySegment);
+                _environment.KeySegment);
             return;
         }
 
@@ -57,21 +60,21 @@ internal sealed class GatewayStartupValidator
             return;
         }
 
-        if (!PublishedEnvironment.Matches(environment))
+        if (!_environment.Matches(environment))
         {
             _logger.LogError(
                 "Environment mismatch at startup: current published version is for environment {Env} but this gateway serves {Served}. Refusing to start (403).",
-                environment, PublishedEnvironment.KeySegment);
+                environment, _environment.KeySegment);
 
             throw new InvalidOperationException(
-                $"Gateway environment mismatch: current published version is for environment '{environment}' but this gateway is configured for '{PublishedEnvironment.KeySegment}'. " +
+                $"Gateway environment mismatch: current published version is for environment '{environment}' but this gateway is configured for '{_environment.KeySegment}'. " +
                 "This gateway would serve the wrong environment's configuration. " +
                 "Ensure the gateway and control plane are configured for the same environment.");
         }
 
         _logger.LogInformation(
             "Startup validation passed: current version {Version} is for environment {Environment}",
-            version, PublishedEnvironment.KeySegment);
+            version, _environment.KeySegment);
     }
 
     private static (string? Version, string? Environment) ParseCurrentMessage(string message)

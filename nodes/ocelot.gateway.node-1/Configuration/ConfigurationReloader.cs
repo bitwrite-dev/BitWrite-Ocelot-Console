@@ -1,6 +1,6 @@
 using Ocelot.Configuration.ChangeTracking;
 
-namespace BitWrite.OcelotControl.Gateway.Configuration;
+namespace ocelot.gateway.node1.Configuration;
 
 /// <summary>
 /// Tells Ocelot the file it is watching has changed.

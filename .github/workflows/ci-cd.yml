@@ -237,7 +237,7 @@ jobs:
       - name: Build & push Gateway image
         uses: docker/build-push-action@v5
         with:
-          context: src/BitWrite.OcelotControl.Gateway
+          context: nodes/ocelot.gateway.node-1
           push: true
           tags: ${{ steps.meta-gateway.outputs.tags }}
           labels: ${{ steps.meta-gateway.outputs.labels }}

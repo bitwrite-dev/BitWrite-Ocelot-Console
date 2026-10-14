@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\BitWrite.OcelotControl.Gateway\BitWrite.OcelotControl.Gateway.csproj" />
+    <ProjectReference Include="..\..\nodes\ocelot.gateway.node-1\ocelot.gateway.node-1.csproj" />
   </ItemGroup>
 
 </Project>
