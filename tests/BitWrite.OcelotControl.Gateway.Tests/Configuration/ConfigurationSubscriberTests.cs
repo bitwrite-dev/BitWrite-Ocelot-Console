@@ -1,8 +1,8 @@
 using System.Text.Json;
-using BitWrite.OcelotControl.Gateway.Configuration;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
+using ocelot.gateway.node1.Configuration;
 using StackExchange.Redis;
 using Xunit;
 using Xunit.Abstractions;
@@ -38,6 +38,7 @@ public class ConfigurationSubscriberTests : IDisposable
         Subscriber = new ConfigurationSubscriber(
             multiplexer.Object,
             new OcelotConfigurationWriter(_directory, "Production"),
+            PublishedEnvironment.For("Production"),
             Mock.Of<ILogger<ConfigurationSubscriber>>());
     }
 

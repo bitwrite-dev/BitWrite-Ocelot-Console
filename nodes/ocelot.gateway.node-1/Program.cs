@@ -1,6 +1,6 @@
-using BitWrite.OcelotControl.Gateway.Configuration;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using ocelot.gateway.node1.Configuration;
 using Ocelot.Configuration.Repository;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
@@ -9,34 +9,52 @@ using StackExchange.Redis;
 // Built through ConfigureWebHostDefaults rather than WebApplication.CreateBuilder,
 // because Ocelot 18's AddOcelot extends IConfigurationBuilder and needs an
 // IWebHostEnvironment, and neither is reachable from the minimal hosting model.
-// The file Ocelot reads and the environment the published snapshot is stored under
-// are the same setting, so both come from one place and cannot drift.
-const string EnvironmentConfigurationFile = PublishedEnvironment.ConfigurationFile;
+// The environment this node serves is a setting: the file Ocelot reads and the
+// key the published snapshot is read from both follow from it, and a fleet of
+// nodes differs by that setting rather than by a fork of this file.
 string _contentRoot = AppContext.BaseDirectory;
 
 var host = Host.CreateDefaultBuilder(args)
     .ConfigureWebHostDefaults(web =>
     {
-
-
-        // The content root the host resolved, captured so the file registration below
-        // reads the same directory Ocelot will.
-        var contentRoot = System.IO.Directory.GetCurrentDirectory();
-
-        // Ocelot resolves its configuration file from the content root, so this has to
-        // be set before the callback below reads it — and it is itself a configuration
-        // callback, so it comes first in the chain. The assembly's own directory, rather
-        // than the working directory: that is the project folder when launched from
-        // there and the output folder when deployed, and only the assembly's directory
-        // is the same place in both.
-        // Ocelot reads a file. This is that file, and it is a real requirement: Ocelot
-        // loads it during startup, before the subscriber can act on a publication.
-        // What fills it afterwards is the subscriber.
         web.ConfigureAppConfiguration((context, config) =>
-            config.AddOcelot(context.HostingEnvironment.ContentRootPath, context.HostingEnvironment));
-
-        web.ConfigureServices(services =>
         {
+            var published = PublishedEnvironment.FromConfiguration(context.Configuration);
+
+            // The content root the host resolved, captured so the file registration below
+            // reads the same directory Ocelot will.
+            var contentRoot = context.HostingEnvironment.ContentRootPath;
+
+            // Ocelot resolves its configuration file from the content root, so this has to
+            // be set before the callback below reads it — and it is itself a configuration
+            // callback, so it comes first in the chain. The assembly's own directory, rather
+            // than the working directory: that is the project folder when launched from
+            // there and the output folder when deployed, and only the assembly's directory
+            // is the same place in both.
+            // Ocelot reads a file. This is that file, and it is a real requirement: Ocelot
+            // loads it during startup, before the subscriber can act on a publication.
+            // What fills it afterwards is the subscriber.
+            //
+            // The file has to exist under the name this node's environment spells, and
+            // Ocelot reads it as required — so a node configured for an environment whose
+            // file was never shipped would fail to start over a name rather than over a
+            // configuration. The shipped template is copied there once, before Ocelot
+            // looks, and only when the file is missing.
+            PublishedEnvironment.EnsureConfigurationFile(contentRoot, published);
+
+            config.AddOcelot(contentRoot, context.HostingEnvironment);
+        });
+
+        web.ConfigureServices((context, services) =>
+        {
+            // The one resolution of the environment, shared by everything that needs it:
+            // the subscriber's keys, the writer's file, the startup validator's check and
+            // the registration that tells the control plane which environment this node
+            // serves. Resolving it once is what keeps them from drifting apart.
+            var published = PublishedEnvironment.FromConfiguration(context.Configuration);
+
+            services.AddSingleton(published);
+
             // Ocelot's own services. The AddOcelot above only reads the file into
             // configuration — it registers nothing, so without this the gateway has no
             // pipeline at all and answers 404 for every path, including ones a
@@ -47,8 +65,8 @@ var host = Host.CreateDefaultBuilder(args)
             // pipeline that serves it.
             services.AddOcelot(
                 new ConfigurationBuilder()
-                    .SetBasePath(contentRoot)
-                    .AddJsonFile(EnvironmentConfigurationFile, optional: false)
+                    .SetBasePath(System.IO.Directory.GetCurrentDirectory())
+                    .AddJsonFile(published.ConfigurationFile, optional: false)
                     .Build());
 
             services.AddSingleton<IConnectionMultiplexer>(provider =>
@@ -85,13 +103,23 @@ var host = Host.CreateDefaultBuilder(args)
 
                 return new OcelotConfigurationWriter(
                     environment.ContentRootPath,
-                    PublishedEnvironment.FileBaseName,
+                    published.FileBaseName,
                     serviceProvider.GetRequiredService<ConfigurationReloader>());
             });
 
             // Subscribes to ocelot:snapshot:published and loads the snapshot it names.
             // §19 and §20.3: the notification carries a version, not the configuration.
             services.AddHostedService<ConfigurationSubscriber>();
+
+            // Registers the node with the control plane so a publication can name it,
+            // and reports that it is still here. A publication's target list cannot be
+            // empty, so a node nobody registered is a node nothing can be sent to.
+            services.AddHttpClient();
+            services.AddSingleton<IControlPlaneClient>(provider =>
+                new HttpControlPlaneClient(
+                    provider.GetRequiredService<HttpClient>(),
+                    published));
+            services.AddHostedService<GatewayRegistrar>();
 
             services.AddHealthChecks();
         });

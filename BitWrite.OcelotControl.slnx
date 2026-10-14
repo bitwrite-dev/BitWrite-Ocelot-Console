@@ -3,11 +3,13 @@
     <Project Path="src/BitWrite.OcelotControl.Api/BitWrite.OcelotControl.Api.csproj" />
     <Project Path="src/BitWrite.OcelotControl.Application/BitWrite.OcelotControl.Application.csproj" />
     <Project Path="src/BitWrite.OcelotControl.Domain/BitWrite.OcelotControl.Domain.csproj" />
-    <Project Path="src/BitWrite.OcelotControl.Gateway/BitWrite.OcelotControl.Gateway.csproj" />
     <Project Path="src/BitWrite.OcelotControl.Infrastructure/BitWrite.OcelotControl.Infrastructure.csproj" />
     <Project Path="src/BitWrite.OcelotControl.Migration/BitWrite.OcelotControl.Migration.csproj" />
     <Project Path="src/BitWrite.OcelotControl.Runtime/BitWrite.OcelotControl.Runtime.csproj" />
     <Project Path="src/BitWrite.OcelotControl.SDK/BitWrite.OcelotControl.SDK.csproj" />
+  </Folder>
+  <Folder Name="/nodes/">
+    <Project Path="nodes/ocelot.gateway.node-1/ocelot.gateway.node-1.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/BitWrite.OcelotControl.Api.Tests/BitWrite.OcelotControl.Api.Tests.csproj" />

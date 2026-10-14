@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using StackExchange.Redis;
 
-namespace BitWrite.OcelotControl.Gateway.Configuration;
+namespace ocelot.gateway.node1.Configuration;
 
 /// <summary>
 /// Watches for a publication and loads the Snapshot it names.
@@ -38,16 +38,19 @@ public sealed class ConfigurationSubscriber : BackgroundService
     private readonly ISubscriber _subscriber;
     private readonly IDatabase _database;
     private readonly OcelotConfigurationWriter _writer;
+    private readonly PublishedEnvironment _environment;
     private readonly ILogger<ConfigurationSubscriber> _logger;
 
     public ConfigurationSubscriber(
         IConnectionMultiplexer connectionMultiplexer,
         OcelotConfigurationWriter writer,
+        PublishedEnvironment environment,
         ILogger<ConfigurationSubscriber> logger)
     {
         _subscriber = connectionMultiplexer.GetSubscriber();
         _database = connectionMultiplexer.GetDatabase();
         _writer = writer;
+        _environment = environment;
         _logger = logger;
     }
 
@@ -94,11 +97,11 @@ public sealed class ConfigurationSubscriber : BackgroundService
                 return;
             }
 
-            if (!PublishedEnvironment.Matches(publication.Environment))
+            if (!_environment.Matches(publication.Environment))
             {
                 _logger.LogWarning(
                     "Notification published for environment {Environment} but this gateway serves {Served}; keeping the current configuration",
-                    publication.Environment, PublishedEnvironment.KeySegment);
+                    publication.Environment, _environment.KeySegment);
                 return;
             }
 
@@ -129,13 +132,13 @@ public sealed class ConfigurationSubscriber : BackgroundService
     {
         try
         {
-            var current = await _database.StringGetAsync(PublishedEnvironment.RuntimeCurrentKey());
+            var current = await _database.StringGetAsync(_environment.RuntimeCurrentKey());
 
             if (current.IsNullOrEmpty)
             {
                 _logger.LogInformation(
                     "No published version recorded for environment {Environment}; starting with the configuration on disk",
-                    PublishedEnvironment.KeySegment);
+                    _environment.KeySegment);
                 return;
             }
 
@@ -145,12 +148,12 @@ public sealed class ConfigurationSubscriber : BackgroundService
             if (version is null)
                 return;
 
-            if (!PublishedEnvironment.Matches(env))
+            if (!_environment.Matches(env))
             {
                 _logger.LogError(
                     "Current published version is for environment {Env} but this gateway serves {Served}; refusing to start (403)",
-                    env, PublishedEnvironment.KeySegment);
-                throw new InvalidOperationException($"Environment mismatch: current version is for '{env}', this gateway serves '{PublishedEnvironment.KeySegment}'");
+                    env, _environment.KeySegment);
+                throw new InvalidOperationException($"Environment mismatch: current version is for '{env}', this gateway serves '{_environment.KeySegment}'");
             }
 
             await LoadAsync(version, cancellationToken);
@@ -188,7 +191,7 @@ public sealed class ConfigurationSubscriber : BackgroundService
 
     private async Task LoadAsync(string version, CancellationToken cancellationToken)
     {
-        var key = PublishedEnvironment.SnapshotKey(version);
+        var key = _environment.SnapshotKey(version);
         var stored = await _database.StringGetAsync(key);
 
         if (stored.IsNullOrEmpty)

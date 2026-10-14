@@ -4,8 +4,19 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>BitWrite.OcelotControl.Gateway</RootNamespace>
+    <!-- The folder is ocelot.gateway.node-1; a namespace cannot hold a hyphen, so the
+       closest legal spelling stands in for it. The assembly and file names keep the
+       hyphen the folder has. -->
+    <RootNamespace>ocelot.gateway.node1</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The node's types are internal by design — a node is a whole process, not a
+         library — but its own tests host the same pipeline, so they see them. -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>BitWrite.OcelotControl.Gateway.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
 
   <ItemGroup>
     <!--
