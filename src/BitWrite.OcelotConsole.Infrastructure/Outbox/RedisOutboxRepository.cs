@@ -44,7 +44,7 @@ public class RedisOutboxRepository : IOutboxRepository
             var json = await _database.StringGetAsync(messageKey);
             if (!json.IsNullOrEmpty)
             {
-                var message = JsonSerializer.Deserialize<OutboxMessage>(json!, _jsonOptions);
+                var message = JsonSerializer.Deserialize<OutboxMessage>((string)json!, _jsonOptions);
                 if (message != null)
                 {
                     messages.Add(message);
@@ -70,7 +70,7 @@ public class RedisOutboxRepository : IOutboxRepository
         var json = await _database.StringGetAsync(messageKey);
         if (!json.IsNullOrEmpty)
         {
-            var message = JsonSerializer.Deserialize<OutboxMessage>(json!, _jsonOptions);
+            var message = JsonSerializer.Deserialize<OutboxMessage>((string)json!, _jsonOptions);
             if (message != null)
             {
                 message.Error = error;
@@ -87,7 +87,7 @@ public class RedisOutboxRepository : IOutboxRepository
         var json = await _database.StringGetAsync(messageKey);
         if (!json.IsNullOrEmpty)
         {
-            var message = JsonSerializer.Deserialize<OutboxMessage>(json!, _jsonOptions);
+            var message = JsonSerializer.Deserialize<OutboxMessage>((string)json!, _jsonOptions);
             if (message != null)
             {
                 message.Error = error;

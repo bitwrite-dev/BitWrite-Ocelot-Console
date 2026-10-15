@@ -7,7 +7,7 @@ on:
     branches: [develop, main]
 
 env:
-  DOTNET_VERSION: '8.0.x'
+  DOTNET_VERSION: '10.0.x'
   NODE_VERSION: '22'
 
 jobs:
@@ -48,7 +48,13 @@ jobs:
         run: dotnet restore BitWrite.OcelotConsole.slnx
 
       - name: Check .NET format
-        run: dotnet format --verify-no-changes --verbosity detailed
+        # .NET 10 replaced the single `dotnet format` entry point with one
+        # subcommand per concern; the old invocation prints its help and exits 0,
+        # which would quietly check nothing. All three are run, as before.
+        run: |
+          dotnet format whitespace BitWrite.OcelotConsole.slnx --verify-no-changes --verbosity detailed
+          dotnet format style BitWrite.OcelotConsole.slnx --verify-no-changes --verbosity detailed
+          dotnet format analyzers BitWrite.OcelotConsole.slnx --verify-no-changes --severity error --verbosity detailed
 
       - name: Run .NET analyzers
         run: dotnet build --no-restore --configuration Release -p:RunAnalyzers=true -p:EnforceCodeStyleInBuild=true
