@@ -37,7 +37,7 @@ variable spelling for a container start.
 | --- | --- | --- | --- |
 | `Gateway:Environment` | `GATEWAY_ENVIRONMENT` | `Production` | Which environment's configuration this node serves. Names both the Ocelot file (`ocelot.{Environment}.json`) and the Redis keys the snapshots live under. |
 | `Gateway:NodeName` | `GATEWAY_NODENAME` | the assembly name | What the node registers itself as. Two nodes serving the same environment must differ, or the second shares the first's gateway id. |
-| `Gateway:ControlPlaneUrl` | — | `http://localhost:20642` | Where the control plane is. Without it the node still takes publications from Redis but cannot be registered or published to. |
+| `Gateway:ControlPlaneUrl` | — | `http://localhost:5039` | Where the control plane is. Without it the node still takes publications from Redis but cannot be registered or published to. |
 | `Gateway:HeartbeatSeconds` | — | `30` | How often the node reports that it is still there. |
 
 `ConnectionStrings:redis` is the other one, and unlike the rest it has no sensible
@@ -52,7 +52,7 @@ environment is the isolation layout).
 ```bash
 # node-1 (this folder)
 dotnet run --project nodes/ocelot.gateway.node-1 \
-  --Gateway:ControlPlaneUrl=http://localhost:20642
+  --Gateway:ControlPlaneUrl=http://localhost:5039
 
 # node-2 and node-3, once instantiated from node-1
 dotnet run --project nodes/ocelot.gateway.node-2 --Gateway:NodeName=ocelot.gateway.node-2 --ASPNETCORE_URLS=http://localhost:8082
