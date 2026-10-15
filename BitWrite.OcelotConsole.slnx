@@ -1,0 +1,24 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BitWrite.OcelotConsole.Api/BitWrite.OcelotConsole.Api.csproj" />
+    <Project Path="src/BitWrite.OcelotConsole.Application/BitWrite.OcelotConsole.Application.csproj" />
+    <Project Path="src/BitWrite.OcelotConsole.Domain/BitWrite.OcelotConsole.Domain.csproj" />
+    <Project Path="src/BitWrite.OcelotConsole.Infrastructure/BitWrite.OcelotConsole.Infrastructure.csproj" />
+    <Project Path="src/BitWrite.OcelotConsole.Migration/BitWrite.OcelotConsole.Migration.csproj" />
+    <Project Path="src/BitWrite.OcelotConsole.Runtime/BitWrite.OcelotConsole.Runtime.csproj" />
+    <Project Path="src/BitWrite.OcelotConsole.SDK/BitWrite.OcelotConsole.SDK.csproj" />
+  </Folder>
+  <Folder Name="/nodes/">
+    <Project Path="nodes/ocelot.gateway.node-1/ocelot.gateway.node-1.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BitWrite.OcelotConsole.Api.Tests/BitWrite.OcelotConsole.Api.Tests.csproj" />
+    <Project Path="tests/BitWrite.OcelotConsole.Application.Tests/BitWrite.OcelotConsole.Application.Tests.csproj" />
+    <Project Path="tests/BitWrite.OcelotConsole.ArchitectureTests/BitWrite.OcelotConsole.ArchitectureTests.csproj" />
+    <Project Path="tests/BitWrite.OcelotConsole.Domain.Tests/BitWrite.OcelotConsole.Domain.Tests.csproj" />
+    <Project Path="tests/BitWrite.OcelotConsole.IntegrationTests/BitWrite.OcelotConsole.IntegrationTests.csproj" />
+    <Project Path="tests/BitWrite.OcelotConsole.Gateway.Tests/BitWrite.OcelotConsole.Gateway.Tests.csproj" />
+    <Project Path="tests/BitWrite.OcelotConsole.Infrastructure.Tests/BitWrite.OcelotConsole.Infrastructure.Tests.csproj" />
+    <Project Path="tests/BitWrite.OcelotConsole.SDK.Tests/BitWrite.OcelotConsole.SDK.Tests.csproj" />
+  </Folder>
+</Solution>

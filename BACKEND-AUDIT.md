@@ -1,4 +1,4 @@
-# BitWrite Ocelot Control Plane - Backend Audit Report
+# BitWrite Ocelot Console - Backend Audit Report
 
 > Date: 2026-10-08
 > Branch: `develop`
@@ -203,11 +203,11 @@
 - ✅ Controller wired to UseCases (#333)
 
 ### SDK Project (25% implemented) - #340
-- `BitWrite.OcelotControl.SDK.csproj` - Configured with package references
-- `OcelotControlClient` - Base HTTP client with auth
+- `BitWrite.OcelotConsole.SDK.csproj` - Configured with package references
+- `OcelotConsoleClient` - Base HTTP client with auth
 - `JwtTokenProvider` - JWT token handling with refresh **(with 9 unit tests)**
 - `GatewaysClient` - Gateway API operations
-- `ServiceCollectionExtensions.AddOcelotControlSdk()` - DI registration
+- `ServiceCollectionExtensions.AddOcelotConsoleSdk()` - DI registration
 - Models for Gateway (Request/Response)
 - NuGet package generation configured
 - SDK Tests project created with 9 JWT tests

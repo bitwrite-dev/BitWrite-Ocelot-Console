@@ -1,10 +1,15 @@
-# BitWrite Ocelot Control Plane
+# BitWrite Ocelot Console
 
-[![CI](https://github.com/bitwrite-dev/BitWrite-OcelotControl-Plane/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/bitwrite-dev/BitWrite-OcelotControl-Plane/actions/workflows/ci-cd.yml)
+> **A Control Plane for Ocelot API Gateway.**
+> A centralized management console for designing, validating, versioning, and
+> publishing Ocelot Gateway configurations.
+
+[![CI](https://github.com/bitwrite-dev/BitWrite-Ocelot-Console/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/bitwrite-dev/BitWrite-Ocelot-Console/actions/workflows/ci-cd.yml)
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)](https://dotnet.microsoft.com/)
 [![React](https://img.shields.io/badge/React-19-61DAFB)](https://react.dev/)
 [![Tests](https://img.shields.io/badge/tests-857%20%2B%20494-brightgreen)](#testing)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![By BitWrite](https://img.shields.io/badge/by-BitWrite-1f6feb)](https://github.com/bitwrite-dev)
 
 **A gateway configuration platform that treats your `ocelot.json` as a controlled, auditable, versioned artifact — not a file someone edits on a server.**
 
@@ -14,7 +19,7 @@ no record of what was running last Tuesday, no validation before a typo takes do
 every route, and no way to say *"this exact configuration, and only this one, is what
 production serves."*
 
-BitWrite Ocelot Control Plane turns gateway configuration into a **lifecycle**:
+BitWrite Ocelot Console turns gateway configuration into a **lifecycle**:
 define routes and services as desired state → resolve and validate them into an
 artifact → seal that artifact as an immutable, hash-verified **snapshot** → publish
 the snapshot to a fleet of gateway nodes, to the environments you choose, with a
@@ -67,7 +72,7 @@ nodes serve published snapshots — and never read the desired state.**
 flowchart LR
     subgraph Operators
         UI[React Dashboard<br/>routes · services · snapshots · publications]
-        SDK[C# SDK<br/>OcelotControlClient]
+        SDK[C# SDK<br/>OcelotConsoleClient]
     end
 
     subgraph "Control plane (desired state)"
@@ -120,15 +125,15 @@ enforced by an architecture test:
 
 ```mermaid
 flowchart TD
-    API[BitWrite.OcelotControl.Api<br/>controllers, DTOs, validators]
-    APP[BitWrite.OcelotControl.Application<br/>use-case handlers, ports]
-    DOM[BitWrite.OcelotControl.Domain<br/>aggregates, value objects, domain services]
-    INF[BitWrite.OcelotControl.Infrastructure<br/>Redis repositories, adapters]
+    API[BitWrite.OcelotConsole.Api<br/>controllers, DTOs, validators]
+    APP[BitWrite.OcelotConsole.Application<br/>use-case handlers, ports]
+    DOM[BitWrite.OcelotConsole.Domain<br/>aggregates, value objects, domain services]
+    INF[BitWrite.OcelotConsole.Infrastructure<br/>Redis repositories, adapters]
     DASH[dashboard<br/>React SPA]
     NODES[nodes/*<br/>Ocelot gateway processes]
-    SDK[BitWrite.OcelotControl.SDK<br/>C# client]
-    MIG[BitWrite.OcelotControl.Migration<br/>one-off data migrations]
-    RUN[BitWrite.OcelotControl.Runtime<br/>runtime adapters]
+    SDK[BitWrite.OcelotConsole.SDK<br/>C# client]
+    MIG[BitWrite.OcelotConsole.Migration<br/>one-off data migrations]
+    RUN[BitWrite.OcelotConsole.Runtime<br/>runtime adapters]
 
     DASH --> API
     SDK --> API
@@ -154,7 +159,7 @@ flowchart TD
 | `Application` | Use cases as handlers: create/validate/publish/rollback snapshots, CRUD routes & services, gateways, publications, runtime metrics. |
 | `Domain` | The model: `Route`, `Service`, `GlobalConfiguration`, `Snapshot`, `Publication`, `Gateway` aggregates; value objects (`UpstreamPath`, `HttpMethod`, `DownstreamTarget`, `EnvironmentName`, …); domain services that build and validate the Ocelot document. |
 | `Infrastructure` | Redis persistence (environment-scoped keys), canonicalisation, integrity hashing, outbox, adapters. |
-| `SDK` | A C# client (`OcelotControlClient`) for automating everything the dashboard does. |
+| `SDK` | A C# client (`OcelotConsoleClient`) for automating everything the dashboard does. |
 | `Migration` | One-off migrations (e.g. the route-key migrator), run as a tool. |
 | `Runtime` | Runtime-side adapters used by delivery reporting. |
 | `nodes/*` | The data plane: Ocelot 18 processes that consume published snapshots. |
@@ -235,7 +240,7 @@ docker run -p 6379:6379 redis:7-alpine
 ### 2. Run the API
 
 ```bash
-dotnet run --project src/BitWrite.OcelotControl.Api --launch-profile http
+dotnet run --project src/BitWrite.OcelotConsole.Api --launch-profile http
 # → http://localhost:5039  (Swagger at /swagger)
 ```
 
@@ -243,7 +248,7 @@ Set the connection string if Redis is not on localhost:
 
 ```bash
 dotnet user-secrets set "ConnectionStrings:Redis" "localhost:6379" \
-  --project src/BitWrite.OcelotControl.Api
+  --project src/BitWrite.OcelotConsole.Api
 ```
 
 ### 3. Run the dashboard
@@ -383,7 +388,7 @@ and a registration problem never stops it routing.
 ### Using the SDK
 
 ```csharp
-var client = new OcelotControlClient(new OcelotControlClientOptions
+var client = new OcelotConsoleClient(new OcelotConsoleClientOptions
 {
     BaseUrl = "http://localhost:5039",
     Environment = "production",
@@ -458,15 +463,15 @@ dotnet format --verify-no-changes             # formatting gate
 ## Repository map
 
 ```
-BitWrite.OcelotControl/
+BitWrite.OcelotConsole/
 ├── src/
-│   ├── BitWrite.OcelotControl.Api          # REST control plane
-│   ├── BitWrite.OcelotControl.Application  # use cases
-│   ├── BitWrite.OcelotControl.Domain       # aggregates, value objects
-│   ├── BitWrite.OcelotControl.Infrastructure # Redis persistence
-│   ├── BitWrite.OcelotControl.Migration     # one-off data migrations
-│   ├── BitWrite.OcelotControl.Runtime       # runtime adapters
-│   └── BitWrite.OcelotControl.SDK           # C# client
+│   ├── BitWrite.OcelotConsole.Api          # REST control plane
+│   ├── BitWrite.OcelotConsole.Application  # use cases
+│   ├── BitWrite.OcelotConsole.Domain       # aggregates, value objects
+│   ├── BitWrite.OcelotConsole.Infrastructure # Redis persistence
+│   ├── BitWrite.OcelotConsole.Migration     # one-off data migrations
+│   ├── BitWrite.OcelotConsole.Runtime       # runtime adapters
+│   └── BitWrite.OcelotConsole.SDK           # C# client
 ├── nodes/
 │   ├── README.md                            # the fleet layout
 │   ├── ocelot.gateway.node-1/               # the working node

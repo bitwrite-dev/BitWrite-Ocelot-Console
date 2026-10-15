@@ -14,7 +14,7 @@
     <!-- The node's types are internal by design — a node is a whole process, not a
          library — but its own tests host the same pipeline, so they see them. -->
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-      <_Parameter1>BitWrite.OcelotControl.Gateway.Tests</_Parameter1>
+      <_Parameter1>BitWrite.OcelotConsole.Gateway.Tests</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
 

@@ -71,7 +71,7 @@ across restarts instead of registering a duplicate on every start.
 2. Rename the project file to `ocelot.gateway.node-N.csproj`, and its
    `RootNamespace` to `ocelot.gateway.node-N` — a namespace cannot hold the hyphen
    the folder name has, so the hyphen is dropped there only.
-3. Add the project to `BitWrite.OcelotControl.slnx`.
+3. Add the project to `BitWrite.OcelotConsole.slnx`.
 4. Copy the test project or extend it; it references the node it tests by path.
 5. Set `Gateway:NodeName` (or let the assembly name carry it) and, if the nodes are
    to run on one machine, `ASPNETCORE_URLS`.

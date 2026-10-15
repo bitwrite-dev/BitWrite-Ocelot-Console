@@ -3,14 +3,14 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copy project files
-COPY BitWrite.OcelotControl.slnx .
+COPY BitWrite.OcelotConsole.slnx .
 COPY nodes/ocelot.gateway.node-1/ocelot.gateway.node-1.csproj nodes/ocelot.gateway.node-1/
-COPY src/BitWrite.OcelotControl.Application/BitWrite.OcelotControl.Application.csproj src/BitWrite.OcelotControl.Application/
-COPY src/BitWrite.OcelotControl.Domain/BitWrite.OcelotControl.Domain.csproj src/BitWrite.OcelotControl.Domain/
-COPY src/BitWrite.OcelotControl.Infrastructure/BitWrite.OcelotControl.Infrastructure.csproj src/BitWrite.OcelotControl.Infrastructure/
+COPY src/BitWrite.OcelotConsole.Application/BitWrite.OcelotConsole.Application.csproj src/BitWrite.OcelotConsole.Application/
+COPY src/BitWrite.OcelotConsole.Domain/BitWrite.OcelotConsole.Domain.csproj src/BitWrite.OcelotConsole.Domain/
+COPY src/BitWrite.OcelotConsole.Infrastructure/BitWrite.OcelotConsole.Infrastructure.csproj src/BitWrite.OcelotConsole.Infrastructure/
 
 # Restore dependencies
-RUN dotnet restore BitWrite.OcelotControl.slnx
+RUN dotnet restore BitWrite.OcelotConsole.slnx
 
 # Copy source
 COPY . .

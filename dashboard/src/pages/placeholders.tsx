@@ -27,7 +27,7 @@ export function PagePlaceholder({
         description={description ?? `Tracked in ${issue}.`}
         action={
           <Button variant="outline" asChild>
-            <a href={`https://github.com/bitwrite-dev/BitWrite-Ocelot-Control-Plane/issues/${issue}`}>
+            <a href={`https://github.com/bitwrite-dev/BitWrite-Ocelot-Console/issues/${issue}`}>
               Open {issue}
             </a>
           </Button>

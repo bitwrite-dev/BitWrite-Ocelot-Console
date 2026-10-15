@@ -34,7 +34,7 @@ function LayoutBody({ roles, guard }: { roles?: Role[]; guard: boolean }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 items-center gap-3 border-b px-4 md:hidden">
           <MobileSidebar roles={roles} />
-          <span className="font-heading text-sm font-semibold">Ocelot Control Plane</span>
+          <span className="font-heading text-sm font-semibold">Ocelot Console</span>
         </header>
 
         <main className="flex-1 overflow-x-hidden p-4 md:p-6">

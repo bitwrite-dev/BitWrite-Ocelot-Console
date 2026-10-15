@@ -167,7 +167,7 @@ export function toRouteError(error: unknown): {
     if (error.isNetworkError) {
       return {
         title: 'Cannot reach the control plane API',
-        message: `${error.message}\n\nIs the API running? Start it with:\n  dotnet run --project src/BitWrite.OcelotControl.Api`,
+        message: `${error.message}\n\nIs the API running? Start it with:\n  dotnet run --project src/BitWrite.OcelotConsole.Api`,
         isValidation: false,
       }
     }
