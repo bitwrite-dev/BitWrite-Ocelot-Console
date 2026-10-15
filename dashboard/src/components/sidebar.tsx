@@ -99,7 +99,7 @@ function LifecycleGuardrail() {
 function Brand() {
   return (
     <div className="px-6 py-5">
-      <p className="font-heading text-sm font-semibold">Ocelot Control Plane</p>
+      <p className="font-heading text-sm font-semibold">Ocelot Console</p>
       <p className="text-xs text-muted-foreground">Management Console</p>
     </div>
   )
@@ -130,7 +130,7 @@ export function MobileSidebar({ roles }: { roles?: Role[] }) {
       <SheetContent side="left" className="w-64 p-0">
         <SheetHeader>
           <SheetTitle className="px-6 py-5 text-left">
-            <span className="font-heading text-sm font-semibold">Ocelot Control Plane</span>
+            <span className="font-heading text-sm font-semibold">Ocelot Console</span>
           </SheetTitle>
         </SheetHeader>
         <Separator />

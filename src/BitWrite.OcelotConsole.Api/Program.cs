@@ -1,0 +1,311 @@
+using BitWrite.OcelotConsole.Api.Middleware;
+using BitWrite.OcelotConsole.Api.Validators;
+using BitWrite.OcelotConsole.Application.Events;
+using BitWrite.OcelotConsole.Application.UseCases.Audit;
+using BitWrite.OcelotConsole.Application.UseCases.Gateway;
+using BitWrite.OcelotConsole.Application.UseCases.GlobalConfiguration;
+using BitWrite.OcelotConsole.Application.UseCases.License;
+using BitWrite.OcelotConsole.Application.UseCases.Plugin;
+using BitWrite.OcelotConsole.Application.UseCases.Publication;
+using BitWrite.OcelotConsole.Application.UseCases.Route;
+using BitWrite.OcelotConsole.Application.UseCases.Runtime;
+using BitWrite.OcelotConsole.Application.UseCases.Service;
+using BitWrite.OcelotConsole.Application.UseCases.Snapshot;
+using BitWrite.OcelotConsole.Application.UseCases.SystemSettings;
+using BitWrite.OcelotConsole.Domain.Events;
+using BitWrite.OcelotConsole.Infrastructure.Adapters;
+using BitWrite.OcelotConsole.Infrastructure.EventHandlers;
+using BitWrite.OcelotConsole.Infrastructure.Outbox;
+using BitWrite.OcelotConsole.Infrastructure.Redis;
+using BitWrite.OcelotConsole.Infrastructure.Repositories;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Configuration;
+using StackExchange.Redis;
+using AppInterfaces = BitWrite.OcelotConsole.Application.Interfaces;
+using DomainServices = BitWrite.OcelotConsole.Domain.Services;
+using InfraAdapters = BitWrite.OcelotConsole.Infrastructure.Adapters;
+using RuntimeAdapters = BitWrite.OcelotConsole.Runtime.Adapters;
+
+namespace BitWrite.OcelotConsole.Api
+{
+    public class Program
+    {
+        public static void Main(string[] args)
+        {
+            var builder = WebApplication.CreateBuilder(args);
+
+            // CORS for the dashboard. The dev server proxies /api (see
+            // dashboard/vite.config.ts) so same-origin requests need nothing, but a
+            // production deployment serving the built assets from another origin
+            // does. Origins are configured, never a wildcard, so credentialed
+            // requests remain possible once authentication lands.
+            const string DashboardCorsPolicy = "DashboardCors";
+            var dashboardOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                ?? new[] { "http://localhost:5173" };
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy(DashboardCorsPolicy, policy => policy
+                    .WithOrigins(dashboardOrigins)
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .WithExposedHeaders("X-Correlation-Id"));
+            });
+
+            // Add services to the container.
+            builder.Services.AddControllers();
+            builder.Services.AddFluentValidationAutoValidation();
+            builder.Services.AddFluentValidationClientsideAdapters();
+
+            // Register validators
+            builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
+            // Redis Connection
+            builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+                ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379"));
+
+            // Domain Services (registered as concrete for internal use)
+            builder.Services.AddScoped<DomainServices.ConfigurationBuilder>();
+            builder.Services.AddScoped<DomainServices.ConfigurationCanonicalizer>();
+            builder.Services.AddScoped<DomainServices.RouteConflictDetector>();
+            builder.Services.AddScoped<DomainServices.ConfigurationConsistencyValidator>();
+            builder.Services.AddScoped<DomainServices.OcelotCapabilityResolver>();
+            builder.Services.AddScoped<DomainServices.SnapshotIntegrityVerifier>();
+            builder.Services.AddScoped<DomainServices.SnapshotVersionAllocator>();
+
+            // Infrastructure Adapters (implement Application.Interfaces for DI)
+            builder.Services.AddScoped<AppInterfaces.IConfigurationBuilder, ConfigurationBuilderAdapter>();
+            builder.Services.AddScoped<AppInterfaces.IConfigurationCanonicalizer, ConfigurationCanonicalizerAdapter>();
+            builder.Services.AddScoped<AppInterfaces.IRouteConflictDetector, RouteConflictDetectorAdapter>();
+            builder.Services.AddScoped<AppInterfaces.IConfigurationConsistencyValidator, ConfigurationConsistencyValidatorAdapter>();
+            builder.Services.AddScoped<AppInterfaces.IOcelotCapabilityResolver, OcelotCapabilityResolverAdapter>();
+            builder.Services.AddScoped<AppInterfaces.ISnapshotIntegrityVerifier, SnapshotIntegrityVerifierAdapter>();
+            builder.Services.AddScoped<AppInterfaces.ISnapshotVersionAllocator, SnapshotVersionAllocatorAdapter>();
+
+            // Which environment a scope operates on. Registered before the
+            // repositories, which take it as a constructor dependency, and resolved
+            // per scope: a request reads its selection, background work reads the
+            // configured one.
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddScoped<AppInterfaces.IEnvironmentContext>(EnvironmentContextRegistration.From);
+
+            // Repository Implementations
+            builder.Services.AddScoped<AppInterfaces.IGatewayRepository, RedisGatewayRepository>();
+            builder.Services.AddScoped<AppInterfaces.IRouteRepository, RedisRouteRepository>();
+            builder.Services.AddScoped<AppInterfaces.IServiceRepository, RedisServiceRepository>();
+            builder.Services.AddScoped<AppInterfaces.ISnapshotRepository, RedisSnapshotRepository>();
+            builder.Services.AddScoped<AppInterfaces.IPublicationRepository, RedisPublicationRepository>();
+            builder.Services.AddScoped<AppInterfaces.IGlobalConfigurationRepository, RedisGlobalConfigurationRepository>();
+            builder.Services.AddScoped<AppInterfaces.ISystemSettingsRepository, RedisSystemSettingsRepository>();
+            builder.Services.AddScoped<AppInterfaces.IRuntimeInstanceRepository, RuntimeInstanceRepositoryAdapter>();
+            builder.Services.AddScoped<AppInterfaces.IPluginRepository, PluginRepositoryAdapter>();
+            builder.Services.AddScoped<AppInterfaces.ILicenseRepository, RedisLicenseRepository>();
+            builder.Services.AddScoped<AppInterfaces.IAuditLogRepository, RedisAuditLogRepository>();
+
+            // The audit trail is written by handling the event, not by each command
+            // remembering to. Nothing was registered here before, so every
+            // `AuditRecorded` the commands dispatch had no subscriber and the log
+            // stayed empty — see #514.
+            builder.Services.AddScoped<
+                AppInterfaces.IDomainEventHandler<AuditRecorded>,
+                AuditRecordedEventHandler>();
+
+            // Infrastructure Services
+            builder.Services.AddSingleton<AppInterfaces.IDistributedLock, RedisDistributedLock>();
+            builder.Services.AddSingleton<AppInterfaces.IRedisPublisher, RedisPublisher>();
+            builder.Services.AddSingleton<IOutboxRepository, RedisOutboxRepository>();
+            builder.Services.AddScoped<AppInterfaces.IOutboxRepository, OutboxRepositoryAdapter>();
+
+            // Infrastructure repository interfaces consumed by the Application-layer
+            // adapters registered above. Without these the adapters cannot be activated
+            // and the host fails to start with "Unable to resolve service for type".
+            builder.Services.AddScoped<IRuntimeInstanceRepository, RedisRuntimeInstanceRepository>();
+            builder.Services.AddScoped<IPluginRepository, RedisPluginRepository>();
+            builder.Services.AddScoped<AppInterfaces.IDeliveryAttemptRepository, RedisDeliveryAttemptRepository>();
+
+            // IOcelotConfigApplier Implementation (Infrastructure.Adapters - real impl with Redis/File providers)
+            builder.Services.AddSingleton<InfraAdapters.IConfigurationProvider, InfraAdapters.RedisConfigurationProvider>();
+            builder.Services.AddSingleton<AppInterfaces.IOcelotConfigApplier, InfraAdapters.OcelotConfigApplier>();
+
+            // JsonEventSerializer is stateless, so the interface mapping is a singleton.
+            builder.Services.AddSingleton<JsonEventSerializer>();
+            builder.Services.AddSingleton<IEventSerializer, JsonEventSerializer>();
+            builder.Services.AddScoped<AppInterfaces.IEventSerializer, EventSerializerAdapter>();
+
+            // System Settings Handlers
+            builder.Services.AddScoped<SystemSettingsCommandHandler>();
+
+            // UseCase Handlers (Commands) - EXISTING
+            builder.Services.AddScoped<CreateSnapshotCommandHandler>();
+            builder.Services.AddScoped<PublishSnapshotCommandHandler>();
+            builder.Services.AddScoped<RollbackSnapshotCommandHandler>();
+
+            builder.Services.AddScoped<GetGatewayDeletionEligibilityQueryHandler>();
+
+            // Route UseCase Handlers
+            builder.Services.AddScoped<CreateRouteCommandHandler>();
+            builder.Services.AddScoped<ReplaceRouteCommandHandler>();
+            builder.Services.AddScoped<DeleteRouteCommandHandler>();
+            builder.Services.AddScoped<EnableRouteCommandHandler>();
+            builder.Services.AddScoped<DisableRouteCommandHandler>();
+            builder.Services.AddScoped<GetRouteStatusCommandHandler>();
+            builder.Services.AddScoped<RouteValidator>();
+            builder.Services.AddScoped<ValidateRouteCommandHandler>();
+            builder.Services.AddScoped<ValidateRouteDraftCommandHandler>();
+            builder.Services.AddScoped<PreviewRouteQueryHandler>();
+            builder.Services.AddScoped<GetEffectiveRouteQueryHandler>();
+            builder.Services.AddScoped<ListRoutesQueryHandler>();
+            builder.Services.AddScoped<GetRouteQueryHandler>();
+            builder.Services.AddScoped<RouteHistoryQueryHandler>();
+
+            // Service UseCase Handlers
+            builder.Services.AddScoped<CreateServiceCommandHandler>();
+            builder.Services.AddScoped<UpdateServiceCommandHandler>();
+            builder.Services.AddScoped<DeleteServiceCommandHandler>();
+            builder.Services.AddScoped<GetServiceQueryHandler>();
+            builder.Services.AddScoped<ListServicesQueryHandler>();
+            builder.Services.AddScoped<GetServiceRoutesQueryHandler>();
+            // GlobalConfiguration UseCase Handlers
+            builder.Services.AddScoped<GetGlobalConfigurationQueryHandler>();
+            builder.Services.AddScoped<UpdateGlobalConfigurationCommandHandler>();
+            // Snapshot UseCase Handlers
+            builder.Services.AddScoped<ListSnapshotsQueryHandler>();
+            builder.Services.AddScoped<GetSnapshotQueryHandler>();
+            builder.Services.AddScoped<PreviewSnapshotCommandHandler>();
+            builder.Services.AddScoped<ValidateSnapshotCommandHandler>();
+            builder.Services.AddScoped<CompareSnapshotsQueryHandler>();
+            builder.Services.AddScoped<CloneSnapshotCommandHandler>();
+            builder.Services.AddScoped<ExportSnapshotQueryHandler>();
+            builder.Services.AddScoped<GetSnapshotDeploymentQueryHandler>();
+            // Publication UseCase Handlers
+            builder.Services.AddScoped<ListPublicationsQueryHandler>();
+            builder.Services.AddScoped<GetCurrentPublicationQueryHandler>();
+            builder.Services.AddScoped<GetPublicationHistoryQueryHandler>();
+            // Plugin UseCase Handlers
+            builder.Services.AddScoped<InstallPluginCommandHandler>();
+            builder.Services.AddScoped<GetPluginQueryHandler>();
+            builder.Services.AddScoped<UninstallPluginCommandHandler>();
+            builder.Services.AddScoped<EnablePluginCommandHandler>();
+            builder.Services.AddScoped<DisablePluginCommandHandler>();
+            builder.Services.AddScoped<ListPluginsQueryHandler>();
+            builder.Services.AddScoped<UpgradePluginCommandHandler>();
+            // Runtime UseCase Handlers
+            builder.Services.AddScoped<GetRuntimeStatusQueryHandler>();
+            builder.Services.AddScoped<GetAllGatewaysQueryHandler>();
+            builder.Services.AddScoped<GetDeliveryMetricsQueryHandler>();
+            builder.Services.AddScoped<GetGatewayRuntimeDetailQueryHandler>();
+            builder.Services.AddScoped<ReconcileGatewayCommandHandler>();
+            // License UseCase Handlers
+            builder.Services.AddScoped<CreateLicenseCommandHandler>();
+            builder.Services.AddScoped<GetLicenseQueryHandler>();
+            builder.Services.AddScoped<ListLicensesQueryHandler>();
+            builder.Services.AddScoped<ActivateLicenseCommandHandler>();
+            builder.Services.AddScoped<UpdateLicenseCommandHandler>();
+            builder.Services.AddScoped<RenewLicenseCommandHandler>();
+            builder.Services.AddScoped<RevokeLicenseCommandHandler>();
+            // Audit UseCase Handlers
+            builder.Services.AddScoped<GetAuditLogsQueryHandler>();
+            builder.Services.AddScoped<GetAuditLogByIdQueryHandler>();
+            builder.Services.AddScoped<GetAuditStatsQueryHandler>();
+            // Gateway UseCase Handlers
+            builder.Services.AddScoped<RegisterGatewayCommandHandler>();
+            builder.Services.AddScoped<GetGatewayQueryHandler>();
+            builder.Services.AddScoped<ListGatewaysQueryHandler>();
+            builder.Services.AddScoped<UpdateGatewayCommandHandler>();
+            builder.Services.AddScoped<UpdateGatewayStatusCommandHandler>();
+            builder.Services.AddScoped<DeleteGatewayCommandHandler>();
+
+            // Domain Event Dispatcher
+            builder.Services.AddScoped<AppInterfaces.IDomainEventDispatcher, DomainEventDispatcher>();
+
+            // Background Services
+            builder.Services.AddHostedService<OutboxPublisher>();
+            builder.Services.AddHostedService<RuntimeAdapters.RuntimeAdapter>();
+
+            // Add Swagger/OpenAPI
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new()
+                {
+                    Title = "BitWrite Ocelot Console API",
+                    Version = "v1",
+                    Description = "Management API for Ocelot Gateway Configuration"
+                });
+
+                c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                {
+                    Description = "JWT Authorization header using the Bearer scheme",
+                    Name = "Authorization",
+                    In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+                    Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer"
+                });
+
+                c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+                {
+                    {
+                        new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                        {
+                            Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                            {
+                                Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+            });
+
+            // Add JWT Authentication
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer(options =>
+                {
+                    options.Authority = builder.Configuration["Authentication:Authority"];
+                    options.Audience = builder.Configuration["Authentication:Audience"];
+                    options.RequireHttpsMetadata = false; // For development
+                });
+
+            builder.Services.AddAuthorization(options =>
+            {
+                options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
+                options.AddPolicy("GatewayManager", policy => policy.RequireRole("Admin", "GatewayManager"));
+                options.AddPolicy("RouteManager", policy => policy.RequireRole("Admin", "RouteManager"));
+                options.AddPolicy("SnapshotManager", policy => policy.RequireRole("Admin", "SnapshotManager"));
+            });
+
+            var app = builder.Build();
+
+            // Background work has no request to name an environment, so it needs the
+            // configured one. Said once at startup rather than as an exception per
+            // retry inside the poller that needs it.
+            if (string.IsNullOrWhiteSpace(app.Configuration[EnvironmentContextRegistration.ConfigurationKey]))
+            {
+                app.Logger.LogWarning(
+                    "No '{Key}' configured, so background work has no environment. Requests are unaffected — they name their own. Set it to the environment this installation serves.",
+                    EnvironmentContextRegistration.ConfigurationKey);
+            }
+
+            // Configure the HTTP request pipeline.
+            app.UseMiddleware<GlobalExceptionMiddleware>();
+            app.UseMiddleware<CorrelationIdMiddleware>();
+            app.UseCors(DashboardCorsPolicy);
+
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseSwagger();
+                app.UseSwaggerUI();
+            }
+
+            app.UseHttpsRedirection();
+            app.UseAuthentication();
+            app.UseAuthorization();
+            app.MapControllers();
+
+            app.Run();
+        }
+    }
+}

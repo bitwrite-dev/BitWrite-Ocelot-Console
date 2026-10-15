@@ -45,7 +45,7 @@ jobs:
           cache-dependency-path: dashboard/package-lock.json
 
       - name: Restore .NET dependencies
-        run: dotnet restore BitWrite.OcelotControl.slnx
+        run: dotnet restore BitWrite.OcelotConsole.slnx
 
       - name: Check .NET format
         run: dotnet format --verify-no-changes --verbosity detailed
@@ -92,7 +92,7 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore BitWrite.OcelotControl.slnx
+        run: dotnet restore BitWrite.OcelotConsole.slnx
 
       - name: Build solution
         run: dotnet build --no-restore --configuration Release --verbosity minimal
@@ -227,7 +227,7 @@ jobs:
       - name: Build & push API image
         uses: docker/build-push-action@v5
         with:
-          context: src/BitWrite.OcelotControl.Api
+          context: src/BitWrite.OcelotConsole.Api
           push: true
           tags: ${{ steps.meta-api.outputs.tags }}
           labels: ${{ steps.meta-api.outputs.labels }}
@@ -273,12 +273,12 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore & Build
-        run: dotnet restore BitWrite.OcelotControl.slnx && dotnet build --no-restore --configuration Release
+        run: dotnet restore BitWrite.OcelotConsole.slnx && dotnet build --no-restore --configuration Release
 
       - name: Pack NuGet packages
         run: |
-          dotnet pack src/BitWrite.OcelotControl.SDK/BitWrite.OcelotControl.SDK.csproj --configuration Release --output ./artifacts
-          dotnet pack src/BitWrite.OcelotControl.Migration/BitWrite.OcelotControl.Migration.csproj --configuration Release --output ./artifacts
+          dotnet pack src/BitWrite.OcelotConsole.SDK/BitWrite.OcelotConsole.SDK.csproj --configuration Release --output ./artifacts
+          dotnet pack src/BitWrite.OcelotConsole.Migration/BitWrite.OcelotConsole.Migration.csproj --configuration Release --output ./artifacts
 
       - name: Push to NuGet
         run: |

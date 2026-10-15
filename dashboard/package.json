@@ -1,5 +1,5 @@
 {
-  "name": "ocelot-control-dashboard",
+  "name": "ocelot-console-dashboard",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -44,5 +44,5 @@
     "vite": "^8.3.0",
     "vitest": "^5.0.2"
   },
-  "description": "BitWrite Ocelot Control Plane - Dashboard UI"
+  "description": "BitWrite Ocelot Console - Dashboard UI"
 }

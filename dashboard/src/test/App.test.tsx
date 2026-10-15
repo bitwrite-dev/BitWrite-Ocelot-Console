@@ -10,9 +10,10 @@ describe('App', () => {
     render(<App />)
 
     // Guards the a11y regression where shadcn's CardTitle rendered a plain div
-    // and the page had no heading at all.
+    // and the page had no heading at all. The name is the product's, and the
+    // rename that changed it is the one this pins.
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      /ocelot control plane/i,
+      /bitwrite ocelot console/i,
     )
   })
 

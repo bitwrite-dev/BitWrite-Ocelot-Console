@@ -112,7 +112,7 @@ describe('PagePlaceholder', () => {
     const link = screen.getByRole('link', { name: /Open 436/ })
     expect(link).toHaveAttribute(
       'href',
-      'https://github.com/bitwrite-dev/BitWrite-Ocelot-Control-Plane/issues/436',
+      'https://github.com/bitwrite-dev/BitWrite-Ocelot-Console/issues/436',
     )
   })
 })

@@ -1,5 +1,5 @@
 /*
- * Generated to mirror src/BitWrite.OcelotControl.Api/DTOs. Do not hand-edit.
+ * Generated to mirror src/BitWrite.OcelotConsole.Api/DTOs. Do not hand-edit.
  *
  * The API serialises with JsonSerializerDefaults.Web (camelCase), so property
  * names are camelCased here. DateTimeOffset is a string on the wire (ISO 8601).

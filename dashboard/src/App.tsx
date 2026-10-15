@@ -17,7 +17,7 @@ export default function App() {
               no heading landmark. These props restore the semantics without
               touching the generated styling. Revisit when #434 builds the shell. */}
           <CardTitle role="heading" aria-level={1}>
-            BitWrite Ocelot Control Plane
+            BitWrite Ocelot Console
           </CardTitle>
           <CardDescription>
             Dashboard bootstrap is in place (#432). The application shell lands in #434.

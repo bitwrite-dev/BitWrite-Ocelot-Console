@@ -1,4 +1,4 @@
-# BitWrite Ocelot Control Plane - Task Prioritization
+# BitWrite Ocelot Console - Task Prioritization
 
 ## Overview
 This document provides a prioritized list of tasks and subtasks based on DDD architecture dependencies.
@@ -230,7 +230,7 @@ This document provides a prioritized list of tasks and subtasks based on DDD arc
 | 1 | #340 | [Task] Implement SDK Project | — | ⏳ **Ready** | Low |
 | 1.1 | #341 | SDK Project Setup & Structure | — | ✅ Done | Low |
 | 1.2 | #342 | SDK Authentication (JWT) | — | ✅ Done | Low |
-| 1.3 | #343 | SDK Core Client (OcelotControlClient) | — | ✅ Done | Low |
+| 1.3 | #343 | SDK Core Client (OcelotConsoleClient) | — | ✅ Done | Low |
 | 1.4 | #344 | SDK Gateway Client | — | ✅ Done | Low |
 | 1.5 | #345 | SDK Route Client | — | ✅ Done | Low |
 | 1.6 | #346 | SDK Service Client | — | ✅ Done | Low |
@@ -242,7 +242,7 @@ This document provides a prioritized list of tasks and subtasks based on DDD arc
 | 1.10 | #352 | SDK Audit Client | — | ⏳ Ready | Low |
 | 1.13 | #353 | SDK GlobalConfig Client | — | ⏳ Ready | Low |
 | 1.14 | #354 | SDK Models (Requests/Responses) | — | ✅ Done | Low |
-| 1.15 | #355 | SDK DI Extension (AddOcelotControlSdk) | — | ✅ Done | Low |
+| 1.15 | #355 | SDK DI Extension (AddOcelotConsoleSdk) | — | ✅ Done | Low |
 | 1.16 | #356 | SDK NuGet Packaging & Sample App | — | ⏳ Ready | Low |
 | 1.17 | #357 | SDK Documentation & Examples | — | ⏳ Ready | Low |
 
@@ -339,7 +339,7 @@ Value Objects → Domain Services → Aggregates → Domain Events → Use Cases
 | 39 | **#340** | Implement SDK Project | 🔄 In Progress |
 | 39.1 | **#341** | SDK Project Setup & Structure | ✅ Done |
 | 39.2 | **#342** | SDK Authentication (JWT) | ✅ Done |
-| 39.3 | **#343** | SDK Core Client (OcelotControlClient) | ✅ Done |
+| 39.3 | **#343** | SDK Core Client (OcelotConsoleClient) | ✅ Done |
 | 39.4 | **#344** | SDK Gateway Client | ✅ Done |
 | 39.5 | **#345** | SDK Route Client | ✅ Done |
 | 39.6 | **#346** | SDK Service Client | ✅ Done |
@@ -351,7 +351,7 @@ Value Objects → Domain Services → Aggregates → Domain Events → Use Cases
 | 39.12 | **#352** | SDK Audit Client | ⏳ Ready |
 | 39.13 | **#353** | SDK GlobalConfig Client | ⏳ Ready |
 | 39.14 | **#354** | SDK Models (Requests/Responses) | ✅ Done |
-| 39.15 | **#355** | SDK DI Extension (AddOcelotControlSdk) | ✅ Done |
+| 39.15 | **#355** | SDK DI Extension (AddOcelotConsoleSdk) | ✅ Done |
 | 39.16 | **#356** | SDK NuGet Packaging & Sample App | ⏳ Ready |
 | 39.17 | **#357** | SDK Documentation & Examples | ⏳ Ready |
 | 39.16 | **#356** | SDK NuGet Packaging & Sample App | ⏳ Ready |

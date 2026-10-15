@@ -19,7 +19,7 @@ records that the node belongs in the layout, and holds the steps to make it real
    (a namespace cannot hold the hyphen the folder name has, so the hyphen is
    dropped there only). Then replace `ocelot.gateway.node1` with
    `ocelot.gateway.node2` in every `.cs` file under the folder.
-3. Add the project to `BitWrite.OcelotControl.slnx`:
+3. Add the project to `BitWrite.OcelotConsole.slnx`:
    ```xml
    <Project Path="nodes/ocelot.gateway.node-2/ocelot.gateway.node-2.csproj" />
    ```

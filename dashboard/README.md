@@ -1,6 +1,6 @@
 # Ocelot Control Dashboard
 
-Management UI for the BitWrite Ocelot Control Plane. React + Vite + TypeScript SPA, styled with Tailwind CSS v4 and shadcn/ui.
+Management UI for the BitWrite Ocelot Console. React + Vite + TypeScript SPA, styled with Tailwind CSS v4 and shadcn/ui.
 
 Tracked by [#262](../issues/262). The bootstrap is [#432](../issues/432), the API client and auth integration is [#433](../issues/433), and the application shell is [#434](../issues/434).
 
@@ -31,7 +31,7 @@ Start the API on port 5039 (the `http` profile):
 
 ```bash
 cd ..
-dotnet run --project src/BitWrite.OcelotControl.Api
+dotnet run --project src/BitWrite.OcelotConsole.Api
 ```
 
 Override the target with `VITE_DEV_API_TARGET` if the API runs elsewhere. Set `VITE_API_BASE_URL` if you need the dashboard to call an absolute URL instead of the relative `/api`.
@@ -129,7 +129,7 @@ const { routes, totalCount } = await client.resources.routes.list({ page: 1, pag
 | `http.ts` | fetch wrapper — base URL, query building, JSON, bearer token, cancellation |
 | `errors.ts` | `ApiError`, and normalisation of the two error shapes the API returns |
 | `resources.ts` | one module-level namespace per controller |
-| `types.ts` | generated from `src/BitWrite.OcelotControl.Api/DTOs` — do not hand-edit |
+| `types.ts` | generated from `src/BitWrite.OcelotConsole.Api/DTOs` — do not hand-edit |
 | `auth.ts` | access-token seam; **the strategy is still undecided, see #433** |
 | `config.ts` | reads `VITE_API_BASE_URL` — an **origin**, never a path prefix |
 
@@ -183,4 +183,4 @@ The CLI resolves the `@/` alias literally and writes to a stray `./@/` directory
 ## Notes
 
 - `@/*` maps to `./src/*` in both `tsconfig.app.json` and `tsconfig.node.json`, plus `resolve.alias` in `vite.config.ts`. `baseUrl` is intentionally **not** set — TypeScript 6 deprecates it, and `paths` resolves relative to the tsconfig file.
-- This project is deliberately **not** referenced from `BitWrite.OcelotControl.slnx`; that solution lists .NET projects only.
+- This project is deliberately **not** referenced from `BitWrite.OcelotConsole.slnx`; that solution lists .NET projects only.
