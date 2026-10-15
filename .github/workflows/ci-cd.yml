@@ -160,6 +160,16 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Declared on this job alone: the token falls back to the repository's default
+    # permissions when a workflow declares none, and that default is read-only
+    # here — which refused the Code Scanning upload with "Resource not accessible
+    # by integration". `contents` is for the checkout; `security-events` is the
+    # write the SARIF upload is. Job-scoped rather than workflow-wide because the
+    # docker job authenticates to ghcr with the same token and needs its own
+    # `packages: write`.
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -174,7 +184,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-results.sarif'
 
