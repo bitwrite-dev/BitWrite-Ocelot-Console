@@ -36,7 +36,7 @@ public class RedisLicenseRepository : RedisRepositoryBase, ILicenseRepository
         if (licenseId.IsNullOrEmpty)
             return null;
 
-        var id = LicenseId.From(Guid.Parse(licenseId!));
+        var id = LicenseId.From(Guid.Parse((string)licenseId!));
         return await GetAsync(id, cancellationToken);
     }
 

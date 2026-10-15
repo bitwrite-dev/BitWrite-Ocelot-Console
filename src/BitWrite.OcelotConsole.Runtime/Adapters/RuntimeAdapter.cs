@@ -123,9 +123,13 @@ public class RuntimeAdapter : BackgroundService
     {
         // Poll current version from Redis
         var db = _connectionMultiplexer.GetDatabase();
+        // Spelled as a string rather than left implicit: .NET 10 added the UTF8
+        // TryParse overloads, and a RedisValue converts to both a string and a
+        // ReadOnlySpan&lt;byte&gt;, so the call became ambiguous.
         var currentVersionStr = await db.StringGetAsync(RedisKeyHelper.RuntimeCurrent(BitWrite.OcelotConsole.Domain.ValueObjects.Configuration.EnvironmentName.From(_environment)));
+        var currentVersion = currentVersionStr.IsNullOrEmpty ? null : (string?)currentVersionStr;
 
-        if (!currentVersionStr.IsNullOrEmpty && int.TryParse(currentVersionStr, out var versionInt))
+        if (currentVersion != null && int.TryParse(currentVersion, out var versionInt))
         {
             var version = SnapshotVersion.From(versionInt);
 

@@ -5,7 +5,7 @@
 > publishing Ocelot Gateway configurations.
 
 [![CI](https://github.com/bitwrite-dev/BitWrite-Ocelot-Console/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/bitwrite-dev/BitWrite-Ocelot-Console/actions/workflows/ci-cd.yml)
-[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)](https://dotnet.microsoft.com/)
+[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/)
 [![React](https://img.shields.io/badge/React-19-61DAFB)](https://react.dev/)
 [![Tests](https://img.shields.io/badge/tests-857%20%2B%20494-brightgreen)](#testing)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
@@ -227,7 +227,7 @@ These are enforced by construction, not by convention. Each has a test.
 
 ### Prerequisites
 
-- .NET 8 SDK
+- .NET 10 SDK
 - Node.js 22 LTS (for the dashboard — the version CI runs)
 - Redis 7 (the only infrastructure dependency; CI uses `redis:7-alpine`)
 

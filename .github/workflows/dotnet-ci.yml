@@ -63,8 +63,8 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
-          # The projects target net8.0, but the solution file is .slnx — a format
-          # only the .NET 9+ SDK reads. Pinning 8.x makes `dotnet build` fail on the
+          # The projects target net10.0, but the solution file is .slnx — a format
+          # only the .NET 9+ SDK reads. Pinning 8.x would make `dotnet build` fail on the
           # solution itself with an unrecognised <Solution> element, an error that
           # has nothing to do with the code. So this takes the line that can
           # actually read the file.
