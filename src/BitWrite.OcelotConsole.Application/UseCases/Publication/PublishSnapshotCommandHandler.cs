@@ -143,6 +143,10 @@ public class PublishSnapshotCommandHandler
             publication.Complete();
             await _publicationRepository.UpdateAsync(publication, cancellationToken);
 
+            // 9.6. Mark snapshot as Published
+            snapshot.Publish();
+            await _snapshotRepository.UpdateAsync(snapshot, cancellationToken);
+
             // 10. Raise domain events
             foreach (var domainEvent in publication.DomainEvents)
             {
