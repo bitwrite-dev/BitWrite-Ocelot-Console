@@ -6,6 +6,7 @@ using BitWrite.OcelotConsole.Domain.Events;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Configuration;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Status;
+using StackExchange.Redis;
 using DomainPublication = BitWrite.OcelotConsole.Domain.Aggregates.Publication.Publication;
 
 namespace BitWrite.OcelotConsole.Application.UseCases.Publication;
@@ -19,6 +20,7 @@ public class PublishSnapshotCommandHandler
     private readonly IDistributedLock _distributedLock;
     private readonly IRedisPublisher _redisPublisher;
     private readonly IDomainEventDispatcher _eventDispatcher;
+    private readonly IConnectionMultiplexer _connectionMultiplexer;
 
     public PublishSnapshotCommandHandler(
         ISnapshotRepository snapshotRepository,
@@ -27,7 +29,8 @@ public class PublishSnapshotCommandHandler
         ISnapshotIntegrityVerifier integrityVerifier,
         IDistributedLock distributedLock,
         IRedisPublisher redisPublisher,
-        IDomainEventDispatcher eventDispatcher)
+        IDomainEventDispatcher eventDispatcher,
+        IConnectionMultiplexer connectionMultiplexer)
     {
         _snapshotRepository = snapshotRepository;
         _publicationRepository = publicationRepository;
@@ -36,6 +39,7 @@ public class PublishSnapshotCommandHandler
         _distributedLock = distributedLock;
         _redisPublisher = redisPublisher;
         _eventDispatcher = eventDispatcher;
+        _connectionMultiplexer = connectionMultiplexer;
     }
 
     public async Task<PublicationId> HandleAsync(PublishSnapshotCommand command, CancellationToken cancellationToken = default)
@@ -118,11 +122,11 @@ public class PublishSnapshotCommandHandler
             // 7. Persist Publication
             await _publicationRepository.AddAsync(publication, cancellationToken);
 
-            // 8. Atomic: Set ocelot:runtime:current:{env} = version (via Redis)
-            await _redisPublisher.PublishAsync(
+            // 8. Atomic: Set ocelot:runtime:current:{env} = version (via Redis SET key)
+            var db = _connectionMultiplexer.GetDatabase();
+            await db.StringSetAsync(
                 $"ocelot:runtime:current:{command.Environment.Value}",
-                new { Version = snapshotVersion.Value.ToString(), Environment = command.Environment.Value },
-                cancellationToken);
+                snapshotVersion.Value.ToString());
 
             // 9. Redis Pub/Sub: Notify gateways of new version
             await _redisPublisher.PublishAsync(
