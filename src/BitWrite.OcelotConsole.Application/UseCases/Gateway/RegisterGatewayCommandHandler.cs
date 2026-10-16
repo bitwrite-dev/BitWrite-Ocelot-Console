@@ -21,6 +21,14 @@ public class RegisterGatewayCommandHandler
 
     public async Task<GatewayResponse> HandleAsync(RegisterGatewayCommand command, CancellationToken cancellationToken = default)
     {
+        // Guard: refuse to create a duplicate gateway under the same name.
+        // A gateway is identified by its name, not just its id — a node that
+        // re-registers under the same name should point at the same record,
+        // not mint a new gateway every time it restarts.
+        var existing = await _gatewayRepository.GetByNameAsync(command.Name, cancellationToken);
+        if (existing is not null)
+            return MapToResponse(existing);
+
         // Create Gateway aggregate
         var gateway = DomainGateway.Register(command.Name, command.Description);
 

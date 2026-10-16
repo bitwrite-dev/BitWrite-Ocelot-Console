@@ -84,6 +84,12 @@ public class RedisGatewayRepository : RedisRepositoryBase, IGatewayRepository
         return gateways;
     }
 
+    public async Task<Gateway?> GetByNameAsync(string name, CancellationToken cancellationToken = default)
+    {
+        var gateways = await GetAllAsync(cancellationToken);
+        return gateways.FirstOrDefault(g => string.Equals(g.Name, name, StringComparison.OrdinalIgnoreCase));
+    }
+
     public async Task AddAsync(Gateway gateway, CancellationToken cancellationToken = default)
     {
         var key = RedisKeyHelper.Gateway(gateway.Id);
