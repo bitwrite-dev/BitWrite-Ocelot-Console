@@ -183,7 +183,10 @@ export function createResources(http: HttpClient) {
       http.get<PublicationListResponse>('/api/v1/publications', { query, signal }),
     current: (o?: Options) =>
       http.get<CurrentPublicationResponse>('/api/v1/publications/current', o),
-    history: (o?: Options) => http.get<PublicationResponse[]>('/api/v1/publications/history', o),
+    history: (o?: Options) =>
+      http.get<PublicationListResponse>('/api/v1/publications/history', o),
+    detail: (id: string, o?: Options) =>
+      http.get<PublicationResponse>(`/api/v1/publications/${id}`, o),
   }
 
   const plugins = {
