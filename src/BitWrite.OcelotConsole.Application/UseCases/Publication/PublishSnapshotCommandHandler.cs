@@ -6,8 +6,8 @@ using BitWrite.OcelotConsole.Domain.Events;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Configuration;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Status;
-using DomainPublication = BitWrite.OcelotConsole.Domain.Aggregates.Publication.Publication;
 using StackExchange.Redis;
+using DomainPublication = BitWrite.OcelotConsole.Domain.Aggregates.Publication.Publication;
 
 namespace BitWrite.OcelotConsole.Application.UseCases.Publication;
 
