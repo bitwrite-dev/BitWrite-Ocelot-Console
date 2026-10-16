@@ -15,7 +15,7 @@ public class RuntimeInstance
     private readonly List<string> _capabilities = new();
     private readonly List<string> _activeRoutes = new();
 
-    public GatewayId GatewayId { get; private set; }
+    public GatewayId GatewayId { get; private set; } = null!;
     public RuntimeStatus Status { get; private set; } = RuntimeStatus.Disconnected;
     public SnapshotVersion? CurrentVersion { get; private set; }
     public SnapshotVersion? TargetVersion { get; private set; }

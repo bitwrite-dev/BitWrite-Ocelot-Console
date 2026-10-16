@@ -1,7 +1,6 @@
 using BitWrite.OcelotConsole.Application.Interfaces;
 using BitWrite.OcelotConsole.Application.UseCases.Route;
 using BitWrite.OcelotConsole.Domain.Events;
-using BitWrite.OcelotConsole.Domain.Events;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using DomainRoute = BitWrite.OcelotConsole.Domain.Aggregates.Route.Route;
 

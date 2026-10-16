@@ -185,7 +185,7 @@ public class SnapshotsController : BaseApiController
         {
             var query = new AppSnapshot.CompareSnapshotsQuery(SnapshotVersion.From(version), SnapshotVersion.From(compareWith));
             var result = await _compareSnapshotsQueryHandler.HandleAsync(query);
-            return HandleResult(new ApiDtos.SnapshotCompareResponse(result.VersionA.Value, result.VersionB.Value, result.Differences.ToList()));
+            return HandleResult(new ApiDtos.SnapshotCompareResponse(result!.VersionA.Value, result!.VersionB.Value, result!.Differences.ToList()));
         }
         catch (Exception ex)
         {

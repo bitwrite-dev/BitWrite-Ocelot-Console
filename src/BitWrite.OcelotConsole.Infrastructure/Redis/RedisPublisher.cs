@@ -18,7 +18,7 @@ public class RedisPublisher : IRedisPublisher
     public async Task PublishAsync(string channel, string message, CancellationToken cancellationToken = default)
     {
         var subscriber = _connectionMultiplexer.GetSubscriber();
-        await subscriber.PublishAsync(channel, message);
+        await subscriber.PublishAsync(RedisChannel.Literal(channel), message);
         _logger.LogDebug("Published to channel {Channel}: {Message}", channel, message);
     }
 

@@ -116,9 +116,19 @@ var host = Host.CreateDefaultBuilder(args)
             // empty, so a node nobody registered is a node nothing can be sent to.
             services.AddHttpClient();
             services.AddSingleton<IControlPlaneClient>(provider =>
-                new HttpControlPlaneClient(
-                    provider.GetRequiredService<HttpClient>(),
-                    published));
+            {
+                var configuration = provider.GetRequiredService<IConfiguration>();
+                var http = provider.GetRequiredService<HttpClient>();
+
+                var controlPlaneUrl = configuration[$"{PublishedEnvironment.SectionName}:ControlPlaneUrl"];
+                if (!string.IsNullOrWhiteSpace(controlPlaneUrl))
+                {
+                    http.BaseAddress = new Uri(controlPlaneUrl);
+                }
+
+                var published = provider.GetRequiredService<PublishedEnvironment>();
+                return new HttpControlPlaneClient(http, published);
+            });
             services.AddHostedService<GatewayRegistrar>();
 
             services.AddHealthChecks();

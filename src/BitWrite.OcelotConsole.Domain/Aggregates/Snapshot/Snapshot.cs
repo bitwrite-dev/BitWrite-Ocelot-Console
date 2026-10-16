@@ -15,7 +15,7 @@ public class Snapshot
     private readonly List<DomainEvent> _domainEvents = new();
     private readonly List<ValidationResult> _validationResults = new();
 
-    public SnapshotVersion Version { get; private set; }
+    public SnapshotVersion Version { get; private set; } = null!;
     public SnapshotStatus Status { get; private set; } = SnapshotStatus.Ready;
     public ConfigurationHash Hash { get; private set; } = default!;
     public string Content { get; private set; } = string.Empty;

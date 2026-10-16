@@ -101,7 +101,7 @@ public static class RedisSerializer
 
         foreach (var entry in entries)
         {
-            if (properties.TryGetValue(entry.Name, out var prop))
+            if (properties.TryGetValue(entry.Name!, out var prop))
             {
                 var value = Deserialize(prop.PropertyType, entry.Value.ToString());
                 prop.SetValue(obj, value);

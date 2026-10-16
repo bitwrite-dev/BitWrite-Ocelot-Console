@@ -112,7 +112,7 @@ public class ServicesController : BaseApiController
             );
 
             var result = await _updateServiceCommandHandler.HandleAsync(command);
-            return HandleResult(MapToResponse(result));
+            return HandleResult(MapToResponse(result!));
         }
         catch (Exception ex)
         {
@@ -148,7 +148,7 @@ public class ServicesController : BaseApiController
             var result = await _getServiceRoutesQueryHandler.HandleAsync(query);
 
             var response = new ApiDtos.ServiceRoutesResponse(
-                result.Routes.Select(MapToRouteResponse).ToList()
+                result!.Routes.Select(MapToRouteResponse).ToList()
             );
 
             return HandleResult(response);

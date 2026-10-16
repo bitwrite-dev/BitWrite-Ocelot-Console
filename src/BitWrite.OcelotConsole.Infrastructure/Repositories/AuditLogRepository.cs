@@ -123,8 +123,8 @@ public class RedisAuditLogRepository : RedisRepositoryBase, IAuditLogRepository
         var entries = SerializeAuditLog(auditLog);
 
         var transaction = Database.CreateTransaction();
-        transaction.HashSetAsync(key, entries);
-        transaction.SortedSetAddAsync(AuditLogsIndexKey, auditLog.Id, ToUnixTimestamp(auditLog.Timestamp));
+        _ = transaction.HashSetAsync(key, entries);
+        _ = transaction.SortedSetAddAsync(AuditLogsIndexKey, auditLog.Id, ToUnixTimestamp(auditLog.Timestamp));
         await transaction.ExecuteAsync();
     }
 

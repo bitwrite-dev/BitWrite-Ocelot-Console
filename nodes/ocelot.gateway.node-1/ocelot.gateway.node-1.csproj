@@ -8,6 +8,7 @@
        closest legal spelling stands in for it. The assembly and file names keep the
        hyphen the folder has. -->
     <RootNamespace>ocelot.gateway.node1</RootNamespace>
+    <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
   </PropertyGroup>
 
   <ItemGroup>

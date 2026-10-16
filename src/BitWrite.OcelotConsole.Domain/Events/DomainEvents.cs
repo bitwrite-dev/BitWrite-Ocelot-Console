@@ -78,7 +78,7 @@ public record GlobalConfigurationUpdated() : DomainEvent;
 public record SystemSettingsInitialised(
     OcelotVersion OcelotVersion,
     string SelectedBy,
-    string CorrelationId) : DomainEvent;
+    string _CorrelationId) : DomainEvent;
 
 // Snapshot events
 public record SnapshotCreated(SnapshotVersion Version, ConfigurationHash Hash, string CreatedBy) : DomainEvent;

@@ -71,7 +71,7 @@ public class LicensesController : BaseApiController
             if (result == null)
                 return NotFound();
 
-            return HandleResult(MapToResponse(result));
+            return HandleResult(MapToResponse(result!));
         }
         catch (Exception ex)
         {
@@ -92,7 +92,7 @@ public class LicensesController : BaseApiController
             );
 
             var result = await _createLicenseCommandHandler.HandleAsync(command);
-            return HandleResult(MapToResponse(result));
+            return HandleResult(MapToResponse(result!));
         }
         catch (Exception ex)
         {
@@ -147,7 +147,7 @@ public class LicensesController : BaseApiController
             );
 
             var result = await _updateLicenseCommandHandler.HandleAsync(command);
-            return HandleResult(MapToResponse(result));
+            return HandleResult(MapToResponse(result!));
         }
         catch (Exception ex)
         {
@@ -166,7 +166,7 @@ public class LicensesController : BaseApiController
             );
 
             var result = await _renewLicenseCommandHandler.HandleAsync(command);
-            return HandleResult(MapToResponse(result));
+            return HandleResult(MapToResponse(result!));
         }
         catch (Exception ex)
         {
@@ -185,7 +185,7 @@ public class LicensesController : BaseApiController
             );
 
             var result = await _revokeLicenseCommandHandler.HandleAsync(command);
-            return HandleResult(MapToResponse(result));
+            return HandleResult(MapToResponse(result!));
         }
         catch (Exception ex)
         {

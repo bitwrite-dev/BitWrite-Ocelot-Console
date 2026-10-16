@@ -1,5 +1,4 @@
 using BitWrite.OcelotConsole.Application.Interfaces;
-using BitWrite.OcelotConsole.Application.Interfaces;
 using BitWrite.OcelotConsole.Application.UseCases.License;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using DomainLicense = BitWrite.OcelotConsole.Domain.Aggregates.License.License;

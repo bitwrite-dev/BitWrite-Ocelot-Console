@@ -25,19 +25,19 @@ public class UpdateGlobalConfigurationRequestValidator : AbstractValidator<Updat
             .When(x => x.Timeout.HasValue);
 
         RuleFor(x => x.RateLimit)
-            .SetValidator(new RateLimitConfigRequestValidator())
+            .SetValidator(new RateLimitConfigRequestValidator()!)
             .When(x => x.RateLimit != null);
 
         RuleFor(x => x.QoS)
-            .SetValidator(new QoSConfigRequestValidator())
+            .SetValidator(new QoSConfigRequestValidator()!)
             .When(x => x.QoS != null);
 
         RuleFor(x => x.HttpHandler)
-            .SetValidator(new HttpHandlerConfigRequestValidator())
+            .SetValidator(new HttpHandlerConfigRequestValidator()!)
             .When(x => x.HttpHandler != null);
 
         RuleFor(x => x.ServiceDiscovery)
-            .SetValidator(new ServiceDiscoveryConfigRequestValidator())
+            .SetValidator(new ServiceDiscoveryConfigRequestValidator()!)
             .When(x => x.ServiceDiscovery != null);
     }
 }

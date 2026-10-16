@@ -156,7 +156,7 @@ public class IdentityValueObjectsTests
 
         (v1 < v2).Should().BeTrue();
         (v2 > v1).Should().BeTrue();
-        (v1 <= v1).Should().BeTrue();
+        (v1 <= v2).Should().BeTrue();
         (v3 >= v2).Should().BeTrue();
     }
 

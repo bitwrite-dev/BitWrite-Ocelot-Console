@@ -14,8 +14,8 @@ public class Publication
     private readonly List<DomainEvent> _domainEvents = new();
     private readonly Dictionary<GatewayId, GatewayDeploymentState> _gatewayStates = new();
 
-    public PublicationId Id { get; private set; }
-    public SnapshotVersion SnapshotVersion { get; private set; }
+    public PublicationId Id { get; private set; } = null!;
+    public SnapshotVersion SnapshotVersion { get; private set; } = null!;
     public PublicationStatus Status { get; private set; } = PublicationStatus.Pending;
     public string InitiatedBy { get; private set; } = string.Empty;
     public DateTimeOffset StartedAt { get; private set; }
@@ -287,7 +287,7 @@ public class Publication
 /// </summary>
 public class GatewayDeploymentState
 {
-    public GatewayId GatewayId { get; init; }
+    public GatewayId GatewayId { get; init; } = null!;
     public string Status { get; set; } = "Pending";
     public DateTimeOffset? ReceivedAt { get; set; }
     public DateTimeOffset? ValidatedAt { get; set; }

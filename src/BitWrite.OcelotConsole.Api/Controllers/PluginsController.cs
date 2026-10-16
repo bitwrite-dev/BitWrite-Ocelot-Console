@@ -78,7 +78,7 @@ public class PluginsController : BaseApiController
             );
 
             var result = await _installPluginCommandHandler.HandleAsync(command);
-            return HandleResult(MapToResponse(result));
+            return HandleResult(MapToResponse(result!));
         }
         catch (Exception ex)
         {
@@ -97,7 +97,7 @@ public class PluginsController : BaseApiController
             if (result == null)
                 return NotFound();
 
-            return HandleResult(MapToResponse(result));
+            return HandleResult(MapToResponse(result!));
         }
         catch (Exception ex)
         {
@@ -116,7 +116,7 @@ public class PluginsController : BaseApiController
             );
 
             var result = await _enablePluginCommandHandler.HandleAsync(command);
-            return HandleResult(MapToResponse(result));
+            return HandleResult(MapToResponse(result!));
         }
         catch (Exception ex)
         {
@@ -135,7 +135,7 @@ public class PluginsController : BaseApiController
             );
 
             var result = await _disablePluginCommandHandler.HandleAsync(command);
-            return HandleResult(MapToResponse(result));
+            return HandleResult(MapToResponse(result!));
         }
         catch (Exception ex)
         {
@@ -174,7 +174,7 @@ public class PluginsController : BaseApiController
             );
 
             var result = await _upgradePluginCommandHandler.HandleAsync(command);
-            return HandleResult(MapToResponse(result));
+            return HandleResult(MapToResponse(result!));
         }
         catch (Exception ex)
         {

@@ -59,7 +59,7 @@ public class SystemSettingsCommandHandler
         {
             throw;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Parse throws a FormatException on a non-numeric part, which would
             // otherwise surface as a 500.

@@ -164,7 +164,7 @@ public class UpdateServiceCommandHandlerTests
 
         // Assert
         result.Should().NotBeNull();
-        result.Name.Should().Be("Updated Name");
+        result!.Name.Should().Be("Updated Name");
         result.Description.Should().Be("Updated Description");
 
         _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<DomainService>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -246,6 +246,6 @@ public class GetServiceRoutesQueryHandlerTests
 
         // Assert
         result.Should().NotBeNull();
-        result.Routes.Should().HaveCount(2);
+        result!.Routes.Should().HaveCount(2);
     }
 }

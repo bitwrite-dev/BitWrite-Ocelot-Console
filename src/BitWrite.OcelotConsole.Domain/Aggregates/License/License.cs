@@ -14,7 +14,7 @@ public class License
     private readonly List<DomainEvent> _domainEvents = new();
     private readonly List<LicenseFeature> _features = new();
 
-    public LicenseId Id { get; private set; }
+    public LicenseId Id { get; private set; } = null!;
     public string Name { get; private set; } = string.Empty;
     public string ProductCode { get; private set; } = string.Empty;
     public LicenseStatus Status { get; private set; } = LicenseStatus.Pending;

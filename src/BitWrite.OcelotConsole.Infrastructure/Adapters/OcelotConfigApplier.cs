@@ -153,7 +153,7 @@ public class RedisConfigurationProvider : IConfigurationProvider
         await db.StringSetAsync(ConfigKey, json);
 
         // Publish notification to trigger reload
-        await subscriber.PublishAsync(NotificationChannel, json);
+        await subscriber.PublishAsync(RedisChannel.Literal(NotificationChannel), json);
 
         _logger.LogInformation("Ocelot configuration published to Redis, notification sent to channel {Channel}", NotificationChannel);
     }

@@ -413,7 +413,7 @@ public class EnableRouteCommandHandlerTests
 
         // Assert
         result.Should().NotBeNull();
-        result.IsEnabled.Should().BeTrue();
+        result!.IsEnabled.Should().BeTrue();
 
         _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<DomainRoute>(), It.IsAny<CancellationToken>()), Times.Once);
         _mockEventDispatcher.Verify(d => d.DispatchAsync(It.Is<DomainEvent>(e => e is RouteEnabled), It.IsAny<CancellationToken>()), Times.Once);
@@ -462,7 +462,7 @@ public class DisableRouteCommandHandlerTests
 
         // Assert
         result.Should().NotBeNull();
-        result.IsEnabled.Should().BeFalse();
+        result!.IsEnabled.Should().BeFalse();
 
         _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<DomainRoute>(), It.IsAny<CancellationToken>()), Times.Once);
         _mockEventDispatcher.Verify(d => d.DispatchAsync(It.Is<DomainEvent>(e => e is RouteDisabled), It.IsAny<CancellationToken>()), Times.Once);

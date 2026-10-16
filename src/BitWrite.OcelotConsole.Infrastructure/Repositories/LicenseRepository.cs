@@ -87,9 +87,9 @@ public class RedisLicenseRepository : RedisRepositoryBase, ILicenseRepository
         var entries = SerializeLicense(license);
 
         var transaction = Database.CreateTransaction();
-        transaction.HashSetAsync(key, entries);
-        transaction.SortedSetAddAsync(LicensesIndexKey, license.Id.Value.ToString(), ToUnixTimestamp(license.CreatedAt));
-        transaction.HashSetAsync(LicenseProductCodesIndexKey, license.ProductCode.ToUpperInvariant(), license.Id.Value.ToString());
+        _ = transaction.HashSetAsync(key, entries);
+        _ = transaction.SortedSetAddAsync(LicensesIndexKey, license.Id.Value.ToString(), ToUnixTimestamp(license.CreatedAt));
+        _ = transaction.HashSetAsync(LicenseProductCodesIndexKey, license.ProductCode.ToUpperInvariant(), license.Id.Value.ToString());
         await transaction.ExecuteAsync();
     }
 
@@ -99,9 +99,9 @@ public class RedisLicenseRepository : RedisRepositoryBase, ILicenseRepository
         var entries = SerializeLicense(license);
 
         var transaction = Database.CreateTransaction();
-        transaction.HashSetAsync(key, entries);
-        transaction.SortedSetAddAsync(LicensesIndexKey, license.Id.Value.ToString(), ToUnixTimestamp(license.UpdatedAt));
-        transaction.HashSetAsync(LicenseProductCodesIndexKey, license.ProductCode.ToUpperInvariant(), license.Id.Value.ToString());
+        _ = transaction.HashSetAsync(key, entries);
+        _ = transaction.SortedSetAddAsync(LicensesIndexKey, license.Id.Value.ToString(), ToUnixTimestamp(license.UpdatedAt));
+        _ = transaction.HashSetAsync(LicenseProductCodesIndexKey, license.ProductCode.ToUpperInvariant(), license.Id.Value.ToString());
         await transaction.ExecuteAsync();
     }
 
@@ -110,8 +110,8 @@ public class RedisLicenseRepository : RedisRepositoryBase, ILicenseRepository
         var key = RedisKeyHelper.License(id);
 
         var transaction = Database.CreateTransaction();
-        transaction.KeyDeleteAsync(key);
-        transaction.SortedSetRemoveAsync(LicensesIndexKey, id.Value.ToString());
+        _ = transaction.KeyDeleteAsync(key);
+        _ = transaction.SortedSetRemoveAsync(LicensesIndexKey, id.Value.ToString());
         await transaction.ExecuteAsync();
     }
 

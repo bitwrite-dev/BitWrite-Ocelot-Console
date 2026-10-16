@@ -77,7 +77,7 @@ public class CreateSnapshotCommandHandler
         var ocelotConfig = _configurationBuilder.BuildConfiguration(
             routeConfigs,
             MapToGlobalConfiguration(globalConfig),
-            (await _systemSettings.GetAsync(cancellationToken)).OcelotVersion);
+            (await _systemSettings.GetAsync(cancellationToken)).OcelotVersion!);
 
         // 3. 5 Validation Layers
         // 3.1 Domain Validation - each aggregate validates itself
@@ -162,7 +162,7 @@ public class CreateSnapshotCommandHandler
         // contradicted the create page, which shows the same rule as a warning and
         // lets the step through.
         var failures = results
-            .Where(r => !r.IsValid && !r.Message.StartsWith("Warning", StringComparison.Ordinal))
+            .Where(r => !r.IsValid && !r.Message!.StartsWith("Warning", StringComparison.Ordinal))
             .ToList();
 
         if (failures.Any())

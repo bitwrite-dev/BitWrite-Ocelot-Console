@@ -104,7 +104,7 @@ public class RoutesController : BaseApiController
             if (result == null)
                 return NotFound();
 
-            return HandleResult(MapToResponse(result));
+            return HandleResult(MapToResponse(result!));
         }
         catch (Exception ex)
         {
@@ -157,7 +157,7 @@ public class RoutesController : BaseApiController
             }
 
             var result = await _createRouteCommandHandler.HandleAsync(mapping.Value!);
-            return HandleResult(MapToResponse(result));
+            return HandleResult(MapToResponse(result!));
         }
         catch (Exception ex)
         {
@@ -245,7 +245,7 @@ public class RoutesController : BaseApiController
             if (result == null)
                 return NotFound();
 
-            return HandleResult(MapToResponse(result));
+            return HandleResult(MapToResponse(result!));
         }
         catch (Exception ex)
         {
@@ -264,7 +264,7 @@ public class RoutesController : BaseApiController
             );
 
             var result = await _enableRouteCommandHandler.HandleAsync(command);
-            return HandleResult(MapToResponse(result));
+            return HandleResult(MapToResponse(result!));
         }
         catch (Exception ex)
         {
@@ -283,7 +283,7 @@ public class RoutesController : BaseApiController
             );
 
             var result = await _disableRouteCommandHandler.HandleAsync(command);
-            return HandleResult(MapToResponse(result));
+            return HandleResult(MapToResponse(result!));
         }
         catch (Exception ex)
         {
@@ -336,7 +336,7 @@ public class RoutesController : BaseApiController
         {
             var query = new AppRoute.PreviewRouteQuery(RouteId.From(id));
             var result = await _previewRouteQueryHandler.HandleAsync(query);
-            return HandleResult(new ApiDtos.RoutePreviewResponse(result.OcelotJson));
+            return HandleResult(new ApiDtos.RoutePreviewResponse(result!.OcelotJson));
         }
         catch (Exception ex)
         {
@@ -351,7 +351,7 @@ public class RoutesController : BaseApiController
         {
             var query = new AppRoute.GetEffectiveRouteQuery(RouteId.From(id));
             var result = await _getEffectiveRouteQueryHandler.HandleAsync(query);
-            return HandleResult(new ApiDtos.RouteEffectiveResponse(result.OcelotJson));
+            return HandleResult(new ApiDtos.RouteEffectiveResponse(result!.OcelotJson));
         }
         catch (Exception ex)
         {
@@ -366,7 +366,7 @@ public class RoutesController : BaseApiController
         {
             var query = new AppRoute.RouteHistoryQuery(RouteId.From(id));
             var result = await _routeHistoryQueryHandler.HandleAsync(query);
-            return HandleResult(new ApiDtos.RouteHistoryResponse(result.History.Select(MapToHistoryItem).ToList()));
+            return HandleResult(new ApiDtos.RouteHistoryResponse(result!.History.Select(MapToHistoryItem).ToList()));
         }
         catch (Exception ex)
         {

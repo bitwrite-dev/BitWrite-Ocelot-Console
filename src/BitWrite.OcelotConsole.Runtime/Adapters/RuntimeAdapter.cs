@@ -22,7 +22,7 @@ public class RuntimeAdapter : BackgroundService
     private readonly TimeSpan _pollInterval = TimeSpan.FromSeconds(30);
     private readonly TimeSpan _retryInterval = TimeSpan.FromSeconds(5);
     private readonly string _environment;
-    private GatewayId _gatewayId;
+    private GatewayId _gatewayId = null!;
     private SnapshotVersion? _currentVersion;
     private SnapshotVersion? _lastKnownGoodVersion;
     private string? _lastKnownGoodConfig;
@@ -72,13 +72,13 @@ public class RuntimeAdapter : BackgroundService
     {
         var subscriber = _connectionMultiplexer.GetSubscriber();
 
-        await subscriber.SubscribeAsync("ocelot:snapshot:published", async (channel, message) =>
+        await subscriber.SubscribeAsync(RedisChannel.Literal("ocelot:snapshot:published"), async (channel, message) =>
         {
             _logger.LogInformation("Received version notification: {Message}", message);
             await HandleVersionNotificationAsync(message.ToString(), cancellationToken);
         });
 
-        await subscriber.SubscribeAsync("ocelot:snapshot:rolled-back", async (channel, message) =>
+        await subscriber.SubscribeAsync(RedisChannel.Literal("ocelot:snapshot:rolled-back"), async (channel, message) =>
         {
             _logger.LogInformation("Received rollback notification: {Message}", message);
             await HandleRollbackNotificationAsync(message.ToString(), cancellationToken);
