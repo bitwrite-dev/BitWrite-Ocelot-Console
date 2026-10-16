@@ -39,7 +39,8 @@ public class CreateRouteCommandHandler
             command.ServiceId,
             command.DownstreamTargets,
             command.Key,
-            command.Host
+            command.Host,
+            downstreamTemplate: command.DownstreamTemplate
         );
 
         // Set optional feature configurations
