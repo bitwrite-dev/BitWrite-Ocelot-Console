@@ -70,6 +70,22 @@ public class CreateSnapshotCommandHandler
         var routes = await _routeRepository.GetAllAsync(cancellationToken);
         var services = await _serviceRepository.GetAllAsync(cancellationToken);
 
+        // 1.5. Guard: refuse to create a snapshot when nothing is a draft.
+        // A snapshot is meant to seal *pending* management state. If every route,
+        // service and the global configuration are already captured, there is
+        // nothing new to seal and creating a snapshot would just produce a
+        // duplicate of the last one.
+        var hasAnyDraft =
+            routes.Any(r => r.IsDraft) ||
+            services.Any(s => s.IsDraft) ||
+            globalConfig.IsDraft;
+
+        if (!hasAnyDraft)
+        {
+            throw new InvalidOperationException(
+                "No draft changes to capture. Create a snapshot only after creating or editing at least one route, service, or the global configuration.");
+        }
+
         // Convert to RouteConfiguration for ConfigurationBuilder
         var routeConfigs = routes.Select(RouteConfigurationMapper.Map).ToList();
 
