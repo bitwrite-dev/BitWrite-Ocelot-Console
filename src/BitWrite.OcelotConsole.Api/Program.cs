@@ -183,6 +183,7 @@ namespace BitWrite.OcelotConsole.Api
             builder.Services.AddScoped<ListPublicationsQueryHandler>();
             builder.Services.AddScoped<GetCurrentPublicationQueryHandler>();
             builder.Services.AddScoped<GetPublicationHistoryQueryHandler>();
+            builder.Services.AddScoped<GetPublicationDetailQueryHandler>();
             // Plugin UseCase Handlers
             builder.Services.AddScoped<InstallPluginCommandHandler>();
             builder.Services.AddScoped<GetPluginQueryHandler>();

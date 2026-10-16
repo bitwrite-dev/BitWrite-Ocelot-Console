@@ -11,3 +11,5 @@ public record GetPublicationHistoryQuery(
     int Page = 1,
     int PageSize = 20
 );
+
+public record GetPublicationDetailQuery(string Id);

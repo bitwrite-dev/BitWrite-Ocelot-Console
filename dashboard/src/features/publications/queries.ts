@@ -54,10 +54,7 @@ export function usePublicationDetail(id: string, enabled: boolean) {
 
   return useQuery({
     queryKey: publicationKeys.detail(id),
-    queryFn: async ({ signal }) => {
-      const list = await api.resources.publications.history({ signal })
-      return list.find((p: PublicationResponse) => p.id === id) ?? null
-    },
+    queryFn: ({ signal }) => api.resources.publications.detail(id, { signal }),
     enabled: enabled && !!id,
   })
 }

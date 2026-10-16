@@ -12,15 +12,18 @@ public class PublicationsController : BaseApiController
     private readonly AppPublication.ListPublicationsQueryHandler _listPublicationsQueryHandler;
     private readonly AppPublication.GetCurrentPublicationQueryHandler _getCurrentPublicationQueryHandler;
     private readonly AppPublication.GetPublicationHistoryQueryHandler _getPublicationHistoryQueryHandler;
+    private readonly AppPublication.GetPublicationDetailQueryHandler _getPublicationDetailQueryHandler;
 
     public PublicationsController(
         AppPublication.ListPublicationsQueryHandler listPublicationsQueryHandler,
         AppPublication.GetCurrentPublicationQueryHandler getCurrentPublicationQueryHandler,
-        AppPublication.GetPublicationHistoryQueryHandler getPublicationHistoryQueryHandler)
+        AppPublication.GetPublicationHistoryQueryHandler getPublicationHistoryQueryHandler,
+        AppPublication.GetPublicationDetailQueryHandler getPublicationDetailQueryHandler)
     {
         _listPublicationsQueryHandler = listPublicationsQueryHandler;
         _getCurrentPublicationQueryHandler = getCurrentPublicationQueryHandler;
         _getPublicationHistoryQueryHandler = getPublicationHistoryQueryHandler;
+        _getPublicationDetailQueryHandler = getPublicationDetailQueryHandler;
     }
 
     [HttpGet]
@@ -87,6 +90,25 @@ public class PublicationsController : BaseApiController
             );
 
             return HandleResult(response);
+        }
+        catch (Exception ex)
+        {
+            return HandleError(ex);
+        }
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ApiDtos.PublicationResponse>> GetPublicationDetail(string id)
+    {
+        try
+        {
+            var query = new AppPublication.GetPublicationDetailQuery(id);
+            var result = await _getPublicationDetailQueryHandler.HandleAsync(query);
+
+            if (result is null)
+                return NotFound();
+
+            return HandleResult(MapToResponse(result));
         }
         catch (Exception ex)
         {
