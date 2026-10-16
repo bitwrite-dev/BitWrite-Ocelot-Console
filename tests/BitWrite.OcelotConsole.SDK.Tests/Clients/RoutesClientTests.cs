@@ -16,7 +16,6 @@ namespace BitWrite.OcelotConsole.SDK.Tests.Clients;
 
 public class RoutesClientTests
 {
-    private readonly Mock<HttpMessageHandler> _mockHttpHandler;
     private readonly HttpClient _httpClient;
     private readonly Mock<ILogger<OcelotConsoleClient>> _mockLogger;
     private readonly OcelotConsoleClientOptions _options;

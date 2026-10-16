@@ -33,7 +33,7 @@ public class GetGatewayRuntimeDetailQueryHandler
 
         // Get routes for this gateway
         var routes = await _routeRepository.GetAllAsync(cancellationToken);
-        var gatewayRoutes = routes.Where(r => r.ServiceId.Value != null).ToList(); // Filter by gateway if needed
+        var gatewayRoutes = routes.Where(r => r.ServiceId != null).ToList(); // Filter by gateway if needed
 
         // Get runtime info from Redis
         var db = _connectionMultiplexer.GetDatabase();
@@ -45,7 +45,7 @@ public class GetGatewayRuntimeDetailQueryHandler
 
         var routeDetails = gatewayRoutes.Select(r => new RouteRuntimeDetail(
             r.Id,
-            r.Key,
+            r.Key!,
             r.UpstreamPath.Value,
             r.Method.Value,
             r.IsEnabled,

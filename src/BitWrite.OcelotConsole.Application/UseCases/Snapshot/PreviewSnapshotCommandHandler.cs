@@ -121,7 +121,7 @@ public class PreviewSnapshotCommandHandler
         {
             results.AddRange(ValidateRouteConflicts(routes));
             results.AddRange(ValidateReferences(routes, services));
-            results.AddRange(ValidateCapabilities(routes, ocelotVersion));
+            results.AddRange(ValidateCapabilities(routes, ocelotVersion!));
         }
 
         results.Add(ValidateNotEmpty(routes));

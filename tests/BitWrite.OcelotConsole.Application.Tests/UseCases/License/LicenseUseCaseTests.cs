@@ -176,7 +176,7 @@ public class ActivateLicenseCommandHandlerTests
 
         // Assert
         result.Should().NotBeNull();
-        result.ProductCode.Should().Be("TEST-001");
+        result!.ProductCode.Should().Be("TEST-001");
         result.ActivatedAt.Should().NotBe(default);
 
         _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<DomainLicense>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -236,7 +236,7 @@ public class UpdateLicenseCommandHandlerTests
 
         // Assert
         result.Should().NotBeNull();
-        result.Name.Should().Be("Updated Name");
+        result!.Name.Should().Be("Updated Name");
 
         _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<DomainLicense>(), It.IsAny<CancellationToken>()), Times.Once);
         _mockEventDispatcher.Verify(d => d.DispatchAsync(It.Is<DomainEvent>(e => e is LicenseUpdated), It.IsAny<CancellationToken>()), Times.Once);
@@ -279,7 +279,7 @@ public class RenewLicenseCommandHandlerTests
 
         // Assert
         result.Should().NotBeNull();
-        result.ExpirationDate.Should().Be(newExpiration);
+        result!.ExpirationDate.Should().Be(newExpiration);
 
         _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<DomainLicense>(), It.IsAny<CancellationToken>()), Times.Once);
         _mockEventDispatcher.Verify(d => d.DispatchAsync(It.Is<DomainEvent>(e => e is LicenseRenewed), It.IsAny<CancellationToken>()), Times.Once);
@@ -321,7 +321,7 @@ public class RevokeLicenseCommandHandlerTests
 
         // Assert
         result.Should().NotBeNull();
-        result.Status.Should().Be(LicenseStatus.Revoked);
+        result!.Status.Should().Be(LicenseStatus.Revoked);
         result.RevokedAt.Should().NotBeNull();
         result.RevocationReason.Should().Be("Security violation");
 

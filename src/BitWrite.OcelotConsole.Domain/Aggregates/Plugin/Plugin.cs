@@ -15,7 +15,7 @@ public class Plugin
     private readonly List<DomainEvent> _domainEvents = new();
     private readonly List<PluginCapability> _capabilities = new();
 
-    public PluginId Id { get; private set; }
+    public PluginId Id { get; private set; } = null!;
     public string Name { get; private set; } = string.Empty;
     public string Version { get; private set; } = string.Empty;
     public string? Description { get; private set; }

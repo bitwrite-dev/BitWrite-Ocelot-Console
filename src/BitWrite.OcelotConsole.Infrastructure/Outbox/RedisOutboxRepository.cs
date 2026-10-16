@@ -27,8 +27,8 @@ public class RedisOutboxRepository : IOutboxRepository
         var json = JsonSerializer.Serialize(message, _jsonOptions);
 
         var transaction = _database.CreateTransaction();
-        transaction.StringSetAsync(messageKey, json);
-        transaction.SortedSetAddAsync(PendingKey, message.Id.ToString(), ToUnixTimestamp(message.CreatedAt));
+        _ = transaction.StringSetAsync(messageKey, json);
+        _ = transaction.SortedSetAddAsync(PendingKey, message.Id.ToString(), ToUnixTimestamp(message.CreatedAt));
         await transaction.ExecuteAsync();
     }
 
@@ -59,8 +59,8 @@ public class RedisOutboxRepository : IOutboxRepository
     {
         var messageKey = MessagePrefix + messageId;
         var transaction = _database.CreateTransaction();
-        transaction.SortedSetRemoveAsync(PendingKey, messageId.ToString());
-        transaction.KeyDeleteAsync(messageKey);
+        _ = transaction.SortedSetRemoveAsync(PendingKey, messageId.ToString());
+        _ = transaction.KeyDeleteAsync(messageKey);
         await transaction.ExecuteAsync();
     }
 
@@ -95,9 +95,9 @@ public class RedisOutboxRepository : IOutboxRepository
                 message.ProcessedAt = DateTime.UtcNow;
 
                 var transaction = _database.CreateTransaction();
-                transaction.SortedSetRemoveAsync(PendingKey, messageId.ToString());
-                transaction.StringSetAsync(messageKey, JsonSerializer.Serialize(message, _jsonOptions));
-                transaction.SortedSetAddAsync(DeadLetterKey, messageId.ToString(), ToUnixTimestamp(DateTime.UtcNow));
+                _ = transaction.SortedSetRemoveAsync(PendingKey, messageId.ToString());
+                _ = transaction.StringSetAsync(messageKey, JsonSerializer.Serialize(message, _jsonOptions));
+                _ = transaction.SortedSetAddAsync(DeadLetterKey, messageId.ToString(), ToUnixTimestamp(DateTime.UtcNow));
                 await transaction.ExecuteAsync();
             }
         }

@@ -32,7 +32,7 @@ public class GetServiceRoutesQueryHandler
         var response = new ServiceRoutesResponse(
             serviceRoutes.Select(r => new RouteSummary(
                 r.Id,
-                r.Key,
+                r.Key!,
                 r.Method.Value,
                 r.UpstreamPath.Value,
                 r.IsEnabled,

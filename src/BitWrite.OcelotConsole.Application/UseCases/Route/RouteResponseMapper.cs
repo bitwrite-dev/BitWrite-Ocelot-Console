@@ -15,7 +15,7 @@ public static class RouteResponseMapper
     public static RouteResponse Map(DomainRoute route) =>
         new(
             route.Id,
-            route.Key,
+            route.Key!,
             route.Method,
             route.UpstreamPath,
             route.ServiceId,

@@ -14,7 +14,7 @@ public class Gateway
 {
     private readonly List<DomainEvent> _domainEvents = new();
 
-    public GatewayId Id { get; private set; }
+    public GatewayId Id { get; private set; } = null!;
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }
     public RuntimeStatus Status { get; private set; } = RuntimeStatus.Disconnected;

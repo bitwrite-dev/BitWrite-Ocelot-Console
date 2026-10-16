@@ -17,8 +17,6 @@ public class ListLicensesQueryHandler
 
     public async Task<LicenseListResponse> HandleAsync(ListLicensesQuery query, CancellationToken cancellationToken = default)
     {
-        List<DomainLicense> licenses;
-
         if (query.Status != null)
         {
             if (query.Status.IsActive)

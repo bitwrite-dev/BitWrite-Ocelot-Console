@@ -183,7 +183,7 @@ public sealed class OcelotConfigurationWriter
     private static JsonNode? ConvertValue(string fieldName, JsonNode? value) =>
         fieldName == "downstreamHostAndPorts" && value is JsonArray hosts
             ? ConvertHosts(hosts)
-            : value.DeepClone();
+            : value is null ? null : value.DeepClone();
 
     private static JsonArray ConvertHosts(JsonArray hosts)
     {

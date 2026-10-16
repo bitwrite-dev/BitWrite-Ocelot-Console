@@ -267,7 +267,7 @@ public class UpdateGatewayStatusCommandHandlerTests
 
         // Assert
         result.Should().NotBeNull();
-        result.Status.Should().Be(RuntimeStatus.Active);
+        result!.Status.Should().Be(RuntimeStatus.Active);
 
         _mockRepository.Verify(r => r.UpdateAsync(It.IsAny<DomainGateway>(), It.IsAny<CancellationToken>()), Times.Once);
         _mockEventDispatcher.Verify(d => d.DispatchAsync(It.Is<DomainEvent>(e => e is GatewayStatusChanged), It.IsAny<CancellationToken>()), Times.Once);

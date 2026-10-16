@@ -13,7 +13,7 @@ public class Service
     private readonly List<DomainEvent> _domainEvents = new();
     private readonly List<ServiceEndpoint> _endpoints = new();
 
-    public ServiceId Id { get; private set; }
+    public ServiceId Id { get; private set; } = null!;
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }
 

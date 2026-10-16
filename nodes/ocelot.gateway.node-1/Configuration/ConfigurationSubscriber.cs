@@ -59,11 +59,11 @@ public sealed class ConfigurationSubscriber : BackgroundService
         // Both channels, because a rollback is how an operator says "go back to that
         // one" and a gateway that ignored it would keep serving the version they
         // just withdrew.
-        await _subscriber.SubscribeAsync(PublishedChannel, (_, message) =>
-            HandleAsync(message.ToString(), stoppingToken));
+        await _subscriber.SubscribeAsync(RedisChannel.Literal(PublishedChannel), async (_, message) =>
+            await HandleAsync(message.ToString(), stoppingToken));
 
-        await _subscriber.SubscribeAsync(RolledBackChannel, (_, message) =>
-            HandleAsync(message.ToString(), stoppingToken));
+        await _subscriber.SubscribeAsync(RedisChannel.Literal(RolledBackChannel), async (_, message) =>
+            await HandleAsync(message.ToString(), stoppingToken));
 
         _logger.LogInformation(
             "Subscribed to {Published} and {RolledBack}", PublishedChannel, RolledBackChannel);

@@ -1,5 +1,4 @@
 using BitWrite.OcelotConsole.Application.Interfaces;
-using BitWrite.OcelotConsole.Application.Interfaces;
 using BitWrite.OcelotConsole.Application.UseCases.License;
 using BitWrite.OcelotConsole.Domain.Events;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
@@ -34,7 +33,7 @@ public class UpdateLicenseCommandHandler
 
         if (name != license.Name || description != license.Description)
         {
-            license.UpdateMetadata(name, license.ProductCode, description);
+            license.UpdateMetadata(name, license.ProductCode, description!);
         }
 
         await _licenseRepository.UpdateAsync(license, cancellationToken);

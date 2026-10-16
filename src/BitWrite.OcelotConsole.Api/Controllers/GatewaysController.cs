@@ -188,7 +188,7 @@ public class GatewaysController : BaseApiController
             );
 
             var result = await _updateGatewayStatusCommandHandler.HandleAsync(command);
-            return HandleResult(MapToResponse(result));
+            return HandleResult(MapToResponse(result!));
         }
         catch (Exception ex)
         {

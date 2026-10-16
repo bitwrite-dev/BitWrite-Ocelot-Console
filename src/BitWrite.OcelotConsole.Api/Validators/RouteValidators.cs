@@ -36,23 +36,23 @@ public class CreateRouteRequestValidator : AbstractValidator<CreateRouteRequest>
             .SetValidator(new DownstreamTargetRequestValidator());
 
         RuleFor(x => x.AuthenticationOptions)
-            .SetValidator(new AuthenticationOptionsRequestValidator())
+            .SetValidator(new AuthenticationOptionsRequestValidator()!)
             .When(x => x.AuthenticationOptions != null);
 
         RuleFor(x => x.RateLimitOptions)
-            .SetValidator(new RateLimitOptionsRequestValidator())
+            .SetValidator(new RateLimitOptionsRequestValidator()!)
             .When(x => x.RateLimitOptions != null);
 
         RuleFor(x => x.QoSOptions)
-            .SetValidator(new QoSOptionsRequestValidator())
+            .SetValidator(new QoSOptionsRequestValidator()!)
             .When(x => x.QoSOptions != null);
 
         RuleFor(x => x.CacheOptions)
-            .SetValidator(new CacheOptionsRequestValidator())
+            .SetValidator(new CacheOptionsRequestValidator()!)
             .When(x => x.CacheOptions != null);
 
         RuleFor(x => x.LoadBalancerOptions)
-            .SetValidator(new LoadBalancerOptionsRequestValidator())
+            .SetValidator(new LoadBalancerOptionsRequestValidator()!)
             .When(x => x.LoadBalancerOptions != null);
     }
 }

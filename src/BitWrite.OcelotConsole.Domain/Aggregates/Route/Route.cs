@@ -16,7 +16,7 @@ public class Route
     private readonly List<DomainEvent> _domainEvents = new();
     private readonly List<DownstreamTarget> _downstreamTargets = new();
 
-    public RouteId Id { get; private set; }
+    public RouteId Id { get; private set; } = null!;
     public string? Key { get; private set; }
     public string? Host { get; private set; }
     public HttpMethod Method { get; private set; } = default!;
