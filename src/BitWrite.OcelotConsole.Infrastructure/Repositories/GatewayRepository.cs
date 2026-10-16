@@ -24,6 +24,13 @@ public class RedisGatewayRepository : RedisRepositoryBase, IGatewayRepository
             ? parsed
             : DateTimeOffset.UnixEpoch;
 
+    private static DateTimeOffset? ParseNullableTimestamp(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return null;
+        return DateTimeOffset.TryParse(value, out var parsed) ? parsed : null;
+    }
+
     public async Task<Gateway?> GetAsync(GatewayId id, CancellationToken cancellationToken = default)
     {
         var key = RedisKeyHelper.Gateway(id);
@@ -58,7 +65,8 @@ public class RedisGatewayRepository : RedisRepositoryBase, IGatewayRepository
             RuntimeStatus.TryParse(statusEntry, out var status) ? status : RuntimeStatus.Disconnected,
             environment,
             ParseTimestamp(GetEntry(entries, "CreatedAt")),
-            ParseTimestamp(GetEntry(entries, "UpdatedAt")));
+            ParseTimestamp(GetEntry(entries, "UpdatedAt")),
+            ParseNullableTimestamp(GetEntry(entries, "LastHeartbeat")));
     }
 
     public async Task<List<Gateway>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -101,7 +109,10 @@ public class RedisGatewayRepository : RedisRepositoryBase, IGatewayRepository
             new("Status", gateway.Status.Value),
             new("Environment", gateway.Environment.Value),
             new("CreatedAt", gateway.CreatedAt.ToString("O")),
-            new("UpdatedAt", gateway.UpdatedAt.ToString("O"))
+            new("UpdatedAt", gateway.UpdatedAt.ToString("O")),
+            gateway.LastHeartbeat.HasValue
+                ? new("LastHeartbeat", gateway.LastHeartbeat.Value.ToString("O"))
+                : new("LastHeartbeat", string.Empty)
         };
 
         await SetHashAsync(key, entries);
