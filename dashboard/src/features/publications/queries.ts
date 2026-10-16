@@ -67,14 +67,17 @@ export function publicationStatus(
 ): { label: string; tone: 'ok' | 'bad' | 'warn' | 'mute' } {
   const status = publication.status.toLowerCase()
 
-  if (status.includes('complete') || status.includes('success')) {
+  if (status === 'published' || status.includes('complete') || status.includes('success')) {
     return { label: 'Completed', tone: 'ok' }
   }
-  if (status.includes('fail') || status.includes('error')) {
+  if (status === 'pending' || status.includes('progress') || status.includes('started')) {
+    return { label: 'In Progress', tone: 'warn' }
+  }
+  if (status === 'failed' || status.includes('fail') || status.includes('error')) {
     return { label: 'Failed', tone: 'bad' }
   }
-  if (status.includes('progress') || status.includes('started')) {
-    return { label: 'In Progress', tone: 'warn' }
+  if (status === 'rolledback') {
+    return { label: 'Rolled Back', tone: 'mute' }
   }
   return { label: 'Unknown', tone: 'mute' }
 }
