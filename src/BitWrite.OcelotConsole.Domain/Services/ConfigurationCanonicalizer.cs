@@ -50,7 +50,7 @@ public class ConfigurationCanonicalizer
     {
         var canonical = new
         {
-            global = new
+            globalConfiguration = new
             {
                 baseUrl = configuration.GlobalConfiguration.BaseUrl ?? "http://localhost:5000",
                 requestIdKey = configuration.GlobalConfiguration.RequestIdKey ?? "X-Request-Id"
