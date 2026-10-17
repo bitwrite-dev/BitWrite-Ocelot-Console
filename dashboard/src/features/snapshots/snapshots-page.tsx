@@ -672,7 +672,7 @@ function SnapshotSheet({
   return (
     <>
       <Sheet open onOpenChange={(open) => !open && onClose()}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-4xl lg:max-w-6xl">
+        <SheetContent className="w-full overflow-y-auto sm:max-w-8xl lg:max-w-9xl">
           <SheetHeader>
             <SheetTitle>Snapshot #{snapshot.version}</SheetTitle>
             <SheetDescription>
