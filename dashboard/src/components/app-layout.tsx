@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge'
 import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 
@@ -18,23 +19,55 @@ import type { Role } from '@/navigation'
  * the API, so it is mounted only when there is a client to read it from, and a
  * shell rendered without one shows its content rather than throwing.
  */
-export function AppLayout({ roles, guard = true }: { roles?: Role[]; guard?: boolean }) {
+export type DraftCounts = {
+  routes: number
+  services: number
+  globalConfig: number
+} | null
+
+export function AppLayout({
+  roles,
+  guard = true,
+  draftCounts,
+}: {
+  roles?: Role[]
+  guard?: boolean
+  draftCounts?: DraftCounts
+}) {
   return (
     <ThemeProvider>
-      <LayoutBody roles={roles} guard={guard} />
+      <LayoutBody roles={roles} guard={guard} draftCounts={draftCounts} />
     </ThemeProvider>
   )
 }
 
-function LayoutBody({ roles, guard }: { roles?: Role[]; guard: boolean }) {
+function LayoutBody({
+  roles,
+  guard,
+  draftCounts,
+}: {
+  roles?: Role[]
+  guard: boolean
+  draftCounts?: DraftCounts
+}) {
+  const totalDrafts =
+    draftCounts !== null && draftCounts !== undefined
+      ? draftCounts.routes + draftCounts.services + draftCounts.globalConfig
+      : null
+
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar roles={roles} />
+      <Sidebar roles={roles} draftCounts={draftCounts} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 items-center gap-3 border-b px-4 md:hidden">
-          <MobileSidebar roles={roles} />
+          <MobileSidebar roles={roles} draftCounts={draftCounts} />
           <span className="font-heading text-sm font-semibold">Ocelot Console</span>
+          {totalDrafts !== null && totalDrafts > 0 && (
+            <Badge variant="destructive" className="ml-auto">
+              {totalDrafts} pending
+            </Badge>
+          )}
         </header>
 
         <main className="flex-1 overflow-x-hidden p-4 md:p-6">

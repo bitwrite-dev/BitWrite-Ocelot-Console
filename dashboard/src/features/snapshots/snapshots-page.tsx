@@ -508,9 +508,12 @@ function PublishDialog({
                     targetGatewayIds,
                   },
                 },
-                {
-                  onSuccess: (deployment) => setOutcome(describeDeployment(deployment)),
-                },
+                  {
+                    onSuccess: (deployment) => {
+                      setOutcome(describeDeployment(deployment))
+                      onDone()
+                    },
+                  },
               )
             }
           >

@@ -9,6 +9,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { EnvironmentSelector } from '@/components/environment-selector'
@@ -21,7 +22,15 @@ import { NAV_SECTIONS, type Role } from '@/navigation'
  * (ADR-020).
  */
 
-function NavLinks({ roles, onNavigate }: { roles?: Role[]; onNavigate?: () => void }) {
+function NavLinks({
+  roles,
+  onNavigate,
+  draftCounts,
+}: {
+  roles?: Role[]
+  onNavigate?: () => void
+  draftCounts: { routes: number; services: number; globalConfig: number } | null
+}) {
   return (
     <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 py-4">
       {NAV_SECTIONS.map((section) => {
@@ -39,34 +48,51 @@ function NavLinks({ roles, onNavigate }: { roles?: Role[]; onNavigate?: () => vo
               {section.label}
             </h2>
             <ul className="space-y-1">
-              {items.map((item) => (
-                <li key={item.path}>
-                  <NavLink
-                    to={item.path}
-                    end={item.path === '/'}
-                    onClick={onNavigate}
-                    className={({ isActive }) =>
-                      [
-                        'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
-                        isActive
-                          ? 'bg-primary text-primary-foreground font-medium'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                      ].join(' ')
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <item.icon
-                          className="size-4 shrink-0"
-                          aria-hidden={!isActive}
-                          strokeWidth={2}
-                        />
-                        {item.label}
-                      </>
-                    )}
-                  </NavLink>
-                </li>
-              ))}
+              {items.map((item) => {
+                // Map nav paths to draft count types for badge display.
+                const draftCount =
+                  item.path === '/routes'
+                    ? draftCounts?.routes
+                    : item.path === '/services'
+                      ? draftCounts?.services
+                      : item.path === '/global-configuration'
+                        ? draftCounts?.globalConfig
+                        : undefined
+
+                return (
+                  <li key={item.path}>
+                    <NavLink
+                      to={item.path}
+                      end={item.path === '/'}
+                      onClick={onNavigate}
+                      className={({ isActive }) =>
+                        [
+                          'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
+                          isActive
+                            ? 'bg-primary text-primary-foreground font-medium'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                        ].join(' ')
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <item.icon
+                            className="size-4 shrink-0"
+                            aria-hidden={!isActive}
+                            strokeWidth={2}
+                          />
+                          {item.label}
+                          {draftCount !== null && draftCount > 0 && (
+                            <Badge variant="destructive" className="ml-auto">
+                              {draftCount}
+                            </Badge>
+                          )}
+                        </>
+                      )}
+                    </NavLink>
+                  </li>
+                )
+              })}
             </ul>
           </div>
         )
@@ -105,12 +131,18 @@ function Brand() {
   )
 }
 
-export function Sidebar({ roles }: { roles?: Role[] }) {
+export function Sidebar({
+  roles,
+  draftCounts,
+}: {
+  roles?: Role[]
+  draftCounts: { routes: number; services: number; globalConfig: number } | null
+}) {
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-r bg-background md:flex">
       <Brand />
       <Separator />
-      <NavLinks roles={roles} />
+      <NavLinks roles={roles} draftCounts={draftCounts} />
       <LifecycleGuardrail />
       <EnvironmentSelector />
       <ThemeToggle />
@@ -119,7 +151,13 @@ export function Sidebar({ roles }: { roles?: Role[] }) {
 }
 
 /** Collapsed sidebar for narrow viewports, presented as a sheet. */
-export function MobileSidebar({ roles }: { roles?: Role[] }) {
+export function MobileSidebar({
+  roles,
+  draftCounts,
+}: {
+  roles?: Role[]
+  draftCounts: { routes: number; services: number; globalConfig: number } | null
+}) {
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -134,7 +172,7 @@ export function MobileSidebar({ roles }: { roles?: Role[] }) {
           </SheetTitle>
         </SheetHeader>
         <Separator />
-        <NavLinks roles={roles} />
+        <NavLinks roles={roles} draftCounts={draftCounts} />
         <LifecycleGuardrail />
         <EnvironmentSelector />
       </SheetContent>
