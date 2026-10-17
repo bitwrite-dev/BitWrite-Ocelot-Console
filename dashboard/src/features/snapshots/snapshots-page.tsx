@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, ClipboardCopy, Copy, GitCompare, Plus, Send } from 'lucide-react'
+import { Check, ClipboardCopy, Copy, GitCompare, Plus, Send, RotateCcw } from 'lucide-react'
 
 import { JsonHighlight, copyToClipboard } from '@/components/json-highlight'
 import { StatusBadge } from '@/components/status-badge'
@@ -529,6 +529,119 @@ function PublishDialog({
  * The detail view: the configuration this snapshot will publish, and what
  * gateways are running.
  */
+function RollbackDialog({
+  snapshot,
+  onDone,
+}: {
+  snapshot: SnapshotResponse
+  onDone: () => void
+}) {
+  const { rollback } = useSnapshotMutations()
+  const [outcome, setOutcome] = useState<string | null>(null)
+  const environment = getEffectiveEnvironment()
+  const { data: gateways, isPending, isError } = usePublishTargetGateways()
+  const targetGatewayIds = (gateways ?? []).map((gateway) => gateway.id)
+
+  const blocked =
+    environment === '' || isPending || targetGatewayIds.length === 0 || rollback.isPending
+
+  return (
+    <AlertDialog open onOpenChange={(open) => !open && onDone()}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Rollback to snapshot #{snapshot.version}?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Every gateway in {environment || 'the selected environment'} will start serving
+            this snapshot instead of the currently published one. The older snapshot is
+            kept — nothing is deleted — and it can be rolled forward again later.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        {environment === '' ? (
+          <Alert variant="destructive">
+            <AlertTitle>No environment is selected</AlertTitle>
+            <AlertDescription>
+              A rollback has to name the environment it is for. Pick one in the
+              sidebar, then open this again.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {isPending ? (
+          <p className="text-xs text-muted-foreground">
+            Looking up the gateways this rollback will reach…
+          </p>
+        ) : null}
+
+        {!isPending && targetGatewayIds.length === 0 ? (
+          <Alert variant="destructive">
+            <AlertTitle>No gateways to roll back to</AlertTitle>
+            <AlertDescription>
+              {isError
+                ? `The gateway list for ${environment} could not be read, and a rollback has to name the gateways it reaches. Close this and try again.`
+                : `There are no gateways registered in ${environment}, and a rollback has to name at least one. Register a gateway, then try again.`}
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {outcome ? (
+          <Alert>
+            <AlertTitle>Outcome</AlertTitle>
+            <AlertDescription>{outcome}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {rollback.error ? (
+          <Alert variant="destructive">
+            <AlertTitle>
+              {isPermissionError(rollback.error) ? 'Not permitted' : 'The rollback was refused'}
+            </AlertTitle>
+            <AlertDescription>
+              {isPermissionError(rollback.error)
+                ? 'Rolling back needs the SnapshotManager or Admin role.'
+                : rollback.error instanceof Error
+                  ? rollback.error.message
+                  : String(rollback.error)}
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        <AlertDialogFooter>
+          <AlertDialogCancel type="button">Cancel</AlertDialogCancel>
+          <Button
+            type="button"
+            disabled={blocked}
+            onClick={() =>
+              rollback.mutate(
+                {
+                  version: snapshot.version,
+                  body: {
+                    initiatedBy: CURRENT_OPERATOR,
+                    environment,
+                    targetGatewayIds,
+                  },
+                },
+                {
+                  onSuccess: (deployment) => {
+                    setOutcome(describeDeployment(deployment))
+                    onDone()
+                  },
+                }
+              )
+            }
+          >
+            {rollback.isPending ? 'Rolling back…' : `Rollback to #${snapshot.version}`}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
+/**
+ * The detail view: the configuration this snapshot will publish, and what
+ * gateways are running.
+ */
 function SnapshotSheet({
   snapshot,
   onClose,
@@ -542,8 +655,9 @@ function SnapshotSheet({
 }) {
   const { data: deployment } = useSnapshotDeployment(snapshot.version, true)
   const results = validationResultsOf(snapshot)
-  const publish = useSnapshotMutations().publish
+  const { publish, rollback } = useSnapshotMutations()
   const [confirming, setConfirming] = useState(false)
+  const [confirmingRollback, setConfirmingRollback] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const copy = async () => {
@@ -558,7 +672,7 @@ function SnapshotSheet({
   return (
     <>
       <Sheet open onOpenChange={(open) => !open && onClose()}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
+        <SheetContent className="w-full overflow-y-auto" style={{ width: '70vw', maxWidth: '70vw' }}>
           <SheetHeader>
             <SheetTitle>Snapshot #{snapshot.version}</SheetTitle>
             <SheetDescription>
@@ -595,6 +709,17 @@ function SnapshotSheet({
                     )}
                     {copied ? 'Copied' : 'Copy'}
                   </Button>
+                  {snapshot.status === 'Published' && (
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      disabled={confirmingRollback}
+                      onClick={() => setConfirmingRollback(true)}
+                    >
+                      <RotateCcw aria-hidden="true" className="mr-1 size-4" />
+                      Rollback
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     disabled={snapshot.status === 'Archived' || publish.isPending}
@@ -605,7 +730,7 @@ function SnapshotSheet({
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="max-h-[50vh] overflow-y-auto">
                 {snapshot.content ? (
                   <JsonHighlight payload={snapshot.content} />
                 ) : (
@@ -702,11 +827,14 @@ function SnapshotSheet({
         </SheetContent>
       </Sheet>
 
-      {confirming ? (
-        <PublishDialog snapshot={snapshot} onDone={() => setConfirming(false)} />
-      ) : null}
-    </>
-  )
+        {confirming ? (
+          <PublishDialog snapshot={snapshot} onDone={() => setConfirming(false)} />
+        ) : null}
+        {confirmingRollback ? (
+          <RollbackDialog snapshot={snapshot} onDone={() => setConfirmingRollback(false)} />
+        ) : null}
+      </>
+    )
 }
 
 /** The diff, against the snapshot immediately before this one. */
