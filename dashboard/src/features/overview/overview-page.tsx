@@ -3,6 +3,7 @@ import { Boxes, Camera, Route as RouteIcon, Server } from 'lucide-react'
 import { PageHeader } from '@/components/app-layout'
 import { EmptyState, ErrorState, LoadingState } from '@/components/page-state'
 import { StatusBadge } from '@/components/status-badge'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   useCurrentPublication,
@@ -10,6 +11,7 @@ import {
   useRouteCount,
   useServiceCount,
   useSnapshotHistory,
+  usePendingDraftsCount,
   toDisplayError,
 } from './queries'
 
@@ -98,9 +100,14 @@ export function OverviewPage() {
   const routeCount = useRouteCount()
   const serviceCount = useServiceCount()
   const snapshots = useSnapshotHistory()
+  const pendingDrafts = usePendingDraftsCount()
 
   const anyLoading =
-    publication.isPending || gateways.isPending || routeCount.isPending || serviceCount.isPending
+    publication.isPending ||
+    gateways.isPending ||
+    routeCount.isPending ||
+    serviceCount.isPending ||
+    pendingDrafts === null
 
   // A single failure is enough to make the page untrustworthy, so report the
   // first one rather than degrading every card independently.
@@ -138,6 +145,14 @@ export function OverviewPage() {
         title="Overview"
         description="Current state of the control plane."
       />
+      {pendingDrafts !== null && pendingDrafts > 0 && (
+        <Alert variant="destructive">
+          <AlertTitle>{pendingDrafts} draft change{pendingDrafts !== 1 ? 's' : ''} pending</AlertTitle>
+          <AlertDescription>
+            Create a snapshot to capture them, then publish to gateways.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="space-y-6">
         {anyLoading && !publication.data ? (

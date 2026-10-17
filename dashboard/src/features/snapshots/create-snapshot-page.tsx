@@ -218,12 +218,17 @@ export function CreateSnapshotPage() {
               isPending={isPending}
               error={error}
               onCreate={() =>
-                create.mutate({
-                  initiatedBy: CURRENT_OPERATOR,
-                  // Not accepted by the API yet. It is sent so the two can be
-                  // connected without changing this page, and the panel says so.
-                  correlationId: label.trim() || undefined,
-                })
+                create.mutate(
+                  {
+                    initiatedBy: CURRENT_OPERATOR,
+                    // Not accepted by the API yet. It is sent so the two can be
+                    // connected without changing this page, and the panel says so.
+                    correlationId: label.trim() || undefined,
+                  },
+                  {
+                    onSuccess: () => navigate('/snapshots'),
+                  }
+                )
               }
             />
           ) : null}

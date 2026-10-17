@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge'
 import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 
@@ -5,6 +6,7 @@ import { Sidebar, MobileSidebar } from '@/components/sidebar'
 import { LoadingState } from '@/components/page-state'
 import { SetupGuard } from '@/components/setup-guard'
 import { ThemeProvider } from '@/features/theme/theme-provider'
+import { usePendingDraftsByType } from '@/features/overview/queries'
 import type { Role } from '@/navigation'
 
 /**
@@ -27,14 +29,23 @@ export function AppLayout({ roles, guard = true }: { roles?: Role[]; guard?: boo
 }
 
 function LayoutBody({ roles, guard }: { roles?: Role[]; guard: boolean }) {
+  const draftCounts = usePendingDraftsByType()
+  const totalDrafts =
+    draftCounts !== null ? draftCounts.routes + draftCounts.services + draftCounts.globalConfig : null
+
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar roles={roles} />
+      <Sidebar roles={roles} draftCounts={draftCounts} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 items-center gap-3 border-b px-4 md:hidden">
-          <MobileSidebar roles={roles} />
+          <MobileSidebar roles={roles} draftCounts={draftCounts} />
           <span className="font-heading text-sm font-semibold">Ocelot Console</span>
+          {totalDrafts !== null && totalDrafts > 0 && (
+            <Badge variant="destructive" className="ml-auto">
+              {totalDrafts} pending
+            </Badge>
+          )}
         </header>
 
         <main className="flex-1 overflow-x-hidden p-4 md:p-6">

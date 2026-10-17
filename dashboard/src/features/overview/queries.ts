@@ -70,6 +70,48 @@ export function useSnapshotHistory(limit = 20) {
   })
 }
 
+/** Number of draft changes not yet captured in a snapshot, by type. */
+export function usePendingDraftsByType() {
+  const api = useApi()
+  const SOURCE_PAGE_SIZE = 100
+
+  const routes = useQuery({
+    queryKey: ['overview', 'routes-draft-count'],
+    queryFn: ({ signal }) =>
+      api.resources.routes.list({ page: 1, pageSize: SOURCE_PAGE_SIZE, signal }),
+  })
+  const services = useQuery({
+    queryKey: ['overview', 'services-draft-count'],
+    queryFn: ({ signal }) =>
+      api.resources.services.list({ page: 1, pageSize: SOURCE_PAGE_SIZE, signal }),
+  })
+  const globalConfig = useQuery({
+    queryKey: ['overview', 'global-config-draft-count'],
+    queryFn: ({ signal }) => api.resources.globalConfiguration.get({ signal }),
+  })
+
+  const allRead =
+    routes.data !== undefined &&
+    services.data !== undefined &&
+    routes.data.routes.length >= routes.data.totalCount &&
+    services.data.services.length >= services.data.totalCount
+
+  if (!allRead) return null
+
+  const routeDrafts = routes.data.routes.filter((r) => r.isDraft).length
+  const serviceDrafts = services.data.services.filter((s) => s.isDraft).length
+  const configDraft = globalConfig.data && globalConfig.data.isDraft ? 1 : 0
+
+  return { routes: routeDrafts, services: serviceDrafts, globalConfig: configDraft }
+}
+
+/** Total number of draft changes not yet captured in a snapshot. */
+export function usePendingDraftsCount() {
+  const byType = usePendingDraftsByType()
+  if (!byType) return null
+  return byType.routes + byType.services + byType.globalConfig
+}
+
 /**
  * Reduces any query to a single displayable failure.
  *
