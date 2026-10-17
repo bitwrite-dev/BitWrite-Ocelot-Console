@@ -60,7 +60,8 @@ public class UpdateGatewayStatusCommandHandler
             gateway.Description,
             gateway.Status,
             gateway.CreatedAt,
-            gateway.UpdatedAt
+            gateway.UpdatedAt,
+            gateway.LastHeartbeat
         );
     }
 }

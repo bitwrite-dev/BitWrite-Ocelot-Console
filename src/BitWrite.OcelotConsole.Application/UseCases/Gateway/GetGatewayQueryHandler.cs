@@ -28,7 +28,8 @@ public class GetGatewayQueryHandler
             gateway.Description,
             gateway.Status,
             gateway.CreatedAt,
-            gateway.UpdatedAt
+            gateway.UpdatedAt,
+            gateway.LastHeartbeat
         );
     }
 }

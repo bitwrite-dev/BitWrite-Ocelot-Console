@@ -22,6 +22,7 @@ public class Gateway
     public EnvironmentName Environment { get; private set; } = null!;
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
+    public DateTimeOffset? LastHeartbeat { get; private set; }
 
     public IReadOnlyList<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
@@ -81,7 +82,8 @@ public class Gateway
         RuntimeStatus status,
         EnvironmentName environment,
         DateTimeOffset createdAt,
-        DateTimeOffset updatedAt)
+        DateTimeOffset updatedAt,
+        DateTimeOffset? lastHeartbeat = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("Gateway name cannot be empty", "INVALID_GATEWAY_NAME");
@@ -94,7 +96,8 @@ public class Gateway
             Status = status,
             Environment = environment,
             CreatedAt = createdAt,
-            UpdatedAt = updatedAt
+            UpdatedAt = updatedAt,
+            LastHeartbeat = lastHeartbeat
         };
     }
 
@@ -147,14 +150,15 @@ public class Gateway
     /// </summary>
     public void SetStatus(RuntimeStatus newStatus, string correlationId = "")
     {
-        if (Status == newStatus)
-            return;
-
         var oldStatus = Status.Value;
         Status = newStatus;
         UpdatedAt = DateTimeOffset.UtcNow;
+        LastHeartbeat = DateTimeOffset.UtcNow;
 
-        AddDomainEvent(new GatewayStatusChanged(Id, oldStatus, newStatus.Value));
+        if (oldStatus != newStatus.Value)
+        {
+            AddDomainEvent(new GatewayStatusChanged(Id, oldStatus, newStatus.Value));
+        }
     }
 
     /// <summary>
