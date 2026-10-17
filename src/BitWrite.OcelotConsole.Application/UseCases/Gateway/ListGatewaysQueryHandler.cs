@@ -37,9 +37,13 @@ public class ListGatewaysQueryHandler
             instance => instance.LastHeartbeat);
 
         var response = new GatewayListResponse(
-            pagedGateways.Select(gateway => MapToResponse(
-                gateway,
-                lastSeen.TryGetValue(gateway.Id, out var beat) ? beat : null)).ToList(),
+            pagedGateways.Select(gateway =>
+            {
+                var heartbeat = gateway.LastHeartbeat;
+                if (!heartbeat.HasValue && lastSeen.TryGetValue(gateway.Id, out var beat))
+                    heartbeat = beat;
+                return MapToResponse(gateway, heartbeat);
+            }).ToList(),
             totalCount,
             query.Page,
             query.PageSize

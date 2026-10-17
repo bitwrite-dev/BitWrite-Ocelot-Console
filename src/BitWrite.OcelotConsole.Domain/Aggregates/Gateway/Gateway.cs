@@ -150,15 +150,15 @@ public class Gateway
     /// </summary>
     public void SetStatus(RuntimeStatus newStatus, string correlationId = "")
     {
-        if (Status == newStatus)
-            return;
-
         var oldStatus = Status.Value;
         Status = newStatus;
         UpdatedAt = DateTimeOffset.UtcNow;
         LastHeartbeat = DateTimeOffset.UtcNow;
 
-        AddDomainEvent(new GatewayStatusChanged(Id, oldStatus, newStatus.Value));
+        if (oldStatus != newStatus.Value)
+        {
+            AddDomainEvent(new GatewayStatusChanged(Id, oldStatus, newStatus.Value));
+        }
     }
 
     /// <summary>
