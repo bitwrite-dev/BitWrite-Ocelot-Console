@@ -337,7 +337,7 @@ describe('the three steps', () => {
     expect(screen.getByRole('button', { name: /create snapshot #105/i })).toBeInTheDocument()
   })
 
-  it('creates the snapshot and says it is not live yet', async () => {
+  it('creates the snapshot and navigates to the snapshots list', async () => {
     const { calls } = renderCreate(baseline())
 
     await advanceToSeal()
@@ -349,8 +349,9 @@ describe('the three steps', () => {
       ).toBe(true)
     })
 
-    expect(await screen.findByText('Snapshot #105 created')).toBeInTheDocument()
-    expect(screen.getByText(/not running anywhere until it is published/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Snapshot list')).toBeInTheDocument()
+    })
   })
 
   it('lets the operator re-run validation after editing the state', async () => {

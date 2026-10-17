@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
 import { createAppProviders } from '@/app-providers'
 import { AppLayout } from '@/components/app-layout'
+import { usePendingDraftsByType } from '@/features/overview/queries'
 import { NotFoundPage, PlaceholderPage } from '@/pages/placeholders'
 import { OverviewPage } from '@/features/overview/overview-page'
 import { RouteDetailsPage } from '@/features/routes/route-details-page'
@@ -36,7 +37,7 @@ const dynamicPlaceholderPaths: readonly string[] = DYNAMIC_PATHS
 const routes = [
   {
     path: '/',
-    element: <AppLayout />,
+    element: <AppLayoutWithDraftCounts />,
     children: [
       // The real pages; the rest are still placeholders.
       { index: true, element: <OverviewPage /> },
@@ -72,6 +73,11 @@ const routes = [
 // Fail fast at module load if the sidebar and the route table disagree, or if a
 // path is claimed by both the real and the placeholder list.
 assertNavigationIsRoutable()
+
+function AppLayoutWithDraftCounts({ roles }: { roles?: Role[] }) {
+  const draftCounts = usePendingDraftsByType()
+  return <AppLayout roles={roles} draftCounts={draftCounts} />
+}
 
 const claimedTwice = pathsClaimedTwice()
 if (claimedTwice.length > 0) {

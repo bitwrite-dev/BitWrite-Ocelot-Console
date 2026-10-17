@@ -6,7 +6,6 @@ import { Sidebar, MobileSidebar } from '@/components/sidebar'
 import { LoadingState } from '@/components/page-state'
 import { SetupGuard } from '@/components/setup-guard'
 import { ThemeProvider } from '@/features/theme/theme-provider'
-import { usePendingDraftsByType } from '@/features/overview/queries'
 import type { Role } from '@/navigation'
 
 /**
@@ -20,18 +19,41 @@ import type { Role } from '@/navigation'
  * the API, so it is mounted only when there is a client to read it from, and a
  * shell rendered without one shows its content rather than throwing.
  */
-export function AppLayout({ roles, guard = true }: { roles?: Role[]; guard?: boolean }) {
+export type DraftCounts = {
+  routes: number
+  services: number
+  globalConfig: number
+} | null
+
+export function AppLayout({
+  roles,
+  guard = true,
+  draftCounts,
+}: {
+  roles?: Role[]
+  guard?: boolean
+  draftCounts?: DraftCounts
+}) {
   return (
     <ThemeProvider>
-      <LayoutBody roles={roles} guard={guard} />
+      <LayoutBody roles={roles} guard={guard} draftCounts={draftCounts} />
     </ThemeProvider>
   )
 }
 
-function LayoutBody({ roles, guard }: { roles?: Role[]; guard: boolean }) {
-  const draftCounts = usePendingDraftsByType()
+function LayoutBody({
+  roles,
+  guard,
+  draftCounts,
+}: {
+  roles?: Role[]
+  guard: boolean
+  draftCounts?: DraftCounts
+}) {
   const totalDrafts =
-    draftCounts !== null ? draftCounts.routes + draftCounts.services + draftCounts.globalConfig : null
+    draftCounts !== null && draftCounts !== undefined
+      ? draftCounts.routes + draftCounts.services + draftCounts.globalConfig
+      : null
 
   return (
     <div className="flex min-h-screen bg-background">
