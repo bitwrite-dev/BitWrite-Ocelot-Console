@@ -135,26 +135,21 @@ public sealed class GatewayRegistrar : BackgroundService
     /// </summary>
     private async Task<string> EnsureRegisteredAsync(string nodeName, CancellationToken cancellationToken)
     {
-        var remembered = await _database.StringGetAsync(RegistrationKey(nodeName));
-
-        if (!remembered.IsNullOrEmpty)
-            return remembered.ToString();
-
-        // Before creating a new gateway, check whether one with this name already
-        // exists in the control plane. A node that restarts after Redis was flushed
+        // The control plane is the source of truth: ask it whether a gateway with
+        // this name already exists. A node that restarts after Redis was flushed
         // loses its remembered id, but the gateway record itself may still be there.
         var existingId = await _controlPlane.FindGatewayByNameAsync(nodeName, cancellationToken);
         if (!string.IsNullOrWhiteSpace(existingId))
         {
             await _database.StringSetAsync(RegistrationKey(nodeName), existingId);
 
-            _logger.LogInformation(
+            _logger.LogDebug(
                 "Reusing existing gateway registration {Node} ({GatewayId}) in environment {Environment}",
                 nodeName, existingId, _environment.KeySegment);
-
             return existingId;
         }
 
+        // No existing gateway under this name, register a new one.
         var gatewayId = await _controlPlane.RegisterAsync(
             nodeName,
             $"Registered by the node itself, serving {_environment.KeySegment}",
