@@ -82,7 +82,7 @@ public class RuntimeInstance
         var instance = new RuntimeInstance
         {
             GatewayId = gatewayId,
-            Name = name,
+            Name = string.IsNullOrWhiteSpace(name) ? gatewayId.Value.ToString() : name,
             Status = status,
             CurrentVersion = currentVersion,
             LastHeartbeat = lastHeartbeat,

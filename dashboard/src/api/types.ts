@@ -503,6 +503,7 @@ export interface RuntimeGatewaysResponse {
 
 export interface RuntimeStatusResponse {
   gatewayId: string
+  name: string
   status: string
   currentVersion: number | null
   targetVersion: number | null
