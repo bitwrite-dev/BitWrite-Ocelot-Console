@@ -1,3 +1,4 @@
+using BitWrite.OcelotConsole.Application.Interfaces;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Status;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +18,7 @@ public class GatewaysController : BaseApiController
     private readonly AppGateway.UpdateGatewayStatusCommandHandler _updateGatewayStatusCommandHandler;
     private readonly AppGateway.DeleteGatewayCommandHandler _deleteGatewayCommandHandler;
     private readonly AppGateway.GetGatewayDeletionEligibilityQueryHandler _deletionEligibilityQueryHandler;
+    private readonly IRuntimeInstanceRepository _runtimeInstanceRepository;
 
     public GatewaysController(
         AppGateway.RegisterGatewayCommandHandler registerGatewayCommandHandler,
@@ -25,7 +27,8 @@ public class GatewaysController : BaseApiController
         AppGateway.UpdateGatewayCommandHandler updateGatewayCommandHandler,
         AppGateway.UpdateGatewayStatusCommandHandler updateGatewayStatusCommandHandler,
         AppGateway.DeleteGatewayCommandHandler deleteGatewayCommandHandler,
-        AppGateway.GetGatewayDeletionEligibilityQueryHandler deletionEligibilityQueryHandler)
+        AppGateway.GetGatewayDeletionEligibilityQueryHandler deletionEligibilityQueryHandler,
+        IRuntimeInstanceRepository runtimeInstanceRepository)
     {
         _registerGatewayCommandHandler = registerGatewayCommandHandler;
         _getGatewayQueryHandler = getGatewayQueryHandler;
@@ -34,6 +37,7 @@ public class GatewaysController : BaseApiController
         _updateGatewayStatusCommandHandler = updateGatewayStatusCommandHandler;
         _deleteGatewayCommandHandler = deleteGatewayCommandHandler;
         _deletionEligibilityQueryHandler = deletionEligibilityQueryHandler;
+        _runtimeInstanceRepository = runtimeInstanceRepository;
     }
 
     [HttpGet]
@@ -138,6 +142,11 @@ public class GatewaysController : BaseApiController
                 new AppGateway.DeleteGatewayCommand(
                     GatewayId.From(id),
                     User.Identity?.Name ?? "system"));
+
+            // Also remove the runtime instance so the Overview page stops
+            // showing this gateway in the Gateway state section.
+            var gatewayId = GatewayId.From(id);
+            await _runtimeInstanceRepository.DeleteAsync(gatewayId);
 
             return deleted ? NoContent() : NotFound();
         }

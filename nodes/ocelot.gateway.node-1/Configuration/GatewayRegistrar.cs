@@ -94,6 +94,16 @@ public sealed class GatewayRegistrar : BackgroundService
                     NodeName());
                 await ForgetRegistrationAsync(NodeName());
             }
+            catch (HttpRequestException ex)
+            {
+                // Any other HTTP error (e.g. 500 from a deleted gateway) also means
+                // the remembered id is stale: clear it and retry next beat.
+                _logger.LogWarning(
+                    ex,
+                    "The control plane rejected status report for this gateway; clearing registration and retrying under {Node}",
+                    NodeName());
+                await ForgetRegistrationAsync(NodeName());
+            }
             catch (Exception ex)
             {
                 _logger.LogWarning(
