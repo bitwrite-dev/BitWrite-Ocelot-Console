@@ -22,6 +22,7 @@ public class RuntimeAdapter : BackgroundService
     private readonly TimeSpan _pollInterval = TimeSpan.FromSeconds(30);
     private readonly TimeSpan _retryInterval = TimeSpan.FromSeconds(5);
     private readonly string _environment;
+    private readonly string _nodeName;
     private GatewayId _gatewayId = null!;
     private SnapshotVersion? _currentVersion;
     private SnapshotVersion? _lastKnownGoodVersion;
@@ -39,6 +40,7 @@ public class RuntimeAdapter : BackgroundService
         _configApplier = configApplier;
         _logger = logger;
         _environment = configuration["Environment"] ?? "development";
+        _nodeName = configuration["Gateway:NodeName"] ?? configuration["GATEWAY_NODENAME"] ?? "ocelot.gateway.node";
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -208,7 +210,7 @@ public class RuntimeAdapter : BackgroundService
                 {
                     runtimeInstance = RuntimeInstance.Register(
                         _gatewayId,
-                        _gatewayId.Value.ToString(),
+                        _nodeName,
                         ResolveCapabilities(capabilityResolver, ocelotVersion),
                         string.Empty);
                 }
