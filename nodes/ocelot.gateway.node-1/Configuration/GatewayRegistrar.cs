@@ -165,6 +165,21 @@ public sealed class GatewayRegistrar : BackgroundService
             $"Registered by the node itself, serving {_environment.KeySegment}",
             cancellationToken);
 
+        // Double-check: another gateway might have been registered with the same
+        // name between our FindGatewayByNameAsync call and this RegisterAsync call.
+        // If so, use the existing one instead of our new one.
+        var verifyId = await _controlPlane.FindGatewayByNameAsync(nodeName, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(verifyId) && verifyId != gatewayId)
+        {
+            await _database.StringSetAsync(RegistrationKey(nodeName), verifyId);
+
+            _logger.LogWarning(
+                "Another gateway with name {NodeName} was registered concurrently ({ExistingId}). Using existing ID instead of new one ({NewId}).",
+                nodeName, verifyId, gatewayId);
+
+            return verifyId;
+        }
+
         await _database.StringSetAsync(RegistrationKey(nodeName), gatewayId);
 
         _logger.LogInformation(
