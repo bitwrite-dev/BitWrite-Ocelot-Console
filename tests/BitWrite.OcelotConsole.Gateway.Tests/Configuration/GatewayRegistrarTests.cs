@@ -216,5 +216,10 @@ public class GatewayRegistrarTests
             Reports.Add(gatewayId);
             return Task.CompletedTask;
         }
+
+        public Task<string?> FindGatewayByNameAsync(string nodeName, CancellationToken cancellationToken)
+        {
+            return Task.FromResult<string?>(null);
+        }
     }
 }
