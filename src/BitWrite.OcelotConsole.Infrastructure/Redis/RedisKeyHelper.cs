@@ -10,7 +10,7 @@ public static class RedisKeyHelper
     public const string GlobalConfig = "ocelot:global";
     /// <summary>The one system settings row, holding the Ocelot version.</summary>
     public const string SystemSettings = "ocelot:settings";
-    public static string RuntimeCurrent(EnvironmentName environment) => $"ocelot:runtime:current:{environment.Value}";
+    public static string RuntimeCurrent(EnvironmentName environment) => $"ocelot:runtime:current:{environment.Value.ToLowerInvariant()}";
     /// <summary>
     /// One entry per configuration a gateway tried to apply, appended by the runtime.
     /// </summary>
