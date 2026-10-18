@@ -46,7 +46,25 @@ public class RuntimeAdapter : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _gatewayId = GatewayId.New(); // In real implementation, this would come from config
+        // The control plane is the source of truth for the gateway id.
+        // GatewayRegistrar already registered this node and stored its id in Redis.
+        // Read it back instead of generating a new one.
+        var db = _connectionMultiplexer.GetDatabase();
+        var registrationKey = $"ocelot:gateway:registration:{_environment}:{_nodeName}";
+        var storedId = await db.StringGetAsync(registrationKey);
+        if (!string.IsNullOrEmpty(storedId))
+        {
+            _gatewayId = GatewayId.From(Guid.Parse(storedId.ToString()));
+        }
+        else
+        {
+            // No existing registration - this shouldn't happen normally because
+            // GatewayRegistrar runs first, but handle it gracefully.
+            _gatewayId = GatewayId.New();
+            _logger.LogWarning(
+                "No registered gateway id found in Redis for node {NodeName}. Generating new id {GatewayId}.",
+                _nodeName, _gatewayId);
+        }
 
         _logger.LogInformation("RuntimeAdapter started for gateway {GatewayId}", _gatewayId);
 
