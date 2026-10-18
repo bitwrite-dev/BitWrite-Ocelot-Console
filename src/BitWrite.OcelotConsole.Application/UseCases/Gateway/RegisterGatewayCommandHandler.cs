@@ -43,6 +43,7 @@ public class RegisterGatewayCommandHandler
         // A newly registered gateway starts with no reported version yet.
         var runtimeInstance = RuntimeInstance.Register(
             gateway.Id,
+            command.Name,
             new[] { "ocelot-gateway" });
 
         await _runtimeInstanceRepository.AddAsync(runtimeInstance, cancellationToken);

@@ -22,6 +22,7 @@ public record ReconcileGatewayCommand(
 
 public record RuntimeStatusResponse(
     GatewayId GatewayId,
+    string Name,
     RuntimeStatus Status,
     int? CurrentVersion,
     int? TargetVersion,
@@ -94,6 +95,7 @@ public record DeliveryMetricsResponse(
 
 public record GatewayRuntimeDetailResponse(
     GatewayId GatewayId,
+    string Name,
     RuntimeStatus Status,
     int? CurrentVersion,
     int? TargetVersion,

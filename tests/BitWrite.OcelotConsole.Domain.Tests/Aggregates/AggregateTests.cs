@@ -711,7 +711,7 @@ public class RuntimeInstanceAggregateTests
         var gatewayId = GatewayId.New();
         var capabilities = new List<string> { "http", "https" };
 
-        var instance = RuntimeInstance.Register(gatewayId, capabilities);
+        var instance = RuntimeInstance.Register(gatewayId, "Test Gateway", capabilities);
 
         instance.GatewayId.Should().Be(gatewayId);
         instance.Status.Should().Be(RuntimeStatus.Connecting);
@@ -721,7 +721,7 @@ public class RuntimeInstanceAggregateTests
     [Fact]
     public void Register_ShouldThrowOnNoCapabilities()
     {
-        var act = () => RuntimeInstance.Register(GatewayId.New(), new List<string>());
+        var act = () => RuntimeInstance.Register(GatewayId.New(), "Test Gateway", new List<string>());
         act.Should().Throw<DomainException>();
     }
 
@@ -797,6 +797,7 @@ public class RuntimeInstanceAggregateTests
     {
         return RuntimeInstance.Register(
             GatewayId.New(),
+            "Test Gateway",
             new List<string> { "http" });
     }
 }

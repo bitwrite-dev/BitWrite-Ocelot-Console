@@ -208,6 +208,7 @@ public class RuntimeAdapter : BackgroundService
                 {
                     runtimeInstance = RuntimeInstance.Register(
                         _gatewayId,
+                        _gatewayId.Value.ToString(),
                         ResolveCapabilities(capabilityResolver, ocelotVersion),
                         string.Empty);
                 }
