@@ -40,7 +40,7 @@ public class RuntimeAdapter : BackgroundService
         _configApplier = configApplier;
         _logger = logger;
         _environment = configuration["Environment"] ?? "development";
-        _nodeName = configuration["Gateway:NodeName"] ?? configuration["GATEWAY_NODENAME"] ?? "ocelot.gateway.node";
+        _nodeName = configuration["Gateway:NodeName"] ?? configuration["GATEWAY_NODENAME"] ?? "ocelot.gateway.node-1";
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
