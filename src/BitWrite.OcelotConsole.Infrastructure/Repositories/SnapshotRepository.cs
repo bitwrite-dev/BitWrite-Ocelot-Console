@@ -55,11 +55,12 @@ public class RedisSnapshotRepository : RedisRepositoryBase, ISnapshotRepository
 
     public async Task<Snapshot?> GetLatestAsync(CancellationToken cancellationToken = default)
     {
-        var versions = await SortedSetRangeByScoreAsync(RedisKeyHelper.IndexSnapshots(Environment), stop: double.PositiveInfinity, take: 1);
+        var versions = await SortedSetRangeByScoreAsync(RedisKeyHelper.IndexSnapshots(Environment), double.NegativeInfinity, double.PositiveInfinity);
 
-        if (versions.Length > 0 && int.TryParse(versions[0].ToString(), out var versionInt))
+        if (versions.Length > 0)
         {
-            return await GetAsync(SnapshotVersion.From(versionInt), cancellationToken);
+            var maxVersion = versions.Max(v => int.Parse(v.ToString()));
+            return await GetAsync(SnapshotVersion.From(maxVersion), cancellationToken);
         }
 
         return null;
