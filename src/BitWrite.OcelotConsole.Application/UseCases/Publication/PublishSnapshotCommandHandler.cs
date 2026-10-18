@@ -125,7 +125,7 @@ public class PublishSnapshotCommandHandler
             // 8. Atomic: Set ocelot:runtime:current:{env} = version (via Redis SET key)
             var db = _connectionMultiplexer.GetDatabase();
             await db.StringSetAsync(
-                $"ocelot:runtime:current:{command.Environment.Value}",
+                $"ocelot:runtime:current:{command.Environment.Value.ToLowerInvariant()}",
                 snapshotVersion.Value.ToString());
 
             // 9. Redis Pub/Sub: Notify gateways of new version

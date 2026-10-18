@@ -16,6 +16,7 @@ public class RuntimeInstance
     private readonly List<string> _activeRoutes = new();
 
     public GatewayId GatewayId { get; private set; } = null!;
+    public string Name { get; private set; } = null!;
     public RuntimeStatus Status { get; private set; } = RuntimeStatus.Disconnected;
     public SnapshotVersion? CurrentVersion { get; private set; }
     public SnapshotVersion? TargetVersion { get; private set; }
@@ -35,6 +36,7 @@ public class RuntimeInstance
     /// </summary>
     public static RuntimeInstance Register(
         GatewayId gatewayId,
+        string name,
         IReadOnlyList<string> capabilities,
         string correlationId = "")
     {
@@ -44,6 +46,7 @@ public class RuntimeInstance
         var instance = new RuntimeInstance
         {
             GatewayId = gatewayId,
+            Name = name,
             Status = RuntimeStatus.Connecting,
             LastHeartbeat = DateTimeOffset.UtcNow
         };
@@ -68,6 +71,7 @@ public class RuntimeInstance
     /// </remarks>
     public static RuntimeInstance Reconstitute(
         GatewayId gatewayId,
+        string name,
         IReadOnlyList<string> capabilities,
         RuntimeStatus status,
         DateTimeOffset lastHeartbeat,
@@ -78,6 +82,7 @@ public class RuntimeInstance
         var instance = new RuntimeInstance
         {
             GatewayId = gatewayId,
+            Name = string.IsNullOrWhiteSpace(name) ? gatewayId.Value.ToString() : name,
             Status = status,
             CurrentVersion = currentVersion,
             LastHeartbeat = lastHeartbeat,

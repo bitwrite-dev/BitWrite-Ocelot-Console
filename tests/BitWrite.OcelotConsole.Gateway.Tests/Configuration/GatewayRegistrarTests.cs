@@ -193,6 +193,7 @@ public class GatewayRegistrarTests
     private sealed class FakeControlPlane : IControlPlaneClient
     {
         private int _next = 1;
+        private readonly Dictionary<string, string> _registeredByName = new();
 
         public List<string> Registered { get; } = new();
         public List<string> Reports { get; } = new();
@@ -205,7 +206,9 @@ public class GatewayRegistrarTests
                 throw RegistrationFailure;
 
             Registered.Add(nodeName);
-            return Task.FromResult($"gateway-{_next++}");
+            var id = $"gateway-{_next++}";
+            _registeredByName[nodeName] = id;
+            return Task.FromResult(id);
         }
 
         public Task ReportStatusAsync(string gatewayId, string status, CancellationToken cancellationToken)
@@ -215,6 +218,17 @@ public class GatewayRegistrarTests
 
             Reports.Add(gatewayId);
             return Task.CompletedTask;
+        }
+
+        public Task<string?> FindGatewayByNameAsync(string nodeName, CancellationToken cancellationToken)
+        {
+            // When the gateway has been deleted from the dashboard, it no longer
+            // exists under any id.
+            if (GatewayDeleted)
+                return Task.FromResult<string?>(null);
+
+            _registeredByName.TryGetValue(nodeName, out var id);
+            return Task.FromResult(id);
         }
     }
 }

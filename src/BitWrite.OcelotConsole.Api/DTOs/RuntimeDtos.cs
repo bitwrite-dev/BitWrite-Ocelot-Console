@@ -4,6 +4,7 @@ namespace BitWrite.OcelotConsole.Api.DTOs;
 
 public record RuntimeStatusResponse(
     string GatewayId,
+    string Name,
     string Status,
     int? CurrentVersion,
     int? TargetVersion,

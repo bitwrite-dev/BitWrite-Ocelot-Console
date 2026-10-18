@@ -48,6 +48,7 @@ public class RedisRuntimeInstanceRepository : RedisRepositoryBase, IRuntimeInsta
         // the documents bind; anything stricter reads nothing at all.
         return RuntimeInstance.Reconstitute(
             gatewayId,
+            instance.Name ?? gatewayId.Value.ToString(),
             Array.Empty<string>(),
             RuntimeStatus.TryParse(instance.Status, out var status)
                 ? status
@@ -70,6 +71,7 @@ public class RedisRuntimeInstanceRepository : RedisRepositoryBase, IRuntimeInsta
     /// <summary>What the control plane recorded. Carries the status.</summary>
     private sealed record InstanceDocument(
         string? GatewayId,
+        string? Name,
         string? Version,
         string? Status,
         string? Timestamp);
@@ -122,6 +124,7 @@ public class RedisRuntimeInstanceRepository : RedisRepositoryBase, IRuntimeInsta
         var key = RedisKeyHelper.RuntimeInstance(instance.GatewayId);
         var document = new InstanceDocument(
             instance.GatewayId.Value.ToString(),
+            instance.Name,
             instance.CurrentVersion?.Value.ToString(),
             instance.Status.Value,
             instance.LastHeartbeat.ToString("O"));
