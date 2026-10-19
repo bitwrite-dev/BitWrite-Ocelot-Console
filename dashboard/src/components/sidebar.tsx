@@ -1,0 +1,181 @@
+import { LifeBuoy, Menu } from 'lucide-react'
+import { NavLink } from 'react-router-dom'
+
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { EnvironmentSelector } from '@/components/environment-selector'
+import { NAV_SECTIONS, type Role } from '@/navigation'
+
+/**
+ * Sidebar navigation.
+ *
+ * Section grouping follows spec §53. There is no Consumers section by design
+ * (ADR-020).
+ */
+
+function NavLinks({
+  roles,
+  onNavigate,
+  draftCounts,
+}: {
+  roles?: Role[]
+  onNavigate?: () => void
+  draftCounts: { routes: number; services: number; globalConfig: number } | null
+}) {
+  return (
+    <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 py-4">
+      {NAV_SECTIONS.map((section) => {
+        const items = roles?.length
+          ? section.items.filter(
+              (item) => !item.roles || item.roles.some((role) => roles.includes(role)),
+            )
+          : section.items
+
+        if (items.length === 0) return null
+
+        return (
+          <div key={section.id} className="mb-6 last:mb-0">
+            <h2 className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {section.label}
+            </h2>
+            <ul className="space-y-1">
+              {items.map((item) => {
+                // Map nav paths to draft count types for badge display.
+                const draftCount =
+                  item.path === '/routes'
+                    ? draftCounts?.routes
+                    : item.path === '/services'
+                      ? draftCounts?.services
+                      : item.path === '/global-configuration'
+                        ? draftCounts?.globalConfig
+                        : undefined
+
+                return (
+                  <li key={item.path}>
+                    <NavLink
+                      to={item.path}
+                      end={item.path === '/'}
+                      onClick={onNavigate}
+                      className={({ isActive }) =>
+                        [
+                          'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
+                          isActive
+                            ? 'bg-primary text-primary-foreground font-medium'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                        ].join(' ')
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <item.icon
+                            className="size-4 shrink-0"
+                            aria-hidden={!isActive}
+                            strokeWidth={2}
+                          />
+                          {item.label}
+                          {draftCount !== null && draftCount > 0 && (
+                            <Badge variant="destructive" className="ml-auto">
+                              {draftCount}
+                            </Badge>
+                          )}
+                        </>
+                      )}
+                    </NavLink>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        )
+      })}
+    </nav>
+  )
+}
+
+/**
+ * The one reminder that carries design weight.
+ *
+ * A snapshot page is where someone reaches for a delete button, so the rule
+ * that stops them is stated where the navigation is rather than only in the
+ * prose at the top of the page.
+ */
+function LifecycleGuardrail() {
+  return (
+    <div className="mx-3 mb-4 rounded-md border border-primary/30 bg-primary/5 p-3">
+      <p className="flex items-center gap-2 text-xs font-medium">
+        <LifeBuoy aria-hidden="true" className="size-3.5" />
+        Lifecycle guardrail
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Snapshots are immutable. Publication selects the desired runtime state.
+      </p>
+    </div>
+  )
+}
+
+function Brand() {
+  return (
+    <div className="px-6 py-5">
+      <p className="font-heading text-sm font-semibold">Ocelot Console</p>
+      <p className="text-xs text-muted-foreground">Management Console</p>
+    </div>
+  )
+}
+
+export function Sidebar({
+  roles,
+  draftCounts,
+}: {
+  roles?: Role[]
+  draftCounts: { routes: number; services: number; globalConfig: number } | null
+}) {
+  return (
+    <aside className="hidden w-64 shrink-0 flex-col border-r bg-background md:flex">
+      <Brand />
+      <Separator />
+      <NavLinks roles={roles} draftCounts={draftCounts} />
+      <LifecycleGuardrail />
+      <EnvironmentSelector />
+      <ThemeToggle />
+    </aside>
+  )
+}
+
+/** Collapsed sidebar for narrow viewports, presented as a sheet. */
+export function MobileSidebar({
+  roles,
+  draftCounts,
+}: {
+  roles?: Role[]
+  draftCounts: { routes: number; services: number; globalConfig: number } | null
+}) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open navigation">
+          <Menu className="size-5" aria-hidden="true" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-64 p-0">
+        <SheetHeader>
+          <SheetTitle className="px-6 py-5 text-left">
+            <span className="font-heading text-sm font-semibold">Ocelot Console</span>
+          </SheetTitle>
+        </SheetHeader>
+        <Separator />
+        <NavLinks roles={roles} draftCounts={draftCounts} />
+        <LifecycleGuardrail />
+        <EnvironmentSelector />
+      </SheetContent>
+    </Sheet>
+  )
+}
