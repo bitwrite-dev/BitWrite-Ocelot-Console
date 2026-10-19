@@ -309,7 +309,7 @@ jobs:
 
       - name: Generate release notes
         id: changelog
-        uses: mikepenz/release-changelog-builder-action@v4
+        uses: mikepenz/release-changelog-builder-action@v6
         with:
           configuration: .github/changelog-config.json
           toTag: ${{ github.ref_name }}
