@@ -22,6 +22,15 @@ public interface IControlPlaneClient
         string? description,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Finds an existing gateway by name, or null if none exists.
+    /// Used so a restarting node reuses its existing registration instead of
+    /// minting a new gateway id every time Redis is flushed.
+    /// </summary>
+    Task<string?> FindGatewayByNameAsync(
+        string nodeName,
+        CancellationToken cancellationToken);
+
     /// <summary>Reports that the node is still serving.</summary>
     Task ReportStatusAsync(string gatewayId, string status, CancellationToken cancellationToken);
 }
@@ -92,5 +101,38 @@ public sealed class HttpControlPlaneClient : IControlPlaneClient
 
         var response = await _http.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<string?> FindGatewayByNameAsync(
+        string nodeName,
+        CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "api/v1/gateways");
+        request.Headers.Add("X-Environment", _environment.KeySegment);
+
+        var response = await _http.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        await using var body = await response.Content.ReadAsStreamAsync(cancellationToken);
+        using var document = await JsonDocument.ParseAsync(body, cancellationToken: cancellationToken);
+
+        // The response is { gateways: [...], totalCount, page, pageSize }
+        // Find the first gateway whose name matches nodeName.
+        var root = document.RootElement;
+        if (!root.TryGetProperty("gateways", out var gateways))
+            return null;
+
+        foreach (var gateway in gateways.EnumerateArray())
+        {
+            if (gateway.TryGetProperty("name", out var nameElement) &&
+                string.Equals(nameElement.GetString(), nodeName, StringComparison.OrdinalIgnoreCase))
+            {
+                if (gateway.TryGetProperty("id", out var idElement))
+                    return idElement.GetString();
+                break;
+            }
+        }
+
+        return null;
     }
 }

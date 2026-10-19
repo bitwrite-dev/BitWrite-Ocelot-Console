@@ -1,4 +1,4 @@
-import { Boxes, Camera, Route as RouteIcon, Server } from 'lucide-react'
+import { Boxes, Camera, Route as RouteIcon, Router, Server } from 'lucide-react'
 
 import { PageHeader } from '@/components/app-layout'
 import { EmptyState, ErrorState, LoadingState } from '@/components/page-state'
@@ -48,6 +48,7 @@ function GatewayCard({
 }: {
   gateway: {
     gatewayId: string
+    name: string
     status: string
     currentVersion: number | null
     targetVersion: number | null
@@ -63,7 +64,10 @@ function GatewayCard({
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <CardTitle className="truncate font-mono text-sm font-medium">{gateway.gatewayId}</CardTitle>
+            <div className="flex items-center gap-2">
+              <Router className="size-3 text-muted-foreground" aria-hidden="true" />
+              <CardTitle className="truncate font-mono text-sm font-medium">{gateway.name}</CardTitle>
+            </div>
             <CardDescription className="mt-1">
               {gateway.lastHeartbeat ? (
                 <>Last heartbeat {new Date(gateway.lastHeartbeat).toLocaleString()}</>
@@ -76,6 +80,10 @@ function GatewayCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-2 text-sm">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Gateway ID</span>
+          <span className="tabular-nums text-xs">{gateway.gatewayId}</span>
+        </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Current version</span>
           <span className="tabular-nums">{gateway.currentVersion ?? '—'}</span>

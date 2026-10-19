@@ -22,6 +22,7 @@ public class RuntimeAdapter : BackgroundService
     private readonly TimeSpan _pollInterval = TimeSpan.FromSeconds(30);
     private readonly TimeSpan _retryInterval = TimeSpan.FromSeconds(5);
     private readonly string _environment;
+    private readonly string _nodeName;
     private GatewayId _gatewayId = null!;
     private SnapshotVersion? _currentVersion;
     private SnapshotVersion? _lastKnownGoodVersion;
@@ -39,11 +40,31 @@ public class RuntimeAdapter : BackgroundService
         _configApplier = configApplier;
         _logger = logger;
         _environment = configuration["Environment"] ?? "development";
+        _nodeName = configuration["Gateway:NodeName"]
+            ?? throw new InvalidOperationException("Gateway:NodeName configuration is required.");
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _gatewayId = GatewayId.New(); // In real implementation, this would come from config
+        // The control plane is the source of truth for the gateway id.
+        // GatewayRegistrar already registered this node and stored its id in Redis.
+        // Read it back instead of generating a new one.
+        var db = _connectionMultiplexer.GetDatabase();
+        var registrationKey = $"ocelot:gateway:registration:{_environment}:{_nodeName}";
+        var storedId = await db.StringGetAsync(registrationKey);
+        if (!string.IsNullOrEmpty(storedId))
+        {
+            _gatewayId = GatewayId.From(Guid.Parse(storedId.ToString()));
+        }
+        else
+        {
+            // No existing registration - this shouldn't happen normally because
+            // GatewayRegistrar runs first, but handle it gracefully.
+            _gatewayId = GatewayId.New();
+            _logger.LogWarning(
+                "No registered gateway id found in Redis for node {NodeName}. Generating new id {GatewayId}.",
+                _nodeName, _gatewayId);
+        }
 
         _logger.LogInformation("RuntimeAdapter started for gateway {GatewayId}", _gatewayId);
 
@@ -208,6 +229,7 @@ public class RuntimeAdapter : BackgroundService
                 {
                     runtimeInstance = RuntimeInstance.Register(
                         _gatewayId,
+                        _nodeName,
                         ResolveCapabilities(capabilityResolver, ocelotVersion),
                         string.Empty);
                 }

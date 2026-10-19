@@ -177,6 +177,7 @@ public class RuntimeController : BaseApiController
     {
         return new ApiDtos.RuntimeStatusResponse(
             runtime.GatewayId.Value.ToString(),
+            runtime.Name,
             runtime.Status.Value,
             runtime.CurrentVersion,
             runtime.TargetVersion,
@@ -193,6 +194,7 @@ public class RuntimeController : BaseApiController
     {
         return new ApiDtos.RuntimeStatusResponse(
             runtime.GatewayId.Value.ToString(),
+            runtime.Name,
             runtime.Status.Value,
             runtime.CurrentVersion,
             runtime.TargetVersion,

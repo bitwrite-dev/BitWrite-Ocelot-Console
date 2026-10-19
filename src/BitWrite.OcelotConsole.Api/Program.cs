@@ -223,7 +223,10 @@ namespace BitWrite.OcelotConsole.Api
 
             // Background Services
             builder.Services.AddHostedService<OutboxPublisher>();
-            builder.Services.AddHostedService<RuntimeAdapters.RuntimeAdapter>();
+            if (!string.IsNullOrEmpty(builder.Configuration["Gateway:NodeName"]))
+            {
+                builder.Services.AddHostedService<RuntimeAdapters.RuntimeAdapter>();
+            }
 
             // Add Swagger/OpenAPI
             builder.Services.AddEndpointsApiExplorer();

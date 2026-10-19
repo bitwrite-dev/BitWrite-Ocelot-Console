@@ -38,6 +38,7 @@ public class GetAllGatewaysQueryHandler
 
             gatewayStatuses.Add(new RuntimeStatusResponse(
                 instance.GatewayId,
+                instance.Name,
                 instance.Status,
                 instance.CurrentVersion?.Value,
                 instance.TargetVersion?.Value,

@@ -61,6 +61,7 @@ public class GetAllGatewaysQueryHandlerTests
     private static RuntimeInstance Registered() =>
         RuntimeInstance.Register(
             GatewayId.From(GatewayGuid),
+            "Test Gateway",
             new[] { "Config", "Routes" },
             string.Empty);
 

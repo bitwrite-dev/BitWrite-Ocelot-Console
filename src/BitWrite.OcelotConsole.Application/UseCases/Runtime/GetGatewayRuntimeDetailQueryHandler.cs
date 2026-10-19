@@ -54,6 +54,7 @@ public class GetGatewayRuntimeDetailQueryHandler
 
         return new GatewayRuntimeDetailResponse(
             runtimeInstance.GatewayId,
+            runtimeInstance.Name,
             runtimeInstance.Status,
             runtimeInstance.CurrentVersion?.Value,
             runtimeInstance.TargetVersion?.Value,

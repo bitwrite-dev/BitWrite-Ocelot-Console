@@ -94,6 +94,16 @@ public sealed class GatewayRegistrar : BackgroundService
                     NodeName());
                 await ForgetRegistrationAsync(NodeName());
             }
+            catch (HttpRequestException ex)
+            {
+                // Any other HTTP error (e.g. 500 from a deleted gateway) also means
+                // the remembered id is stale: clear it and retry next beat.
+                _logger.LogWarning(
+                    ex,
+                    "The control plane rejected status report for this gateway; clearing registration and retrying under {Node}",
+                    NodeName());
+                await ForgetRegistrationAsync(NodeName());
+            }
             catch (Exception ex)
             {
                 _logger.LogWarning(
@@ -135,15 +145,40 @@ public sealed class GatewayRegistrar : BackgroundService
     /// </summary>
     private async Task<string> EnsureRegisteredAsync(string nodeName, CancellationToken cancellationToken)
     {
-        var remembered = await _database.StringGetAsync(RegistrationKey(nodeName));
+        // The control plane is the source of truth: ask it whether a gateway with
+        // this name already exists. A node that restarts after Redis was flushed
+        // loses its remembered id, but the gateway record itself may still be there.
+        var existingId = await _controlPlane.FindGatewayByNameAsync(nodeName, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(existingId))
+        {
+            await _database.StringSetAsync(RegistrationKey(nodeName), existingId);
 
-        if (!remembered.IsNullOrEmpty)
-            return remembered.ToString();
+            _logger.LogDebug(
+                "Reusing existing gateway registration {Node} ({GatewayId}) in environment {Environment}",
+                nodeName, existingId, _environment.KeySegment);
+            return existingId;
+        }
 
+        // No existing gateway under this name, register a new one.
         var gatewayId = await _controlPlane.RegisterAsync(
             nodeName,
             $"Registered by the node itself, serving {_environment.KeySegment}",
             cancellationToken);
+
+        // Double-check: another gateway might have been registered with the same
+        // name between our FindGatewayByNameAsync call and this RegisterAsync call.
+        // If so, use the existing one instead of our new one.
+        var verifyId = await _controlPlane.FindGatewayByNameAsync(nodeName, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(verifyId) && verifyId != gatewayId)
+        {
+            await _database.StringSetAsync(RegistrationKey(nodeName), verifyId);
+
+            _logger.LogWarning(
+                "Another gateway with name {NodeName} was registered concurrently ({ExistingId}). Using existing ID instead of new one ({NewId}).",
+                nodeName, verifyId, gatewayId);
+
+            return verifyId;
+        }
 
         await _database.StringSetAsync(RegistrationKey(nodeName), gatewayId);
 

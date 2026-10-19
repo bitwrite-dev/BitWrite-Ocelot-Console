@@ -16,14 +16,16 @@ namespace BitWrite.OcelotConsole.Application.Tests.UseCases.Gateway;
 public class RegisterGatewayCommandHandlerTests
 {
     private readonly Mock<IGatewayRepository> _mockRepository;
+    private readonly Mock<AppIRuntimeInstanceRepository> _mockRuntimeInstanceRepository;
     private readonly Mock<IDomainEventDispatcher> _mockEventDispatcher;
     private readonly RegisterGatewayCommandHandler _handler;
 
     public RegisterGatewayCommandHandlerTests()
     {
         _mockRepository = new Mock<IGatewayRepository>();
+        _mockRuntimeInstanceRepository = new Mock<AppIRuntimeInstanceRepository>();
         _mockEventDispatcher = new Mock<IDomainEventDispatcher>();
-        _handler = new RegisterGatewayCommandHandler(_mockRepository.Object, _mockEventDispatcher.Object);
+        _handler = new RegisterGatewayCommandHandler(_mockRepository.Object, _mockRuntimeInstanceRepository.Object, _mockEventDispatcher.Object);
     }
 
     [Fact]
@@ -33,6 +35,9 @@ public class RegisterGatewayCommandHandlerTests
         var command = new RegisterGatewayCommand("Test Gateway", "A test gateway", "test-user");
 
         _mockRepository.Setup(r => r.AddAsync(It.IsAny<DomainGateway>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        _mockRuntimeInstanceRepository.Setup(r => r.AddAsync(It.IsAny<DomainRuntimeInstance>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
         _mockEventDispatcher.Setup(d => d.DispatchAsync(It.Is<DomainEvent>(e => e is DomainEvent), It.IsAny<CancellationToken>()))
@@ -48,6 +53,7 @@ public class RegisterGatewayCommandHandlerTests
         result.Status.Should().Be(RuntimeStatus.Disconnected);
 
         _mockRepository.Verify(r => r.AddAsync(It.IsAny<DomainGateway>(), It.IsAny<CancellationToken>()), Times.Once);
+        _mockRuntimeInstanceRepository.Verify(r => r.AddAsync(It.IsAny<DomainRuntimeInstance>(), It.IsAny<CancellationToken>()), Times.Once);
         _mockEventDispatcher.Verify(d => d.DispatchAsync(It.Is<DomainEvent>(e => e is GatewayRegistered), It.IsAny<CancellationToken>()), Times.Once);
         _mockEventDispatcher.Verify(d => d.DispatchAsync(It.Is<DomainEvent>(e => e is AuditRecorded), It.IsAny<CancellationToken>()), Times.Once);
     }
