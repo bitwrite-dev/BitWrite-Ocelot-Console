@@ -15,11 +15,11 @@
 export type StatusTone = 'success' | 'info' | 'warning' | 'destructive' | 'neutral'
 
 export const TONE_CLASSES: Record<StatusTone, string> = {
-  success: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100',
-  info: 'bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-100',
-  warning: 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-100',
-  destructive: 'bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-100',
-  neutral: 'bg-muted text-muted-foreground',
+  success: 'bg-[#43BF8E] text-white',
+  info: 'bg-[#5AA9E6] text-white',
+  warning: 'bg-[#E8A91C] text-white',
+  destructive: 'bg-[#EA6048] text-white',
+  neutral: 'bg-[#8BA79F] text-white',
 }
 
 const STATUS_TONES: Record<string, StatusTone> = {
