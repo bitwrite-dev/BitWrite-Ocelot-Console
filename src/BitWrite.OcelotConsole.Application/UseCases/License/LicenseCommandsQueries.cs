@@ -1,0 +1,53 @@
+using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
+using BitWrite.OcelotConsole.Domain.ValueObjects.Status;
+
+namespace BitWrite.OcelotConsole.Application.UseCases.License;
+
+public record CreateLicenseCommand(
+    string Name,
+    string ProductCode,
+    DateTimeOffset ExpirationDate,
+    string? Description = null,
+    string InitiatedBy = "",
+    string CorrelationId = ""
+);
+
+public record GetLicenseQuery(
+    LicenseId Id
+);
+
+public record ListLicensesQuery(
+    int Page = 1,
+    int PageSize = 20,
+    LicenseStatus? Status = null
+);
+
+public record ActivateLicenseCommand(
+    string LicenseKey,
+    string ActivatedBy,
+    string InitiatedBy = "",
+    string CorrelationId = ""
+);
+
+public record UpdateLicenseCommand(
+    LicenseId Id,
+    string? Name = null,
+    string? Description = null,
+    DateTimeOffset? ExpirationDate = null,
+    string InitiatedBy = "",
+    string CorrelationId = ""
+);
+
+public record RenewLicenseCommand(
+    LicenseId Id,
+    DateTimeOffset NewExpirationDate,
+    string InitiatedBy = "",
+    string CorrelationId = ""
+);
+
+public record RevokeLicenseCommand(
+    LicenseId Id,
+    string Reason,
+    string InitiatedBy = "",
+    string CorrelationId = ""
+);
