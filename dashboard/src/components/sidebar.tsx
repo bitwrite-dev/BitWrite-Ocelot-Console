@@ -139,7 +139,7 @@ export function Sidebar({
   draftCounts: { routes: number; services: number; globalConfig: number } | null
 }) {
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r bg-background md:flex">
+    <aside className="hidden w-64 shrink-0 flex-col border-r bg-sidebar md:flex">
       <Brand />
       <Separator />
       <NavLinks roles={roles} draftCounts={draftCounts} />
@@ -147,7 +147,7 @@ export function Sidebar({
       <EnvironmentSelector />
       <ThemeToggle />
     </aside>
-  )
+  );
 }
 
 /** Collapsed sidebar for narrow viewports, presented as a sheet. */
@@ -165,7 +165,7 @@ export function MobileSidebar({
           <Menu className="size-5" aria-hidden="true" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-64 p-0">
+      <SheetContent side="left" className="w-64 bg-sidebar p-0">
         <SheetHeader>
           <SheetTitle className="px-6 py-5 text-left">
             <span className="font-heading text-sm font-semibold">Ocelot Console</span>
@@ -177,5 +177,5 @@ export function MobileSidebar({
         <EnvironmentSelector />
       </SheetContent>
     </Sheet>
-  )
+  );
 }
