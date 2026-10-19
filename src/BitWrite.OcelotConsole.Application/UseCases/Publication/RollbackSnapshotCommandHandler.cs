@@ -1,0 +1,171 @@
+using BitWrite.OcelotConsole.Application.Interfaces;
+using BitWrite.OcelotConsole.Application.UseCases.Publication;
+using BitWrite.OcelotConsole.Domain.Aggregates.Gateway;
+using BitWrite.OcelotConsole.Domain.Aggregates.Snapshot;
+using BitWrite.OcelotConsole.Domain.Events;
+using BitWrite.OcelotConsole.Domain.ValueObjects.Configuration;
+using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
+using BitWrite.OcelotConsole.Domain.ValueObjects.Status;
+using DomainPublication = BitWrite.OcelotConsole.Domain.Aggregates.Publication.Publication;
+
+namespace BitWrite.OcelotConsole.Application.UseCases.Publication;
+
+public class RollbackSnapshotCommandHandler
+{
+    private readonly ISnapshotRepository _snapshotRepository;
+    private readonly IPublicationRepository _publicationRepository;
+    private readonly IGatewayRepository _gatewayRepository;
+    private readonly ISnapshotIntegrityVerifier _integrityVerifier;
+    private readonly IDistributedLock _distributedLock;
+    private readonly IRedisPublisher _redisPublisher;
+    private readonly IDomainEventDispatcher _eventDispatcher;
+
+    public RollbackSnapshotCommandHandler(
+        ISnapshotRepository snapshotRepository,
+        IPublicationRepository publicationRepository,
+        IGatewayRepository gatewayRepository,
+        ISnapshotIntegrityVerifier integrityVerifier,
+        IDistributedLock distributedLock,
+        IRedisPublisher redisPublisher,
+        IDomainEventDispatcher eventDispatcher)
+    {
+        _snapshotRepository = snapshotRepository;
+        _publicationRepository = publicationRepository;
+        _gatewayRepository = gatewayRepository;
+        _integrityVerifier = integrityVerifier;
+        _distributedLock = distributedLock;
+        _redisPublisher = redisPublisher;
+        _eventDispatcher = eventDispatcher;
+    }
+
+    public async Task<PublicationId> HandleAsync(RollbackSnapshotCommand command, CancellationToken cancellationToken = default)
+    {
+        // 1. Parse and verify target Snapshot exists
+        if (!int.TryParse(command.TargetSnapshotVersion, out var versionInt))
+        {
+            throw new ArgumentException($"Invalid target snapshot version: {command.TargetSnapshotVersion}");
+        }
+        var targetVersion = SnapshotVersion.From(versionInt);
+
+        var targetSnapshot = await _snapshotRepository.GetAsync(targetVersion, cancellationToken);
+        if (targetSnapshot == null)
+        {
+            throw new InvalidOperationException($"Target snapshot {targetVersion} not found");
+        }
+
+        // 2. Verify target snapshot is valid
+        var computedHash = _integrityVerifier.ComputeHash(targetSnapshot.Content);
+        if (!targetSnapshot.VerifyIntegrity(computedHash))
+        {
+            throw new InvalidOperationException($"Target snapshot {targetVersion} integrity verification failed");
+        }
+
+        // 3. Get target gateways
+        var targetGatewayIds = command.TargetGatewayIds?.Select(GatewayId.From).ToList()
+            ?? (await _gatewayRepository.GetAllAsync(cancellationToken)).Select(g => g.Id).ToList();
+
+        if (targetGatewayIds.Count == 0)
+        {
+            throw new InvalidOperationException("No target gateways available for rollback");
+        }
+
+        // 3.5. Every target gateway has to be in the environment the rollback is for.
+        // A rollback is for one environment and is delivered to the gateways that serve
+        // it; handing it to a gateway in another environment would put one
+        // environment's routes behind another environment's name.
+        var gateways = await _gatewayRepository.GetAllAsync(cancellationToken);
+        var mismatched = gateways
+            .Where(gateway => targetGatewayIds.Contains(gateway.Id))
+            .Where(gateway => gateway.Environment != command.Environment)
+            .ToList();
+
+        if (mismatched.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Rollback is for environment '{command.Environment}' but these gateways serve another: " +
+                string.Join(", ", mismatched.Select(g => g.Id.Value.ToString())));
+        }
+
+        // 4. Acquire rollback lock
+        var lockResult = await _distributedLock.AcquireAsync(
+            $"rollback:{targetVersion}",
+            TimeSpan.FromMinutes(5),
+            TimeSpan.FromSeconds(30),
+            cancellationToken: cancellationToken);
+
+        if (!lockResult.Success)
+        {
+            throw new InvalidOperationException($"Failed to acquire rollback lock: {lockResult.ErrorMessage}");
+        }
+
+        try
+        {
+            // 5. Get current active publication (if any)
+            var currentPublication = await _publicationRepository.GetLatestAsync(cancellationToken);
+
+            // 6. Create Publication aggregate for rollback
+            var publication = DomainPublication.Start(
+                targetVersion,
+                command.InitiatedBy,
+                targetGatewayIds,
+                command.CorrelationId);
+
+            // Mark as rollback context
+            publication.Rollback(targetVersion, command.Reason);
+
+            // Also mark target snapshot as rolled back
+            targetSnapshot.Rollback(currentPublication != null ? currentPublication.SnapshotVersion : targetVersion, command.CorrelationId);
+
+            // Persist snapshot with rollback event
+            await _snapshotRepository.UpdateAsync(targetSnapshot, cancellationToken);
+
+            // 7. Persist Publication
+            await _publicationRepository.AddAsync(publication, cancellationToken);
+
+            // 8. Atomic: Set ocelot:runtime:current:{env} = targetVersion
+            await _redisPublisher.PublishAsync(
+                $"ocelot:runtime:current:{command.Environment.Value}",
+                new { Version = targetVersion.Value.ToString(), Environment = command.Environment.Value },
+                cancellationToken);
+
+            // 9. Redis Pub/Sub: Notify gateways of rollback
+            await _redisPublisher.PublishAsync(
+                "ocelot:snapshot:rolled-back",
+                new { Version = targetVersion.Value.ToString(), PublicationId = publication.Id.Value.ToString(), Reason = command.Reason, Environment = command.Environment.Value },
+                cancellationToken);
+
+            // 10. Raise domain events
+            foreach (var domainEvent in publication.DomainEvents)
+            {
+                await _eventDispatcher.DispatchAsync(domainEvent, cancellationToken);
+            }
+
+            foreach (var domainEvent in targetSnapshot.DomainEvents)
+            {
+                await _eventDispatcher.DispatchAsync(domainEvent, cancellationToken);
+            }
+            targetSnapshot.ClearDomainEvents();
+
+            // 11. Raise audit event
+            var auditEvent = new AuditRecorded(
+                command.InitiatedBy,
+                "RollbackSnapshot",
+                "Publication",
+                publication.Id.Value.ToString(),
+                "Started"
+            );
+            await _eventDispatcher.DispatchAsync(auditEvent, cancellationToken);
+
+            return publication.Id;
+        }
+        catch
+        {
+            // Release lock on failure
+            if (lockResult.LockId != null)
+            {
+                await _distributedLock.ReleaseAsync($"rollback:{targetVersion}", lockResult.LockId, cancellationToken);
+            }
+            throw;
+        }
+    }
+}

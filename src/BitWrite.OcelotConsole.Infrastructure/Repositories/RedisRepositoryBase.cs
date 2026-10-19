@@ -1,0 +1,131 @@
+using BitWrite.OcelotConsole.Application.Interfaces;
+using BitWrite.OcelotConsole.Domain.ValueObjects.Configuration;
+using StackExchange.Redis;
+
+namespace BitWrite.OcelotConsole.Infrastructure.Repositories;
+
+public abstract class RedisRepositoryBase
+{
+    protected readonly IDatabase Database;
+    protected readonly IConnectionMultiplexer ConnectionMultiplexer;
+
+    /// <summary>
+    /// The environment every key built by this repository belongs to.
+    /// </summary>
+    /// <remarks>
+    /// Resolved once, from the request, rather than passed to each method. A
+    /// repository method that built a key without knowing the environment would
+    /// be one signature away from addressing another environment's routes by
+    /// mistake, and that mistake reads as an empty result rather than an error.
+    /// </remarks>
+    protected EnvironmentName Environment => _environmentContext.Current;
+
+    private readonly IEnvironmentContext _environmentContext;
+
+    protected RedisRepositoryBase(
+        IConnectionMultiplexer connectionMultiplexer,
+        IEnvironmentContext environmentContext)
+    {
+        ConnectionMultiplexer = connectionMultiplexer;
+        Database = connectionMultiplexer.GetDatabase();
+        _environmentContext = environmentContext;
+    }
+
+    protected async Task<bool> SetHashAsync(string key, HashEntry[] entries, TimeSpan? expiry = null)
+    {
+        if (entries.Length == 0) return true;
+
+        await Database.HashSetAsync(key, entries);
+
+        if (expiry.HasValue)
+        {
+            await Database.KeyExpireAsync(key, expiry);
+        }
+
+        return true;
+    }
+
+    protected async Task<HashEntry[]> GetHashAsync(string key)
+    {
+        return await Database.HashGetAllAsync(key);
+    }
+
+    protected async Task<bool> HashExistsAsync(string key)
+    {
+        return await Database.KeyExistsAsync(key);
+    }
+
+    protected async Task DeleteAsync(string key)
+    {
+        await Database.KeyDeleteAsync(key);
+    }
+
+    protected async Task<long> SetAddAsync(string setKey, params RedisValue[] values)
+    {
+        return await Database.SetAddAsync(setKey, values);
+    }
+
+    protected async Task<long> SetRemoveAsync(string setKey, params RedisValue[] values)
+    {
+        return await Database.SetRemoveAsync(setKey, values);
+    }
+
+    protected async Task<RedisValue[]> SetMembersAsync(string setKey)
+    {
+        return await Database.SetMembersAsync(setKey);
+    }
+
+    protected async Task<bool> SetContainsAsync(string setKey, RedisValue value)
+    {
+        return await Database.SetContainsAsync(setKey, value);
+    }
+
+    protected async Task<bool> SortedSetAddAsync(string key, RedisValue value, double score)
+    {
+        return await Database.SortedSetAddAsync(key, value, score);
+    }
+
+    protected async Task<bool> SortedSetRemoveAsync(string key, RedisValue value)
+    {
+        return await Database.SortedSetRemoveAsync(key, value);
+    }
+
+    protected async Task<RedisValue[]> SortedSetRangeByScoreAsync(
+        string key,
+        double start = double.NegativeInfinity,
+        double stop = double.PositiveInfinity,
+        long skip = 0,
+        long take = 100)
+    {
+        return await Database.SortedSetRangeByScoreAsync(key, start, stop, Exclude.None, Order.Ascending, skip, take);
+    }
+
+    protected async Task<string?> StringGetAsync(string key)
+    {
+        return await Database.StringGetAsync(key);
+    }
+
+    protected async Task<bool> StringSetAsync(string key, string value, TimeSpan? expiry = null)
+    {
+        return await Database.StringSetAsync(key, value, expiry);
+    }
+
+    /// <summary>
+    /// Writes only when the key is absent, in one round trip.
+    /// </summary>
+    /// <remarks>
+    /// Check-then-write would leave a window in which two first-run attempts both
+    /// see an empty key and both apply their choice. Redis decides the winner
+    /// atomically, and the loser is told so.
+    /// </remarks>
+    protected async Task<bool> StringSetIfNotExistsAsync(string key, string value)
+    {
+        return await Database.StringSetAsync(key, value, null, false, When.NotExists);
+    }
+
+    protected static string GetEntry(HashEntry[] entries, string name)
+    {
+        var entry = entries.FirstOrDefault(e => e.Name == name);
+        return entry.Value.IsNullOrEmpty ? "" : entry.Value.ToString();
+    }
+}
