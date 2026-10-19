@@ -222,7 +222,7 @@ jobs:
 
       - name: Extract metadata for API
         id: meta-api
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/bitwrite-dev/bitwrite-ocelot-api
           tags: |
@@ -242,7 +242,7 @@ jobs:
 
       - name: Extract metadata for Gateway
         id: meta-gateway
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/bitwrite-dev/bitwrite-ocelot-gateway
           tags: |
