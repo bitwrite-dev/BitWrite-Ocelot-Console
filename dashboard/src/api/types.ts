@@ -1,0 +1,750 @@
+/*
+ * Generated to mirror src/BitWrite.OcelotConsole.Api/DTOs. Do not hand-edit.
+ *
+ * The API serialises with JsonSerializerDefaults.Web (camelCase), so property
+ * names are camelCased here. DateTimeOffset is a string on the wire (ISO 8601).
+ *
+ * Regenerate when a DTO changes; the shapes are asserted in the client tests.
+ */
+
+export interface AuditListResponse {
+  audits: AuditResponse[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+/**
+ * Counts across the log.
+ *
+ * Declared because the endpoint used to return `{"result":{},"value":null}`: a
+ * syntactically valid response with nothing in it, which is the hardest kind of
+ * wrong to notice.
+ */
+export interface AuditStatsResponse {
+  totalCount: number
+  todayCount: number
+  thisWeekCount: number
+  thisMonthCount: number
+}
+
+export interface AuditResponse {
+  id: string
+  actor: string
+  action: string
+  resourceType: string
+  resourceId: string
+  result: string
+  timestamp: string
+}
+
+export interface AuthenticationOptionsResponse {
+  allowedScopes: string[]
+}
+
+export interface CacheOptionsResponse {
+  ttlSeconds: number
+}
+
+export interface CurrentPublicationResponse {
+  current: PublicationResponse | null
+  history: PublicationResponse[]
+}
+
+export interface DownstreamTargetResponse {
+  host: string
+  port: number
+  scheme: string
+  path: string
+}
+
+export interface ErrorResponse {
+  correlationId: string
+  error: string
+  type: string
+  details: unknown | null
+}
+
+export interface GatewayDeploymentStateResponse {
+  gatewayId: string
+  status: string
+  receivedAt: string | null
+  validatedAt: string | null
+  appliedAt: string | null
+  healthyAt: string | null
+  isValid: boolean | null
+  failedAt: string | null
+  failureReason: string | null
+}
+
+export interface GatewayListResponse {
+  gateways: GatewayResponse[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export interface GatewayResponse {
+  id: string
+  name: string
+  description: string | null
+  status: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface GlobalConfigurationResponse {
+  id: string
+  baseUrl: string | null
+  requestIdKey: string | null
+  downstreamScheme: string | null
+  timeout: number | null
+  rateLimit: RateLimitConfigResponse | null
+  qoS: QoSConfigResponse | null
+  httpHandler: HttpHandlerConfigResponse | null
+  serviceDiscovery: ServiceDiscoveryConfigResponse | null
+  updatedAt: string
+  /**
+   * Whether these settings have changed since a snapshot last captured them.
+   *
+   * A snapshot captures the settings as well as the routes and services, so the
+   * create page counts this among what is pending capture.
+   */
+  isDraft: boolean
+}
+
+export interface HttpHandlerConfigResponse {
+  useProxy: boolean
+  expect100Continue: boolean
+  maxConnectionsPerServer: number | null
+}
+
+export interface LicenseListResponse {
+  licenses: LicenseResponse[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export interface LicenseResponse {
+  id: string
+  name: string
+  productCode: string
+  status: string
+  expirationDate: string
+  createdAt: string
+  updatedAt: string
+  isActive: boolean
+  activatedAt: string
+}
+
+export interface LoadBalancerOptionsResponse {
+  algorithm: string
+}
+
+export interface PluginListResponse {
+  plugins: PluginResponse[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export interface PluginResponse {
+  id: string
+  name: string
+  version: string
+  description: string | null
+  scope: string
+  isEnabled: boolean
+  installedAt: string
+  lastUpdated: string | null
+  lastEnabled: string | null
+  lastDisabled: string | null
+}
+
+export interface PublicationListResponse {
+  publications: PublicationResponse[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export interface PublicationResponse {
+  id: string
+  snapshotVersion: number
+  status: string
+  initiatedBy: string
+  startedAt: string
+  completedAt: string | null
+  failureReason: string | null
+  gatewayStates: GatewayDeploymentStateResponse[]
+}
+
+export interface QoSConfigResponse {
+  timeoutValue: number
+  durationOfBreak: number
+}
+
+export interface QoSOptionsResponse {
+  timeoutSeconds: number
+  circuitBreakerTimeoutSeconds: number | null
+}
+
+export interface RateLimitConfigResponse {
+  enableRateLimiting: boolean
+  httpStatusCode: string | null
+}
+
+export interface RateLimitOptionsResponse {
+  enableRateLimiting: boolean
+  period: string
+  limit: number
+}
+
+export interface ReconcileResponse {
+  gatewayId: string
+  targetVersion: number
+  success: boolean
+  errorMessage: string | null
+  reconciledAt: string
+}
+
+export interface RouteEffectiveResponse {
+  ocelotJson: string
+}
+
+export interface RouteHistoryItem {
+  timestamp: string
+  action: string
+  changedBy: string | null
+  details: string | null
+}
+
+export interface RouteHistoryResponse {
+  history: RouteHistoryItem[]
+}
+
+export interface RouteListResponse {
+  routes: RouteResponse[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export interface RoutePreviewResponse {
+  ocelotJson: string
+}
+
+export interface GatewayResponse {
+  id: string
+  name: string
+  description: string | null
+  /**
+   * A label the control plane records, not live health.
+   *
+   * The API accepts one of `Disconnected`, `Connecting`, `Synchronized`,
+   * `Applying`, `Active` or `Degraded`. There is no "shut down" state: the only
+   * lifecycle rule is that a gateway which has received a publication cannot be
+   * deleted.
+   */
+  status: string
+  createdAt: string
+  updatedAt: string
+  /**
+   * When the gateway last reported in, or null if it never has.
+   *
+   * Carried with the status because the status is a label the control plane
+   * records and nothing updates it on its own. A gateway that has not reported
+   * in hours is not the thing its status says.
+   */
+  lastHeartbeat: string | null
+}
+
+export interface GatewayListResponse {
+  gateways: GatewayResponse[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export interface GatewayRequest {
+  name: string
+  description: string | null
+}
+
+/**
+ * Whether a gateway can be deleted, and why not if it cannot.
+ */
+export interface GatewayDeletionEligibility {
+  gatewayId: string
+  hasBeenPublishedTo: boolean
+  /** Why deletion is refused, or null when it is allowed. */
+  reason: string | null
+}
+
+/**
+ * The system settings, and what a first-run screen needs to render itself.
+ */
+export interface SystemSettingsResponse {
+  id: string
+  /** Null until a version is chosen, which is the first-run state. */
+  ocelotVersion: string | null
+  ocelotVersionSelectedAt: string | null
+  ocelotVersionSelectedBy: string | null
+  pollIntervalSeconds: number
+  auditLogRetentionDays: number
+  snapshotRetentionCount: number
+  /** True once a version has been chosen and setup is complete. */
+  isInitialised: boolean
+  /**
+   * Versions that can be chosen, newest first.
+   *
+   * Derived from what the API can actually emit, not from what Ocelot has
+   * released. Offering a version the builder cannot shape would produce a file
+   * no gateway could read.
+   */
+  availableOcelotVersions: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+/**
+ * The first-run request. The version is required here and has no update path.
+ */
+export interface CompleteFirstRunRequest {
+  ocelotVersion: string
+  /**
+   * Who is completing setup.
+   *
+   * There is no session to read an identity from yet (#433), so the caller
+   * supplies one. The version cannot be changed afterwards, so this is recorded
+   * against a permanent decision.
+   */
+  initiatedBy?: string | null
+  pollIntervalSeconds?: number | null
+  auditLogRetentionDays?: number | null
+  snapshotRetentionCount?: number | null
+}
+
+/**
+ * The settings that can change after setup.
+ *
+ * There is no `ocelotVersion` field, and that is deliberate: the version is
+ * permanent, so this request must not offer a way to reach it.
+ */
+export interface UpdateSystemSettingsRequest {
+  /** `null` clears the field. Omitting the key would leave it unchanged. */
+  pollIntervalSeconds?: number | null
+  auditLogRetentionDays?: number | null
+  snapshotRetentionCount?: number | null
+}
+
+export interface AuthorizationOptionsResponse {
+  policies: string[] | null
+  scopes: string[] | null
+  requirements: Record<string, string> | null
+}
+
+export interface TransformEntryResponse {
+  key: string
+  value: string
+}
+
+/** Add becomes DownstreamHeaderTransform, transform becomes UpstreamHeaderTransform. */
+export interface TransformationsResponse {
+  add: TransformEntryResponse[] | null
+  transform: TransformEntryResponse[] | null
+}
+
+/** How the gateway's HTTP client behaves when calling downstream. */
+export interface HttpClientOptionsResponse {
+  allowAutoRedirect: boolean
+  maxConnectionsPerServer: number
+  pooledConnectionLifetimeSeconds: number
+  useCookieContainer: boolean
+  useProxy: boolean
+  useTracing: boolean
+}
+
+export interface RouteResponse {
+  id: string
+  key: string
+  method: string
+  upstreamPath: string
+  /**
+   * The upstream host a route is restricted to.
+   *
+   * The API returned this while nothing ever read or emitted it, so a host set
+   * on a route did nothing. See #485.
+   */
+  host: string | null
+  /** Higher is matched first among overlapping routes. */
+  priority: number
+  routeIsCaseSensitive: boolean
+  /**
+   * The verb the request is rewritten to on the way downstream.
+   *
+   * Null keeps the upstream verb. Ocelot takes a single string here, not a
+   * list, unlike the upstream verb. See #485.
+   */
+  downstreamMethod: string | null
+  /** "1.0", "1.1" or "2.0". Null leaves the framework default in place. */
+  downstreamHttpVersion: string | null
+  /** How strictly the version is asked for. Needs a version to apply to. */
+  downstreamHttpVersionPolicy: string | null
+  /**
+   * Accepts any downstream TLS certificate.
+   *
+   * Ocelot's own documentation calls this a security risk. For self-signed
+   * certificates in local development only.
+   */
+  dangerousAcceptAnyServerCertificateValidator: boolean
+  /** Handlers registered in the gateway. An unknown name stops it starting. */
+  delegatingHandlers: string[]
+  httpClientOptions: HttpClientOptionsResponse | null
+  /** Seconds to wait for a downstream response, separate from the QoS timeout. */
+  timeoutSeconds: number | null
+  /** The path the request is rewritten to, or null to forward it unchanged. */
+  downstreamPathTemplate: string | null
+  headerTransformations: TransformationsResponse | null
+  claimTransformations: TransformationsResponse | null
+  queryTransformations: TransformationsResponse | null
+  /**
+   * Who may call this route, as distinct from who they are.
+   *
+   * Separate from `authenticationOptions.allowedScopes`: a caller can be
+   * authenticated and still not be allowed here.
+   */
+  authorizationOptions: AuthorizationOptionsResponse | null
+  serviceId: string
+  isEnabled: boolean
+  downstreamTargets: DownstreamTargetResponse[]
+  authenticationOptions: AuthenticationOptionsResponse | null
+  rateLimitOptions: RateLimitOptionsResponse | null
+  qoSOptions: QoSOptionsResponse | null
+  cacheOptions: CacheOptionsResponse | null
+  loadBalancerOptions: LoadBalancerOptionsResponse | null
+  createdAt: string
+  updatedAt: string
+  /**
+   * Whether this route has changed since a snapshot last captured it.
+   *
+   * Set by every change and cleared when a snapshot is created, because a
+   * snapshot captures the whole management state. The create page counts these,
+   * so an operator reads what is still pending capture before sealing another
+   * snapshot — and is told when there is nothing.
+   */
+  isDraft: boolean
+}
+
+/**
+ * One validation failure, tagged with the request field that caused it.
+ *
+ * `field` is null when the problem belongs to the route as a whole, and uses the
+ * API's field names otherwise (`upstreamPath`, `downstreamTargets[0]`, ...), so
+ * a wizard can send the operator back to the step that owns it.
+ */
+export interface RouteValidationError {
+  field: string | null
+  code: string
+  message: string
+}
+
+export interface RouteValidationResponse {
+  isValid: boolean
+  errors: RouteValidationError[]
+}
+
+/**
+ * What happened when configurations were delivered to gateways.
+ *
+ * Not request traffic. Nothing in the system counts requests a gateway served or
+ * times them, so there is no request rate, latency or error rate to read here —
+ * the fields that would hold them are absent rather than zero, because a zero
+ * would be read as a measurement. A gateway serving traffic wrongly is invisible
+ * in this response.
+ */
+export interface DeliveryMetricsResponse {
+  from: string
+  to: string
+  /** How many attempts were read, before the range narrowed them. */
+  consideredAttempts: number
+  totalAttempts: number
+  successful: number
+  failed: number
+  /** Null when nothing was attempted: there is no rate to state. */
+  successRate: number | null
+  snapshotVersions: number[]
+  gateways: GatewayDeliveryMetrics[]
+  errors: DeliveryErrorFrequency[]
+}
+
+/** How one gateway fared applying configurations. */
+export interface GatewayDeliveryMetrics {
+  gatewayId: string
+  attempts: number
+  successful: number
+  failed: number
+  successRate: number | null
+  lastAttemptAt: string
+  recentErrors: string[]
+}
+
+/** One distinct delivery failure, and how often it happened. */
+export interface DeliveryErrorFrequency {
+  message: string
+  occurrences: number
+  lastSeenAt: string
+}
+
+export interface RuntimeGatewaysResponse {
+  gateways: RuntimeStatusResponse[]
+}
+
+export interface RuntimeStatusResponse {
+  gatewayId: string
+  name: string
+  status: string
+  currentVersion: number | null
+  targetVersion: number | null
+  lastHeartbeat: string | null
+  lastSynchronized: string | null
+  lastConfigApplied: string | null
+  runtimeInfo: Record<string, string>
+  capabilities: string[]
+  activeRoutes: string[]
+}
+
+export interface ServiceDiscoveryConfigResponse {
+  provider: string | null
+  host: string | null
+  port: number | null
+  type: string | null
+  configuration: Record<string, string>
+}
+
+/**
+ * The request shapes for the global configuration.
+ *
+ * Distinct from the response shapes on purpose: a request needs to express
+ * "clear this", which is `null`, while a response only ever reports a value or
+ * its absence.
+ */
+export interface RateLimitConfigRequest {
+  enableRateLimiting: boolean
+  httpStatusCode: string | null
+}
+
+export interface QoSConfigRequest {
+  timeoutValue: number
+  durationOfBreak: number
+}
+
+export interface HttpHandlerConfigRequest {
+  useProxy: boolean
+  expect100Continue: boolean
+  maxConnectionsPerServer: number | null
+}
+
+export interface ServiceDiscoveryConfigRequest {
+  provider: string | null
+  host: string | null
+  port: number | null
+  type: string | null
+  configuration: Record<string, string>
+}
+
+export interface GlobalConfigurationRequest {
+  baseUrl: string | null
+  requestIdKey: string | null
+  downstreamScheme: string | null
+  timeout: number | null
+  rateLimit: RateLimitConfigRequest | null
+  qoS: QoSConfigRequest | null
+  httpHandler: HttpHandlerConfigRequest | null
+  serviceDiscovery: ServiceDiscoveryConfigRequest | null
+}
+
+export interface ServiceListResponse {
+  services: ServiceResponse[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+/**
+ * A service endpoint, as the API now reports it.
+ *
+ * Distinct from the route's `DownstreamTargetResponse`: a service endpoint is host,
+ * port, weight and isActive, and nothing else. It used to borrow the route's shape
+ * and answer with the invented constants "http" and "/", so a caller could not tell
+ * a real value from a placeholder.
+ */
+export interface ServiceEndpointResponse {
+  host: string
+  port: number
+  /** Load-balancing weight. A domain field the API did not expose at all before. */
+  weight: number
+  isActive: boolean
+}
+
+/** What the API accepts for a service endpoint. Same four fields, no scheme or path. */
+export interface ServiceEndpointRequest {
+  host: string
+  port: number
+  weight?: number
+}
+
+export interface ServiceResponse {
+  id: string
+  name: string
+  description: string | null
+  downstreamTargets: ServiceEndpointResponse[]
+  createdAt: string
+  updatedAt: string
+  /** See <see cref="RouteResponse.isDraft" /> — services are captured the same way. */
+  isDraft: boolean
+}
+
+export interface CreateServiceRequest {
+  name: string
+  description?: string | null
+  downstreamTargets?: ServiceEndpointRequest[] | null
+}
+
+export interface UpdateServiceRequest {
+  name?: string | null
+  description?: string | null
+  downstreamTargets?: ServiceEndpointRequest[] | null
+}
+
+export interface ServiceRoutesResponse {
+  routes: RouteResponse[]
+}
+
+export interface SnapshotCompareResponse {
+  versionA: number
+  versionB: number
+  differences: string[]
+}
+
+export interface SnapshotDeploymentResponse {
+  publicationId: string
+  snapshotVersion: number
+  status: string
+  startedAt: string
+  completedAt: string | null
+  failureReason: string | null
+}
+
+export interface SnapshotListResponse {
+  snapshots: SnapshotResponse[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export interface SnapshotValidationRule {
+  rule: string
+  isValid: boolean
+  message: string | null
+}
+
+export interface SnapshotResponse {
+  version: number
+  hash: string
+  content: string
+  status: string
+  createdBy: string
+  createdAt: string
+  publishedAt: string | null
+  archivedAt: string | null
+  /**
+   * How many routes this snapshot carries, read out of its content.
+   * Null when the content could not be read, which is not the same as zero.
+   */
+  routeCount: number | null
+  /** How many services this snapshot carries, or null if unreadable. */
+  serviceCount: number | null
+  /** Plugin versions pinned in the snapshot, as "name version". */
+  pluginVersions: string[]
+  /** Per-rule validation results, so the list can show a verdict. */
+  validationResults: SnapshotValidationRule[]
+}
+
+/**
+ * What a snapshot would contain, resolved and validated but not stored.
+ *
+ * Returned before anything is sealed, so the create page can show the state and
+ * its verdict instead of asking the operator to trust it.
+ */
+export interface PreviewSnapshotResponse {
+  /** The canonical artifact, or null when the state could not be built into one. */
+  content: string | null
+  /** The hash this artifact would carry, or null when there is nothing to hash. */
+  hash: string | null
+  routeCount: number
+  serviceCount: number
+  pluginVersions: string[]
+  validationResults: SnapshotValidationRule[]
+  /** False when any blocking rule failed. */
+  isValid: boolean
+  ocelotVersion: string
+  /** The version this snapshot would take. Reported, not consumed. */
+  nextVersion: number
+}
+
+export interface CreateSnapshotRequest {
+  /**
+   * Who asked for the snapshot. The dashboard has no real session yet (#433),
+   * so the page sends a fixed operator until roles land.
+   */
+  initiatedBy: string
+  correlationId?: string
+}
+
+export interface SnapshotPublishRequest {
+  initiatedBy: string
+  /**
+   * The environment this publication is for.
+   *
+   * Required, and it has to name the same environment the request was sent
+   * for (`X-Environment`): the API refuses a mismatch rather than handing one
+   * environment's gateways another environment's routes.
+   */
+  environment: string
+  /**
+   * The gateways this publication is delivered to, by id.
+   *
+   * Required, and an empty list is refused rather than read as "every
+   * gateway" — a publication that reached nobody would report success while
+   * changing nothing.
+   */
+  targetGatewayIds: string[]
+}
+
+export interface SnapshotRollbackRequest {
+  initiatedBy: string
+  /**
+   * The environment this rollback is for.
+   *
+   * Required, and it has to name the same environment the request was sent
+   * for (`X-Environment`), for the same reason a publication has to.
+   */
+  environment: string
+  /** The version to go back to. */
+  targetVersion: number
+  reason: string
+}
+
+export interface SnapshotValidationResponse {
+  isValid: boolean
+  errors: string[]
+}
+
+export interface ValidationErrorResponse {
+  correlationId: string
+  error: string
+  type: string
+  details: Record<string, string>
+}
