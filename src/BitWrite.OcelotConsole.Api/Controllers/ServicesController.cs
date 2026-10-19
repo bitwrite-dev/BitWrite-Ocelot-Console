@@ -1,0 +1,236 @@
+using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
+using Microsoft.AspNetCore.Mvc;
+using ApiDtos = BitWrite.OcelotConsole.Api.DTOs;
+using AppService = BitWrite.OcelotConsole.Application.UseCases.Service;
+using DomainDownstreamTarget = BitWrite.OcelotConsole.Domain.ValueObjects.Configuration.DownstreamTarget;
+
+namespace BitWrite.OcelotConsole.Api.Controllers;
+
+[ApiController]
+[Route("api/v1/services")]
+public class ServicesController : BaseApiController
+{
+    private readonly AppService.CreateServiceCommandHandler _createServiceCommandHandler;
+    private readonly AppService.GetServiceQueryHandler _getServiceQueryHandler;
+    private readonly AppService.ListServicesQueryHandler _listServicesQueryHandler;
+    private readonly AppService.UpdateServiceCommandHandler _updateServiceCommandHandler;
+    private readonly AppService.DeleteServiceCommandHandler _deleteServiceCommandHandler;
+    private readonly AppService.GetServiceRoutesQueryHandler _getServiceRoutesQueryHandler;
+
+    public ServicesController(
+        AppService.CreateServiceCommandHandler createServiceCommandHandler,
+        AppService.GetServiceQueryHandler getServiceQueryHandler,
+        AppService.ListServicesQueryHandler listServicesQueryHandler,
+        AppService.UpdateServiceCommandHandler updateServiceCommandHandler,
+        AppService.DeleteServiceCommandHandler deleteServiceCommandHandler,
+        AppService.GetServiceRoutesQueryHandler getServiceRoutesQueryHandler)
+    {
+        _createServiceCommandHandler = createServiceCommandHandler;
+        _getServiceQueryHandler = getServiceQueryHandler;
+        _listServicesQueryHandler = listServicesQueryHandler;
+        _updateServiceCommandHandler = updateServiceCommandHandler;
+        _deleteServiceCommandHandler = deleteServiceCommandHandler;
+        _getServiceRoutesQueryHandler = getServiceRoutesQueryHandler;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<ApiDtos.ServiceListResponse>> GetServices(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        try
+        {
+            var query = new AppService.ListServicesQuery(page, pageSize);
+            var result = await _listServicesQueryHandler.HandleAsync(query);
+
+            var response = new ApiDtos.ServiceListResponse(
+                result.Services.Select(MapToResponse).ToList(),
+                result.TotalCount,
+                result.Page,
+                result.PageSize
+            );
+
+            return HandleResult(response);
+        }
+        catch (Exception ex)
+        {
+            return HandleError(ex);
+        }
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<ApiDtos.ServiceResponse>> GetService(string id)
+    {
+        try
+        {
+            var query = new AppService.GetServiceQuery(ServiceId.From(id));
+            var result = await _getServiceQueryHandler.HandleAsync(query);
+
+            if (result == null)
+                return NotFound();
+
+            return HandleResult(MapToResponse(result));
+        }
+        catch (Exception ex)
+        {
+            return HandleError(ex);
+        }
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<ApiDtos.ServiceResponse>> CreateService(ApiDtos.CreateServiceRequest request)
+    {
+        try
+        {
+            var command = new AppService.CreateServiceCommand(
+                request.Name,
+                request.Description,
+                request.DownstreamTargets?.Select(MapToDownstreamTarget).ToList(),
+                User.Identity?.Name ?? "system"
+            );
+
+            var result = await _createServiceCommandHandler.HandleAsync(command);
+            return HandleResult(MapToResponse(result));
+        }
+        catch (Exception ex)
+        {
+            return HandleError(ex);
+        }
+    }
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult<ApiDtos.ServiceResponse>> UpdateService(string id, ApiDtos.UpdateServiceRequest request)
+    {
+        try
+        {
+            var command = new AppService.UpdateServiceCommand(
+                ServiceId.From(id),
+                request.Name,
+                request.Description,
+                request.DownstreamTargets?.Select(MapToDownstreamTarget).ToList(),
+                User.Identity?.Name ?? "system"
+            );
+
+            var result = await _updateServiceCommandHandler.HandleAsync(command);
+            return HandleResult(MapToResponse(result!));
+        }
+        catch (Exception ex)
+        {
+            return HandleError(ex);
+        }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> DeleteService(string id)
+    {
+        try
+        {
+            var command = new AppService.DeleteServiceCommand(
+                ServiceId.From(id),
+                User.Identity?.Name ?? "system"
+            );
+
+            await _deleteServiceCommandHandler.HandleAsync(command);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return HandleError(ex);
+        }
+    }
+
+    [HttpGet("{id}/routes")]
+    public async Task<ActionResult<ApiDtos.ServiceRoutesResponse>> GetServiceRoutes(string id)
+    {
+        try
+        {
+            var query = new AppService.GetServiceRoutesQuery(ServiceId.From(id));
+            var result = await _getServiceRoutesQueryHandler.HandleAsync(query);
+
+            var response = new ApiDtos.ServiceRoutesResponse(
+                result!.Routes.Select(MapToRouteResponse).ToList()
+            );
+
+            return HandleResult(response);
+        }
+        catch (Exception ex)
+        {
+            return HandleError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Turns an endpoint request into the value the command carries.
+    /// </summary>
+    /// <remarks>
+    /// A <c>DownstreamTarget</c> has a scheme and a path that a
+    /// <c>ServiceEndpoint</c> does not have, so they are not carried across. The
+    /// request no longer accepts them either, so a caller cannot set a value that
+    /// would be dropped.
+    /// </remarks>
+    private static DomainDownstreamTarget MapToDownstreamTarget(ApiDtos.ServiceEndpointRequest request)
+    {
+        return DomainDownstreamTarget.Create("http", request.Host, request.Port, "/", request.Weight);
+    }
+
+    private static ApiDtos.ServiceResponse MapToResponse(AppService.ServiceResponse service)
+    {
+        return new ApiDtos.ServiceResponse(
+            service.Id.Value.ToString(),
+            service.Name,
+            service.Description,
+            // Host, port, weight and isActive — the four fields a ServiceEndpoint
+            // actually has. It used to answer with the route's shape and the
+            // invented constants "http" and "/", so a caller could not tell a real
+            // value from a placeholder, and weight could not be seen at all.
+            service.Endpoints
+                .Select(e => new ApiDtos.ServiceEndpointResponse(e.Host, e.Port, e.Weight, e.IsActive))
+                .ToList(),
+            service.CreatedAt,
+            service.UpdatedAt,
+            service.IsDraft
+        );
+    }
+
+    private static ApiDtos.RouteResponse MapToRouteResponse(AppService.RouteSummary route)
+    {
+        return new ApiDtos.RouteResponse(
+            route.Id.Value.ToString(),
+            route.Key,
+            route.Method,
+            route.UpstreamPath,
+            null,
+            "",
+            true,
+            new List<ApiDtos.DownstreamTargetResponse>(),
+            // This endpoint answers from a reduced summary, so it reports no
+            // option blocks. It already reports no targets and no service id
+            // either; filling those in properly is a separate change.
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            0,
+            false,
+            null,
+            null,
+            null,
+            null,
+            false,
+            new List<string>(),
+            null,
+            null,
+            DateTimeOffset.MinValue,
+            DateTimeOffset.MinValue,
+            // The reduced summary carries the flag even where it reports no
+            // option blocks, because this is one field it does have: whether the
+            // route has changed since a snapshot captured it.
+            route.IsDraft
+        );
+    }
+}
