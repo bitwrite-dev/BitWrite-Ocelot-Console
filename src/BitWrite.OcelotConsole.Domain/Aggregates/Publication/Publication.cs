@@ -16,6 +16,7 @@ public class Publication
 
     public PublicationId Id { get; private set; } = null!;
     public SnapshotVersion SnapshotVersion { get; private set; } = null!;
+    public SnapshotVersion? RolledBackToVersion { get; private set; }
     public PublicationStatus Status { get; private set; } = PublicationStatus.Pending;
     public string InitiatedBy { get; private set; } = string.Empty;
     public DateTimeOffset StartedAt { get; private set; }
@@ -222,6 +223,7 @@ public class Publication
             throw new DomainException("Publication is already rolled back", "ALREADY_ROLLED_BACK");
 
         Status = PublicationStatus.RolledBack;
+        RolledBackToVersion = targetVersion;
         FailureReason = reason;
         CompletedAt = DateTimeOffset.UtcNow;
 
