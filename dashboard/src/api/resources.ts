@@ -43,6 +43,13 @@ import type {
   SystemSettingsResponse,
   CompleteFirstRunRequest,
   UpdateSystemSettingsRequest,
+  CreatePublicationRequest,
+  CreatePublicationResponse,
+  ExecutePublicationRequest,
+  ExecutePublicationResponse,
+  PublicationProgressResponse,
+  PublicationDiffResponse,
+  CancelPublicationRequest,
 } from './types'
 
 /** Shared paging parameters accepted by the list endpoints. */
@@ -187,6 +194,16 @@ export function createResources(http: HttpClient) {
       http.get<PublicationListResponse>('/api/v1/publications/history', o),
     detail: (id: string, o?: Options) =>
       http.get<PublicationResponse>(`/api/v1/publications/${id}`, o),
+    create: (body: CreatePublicationRequest, o?: Options) =>
+      http.post<CreatePublicationResponse>('/api/v1/publications/create', body, o),
+    execute: (id: string, body: ExecutePublicationRequest, o?: Options) =>
+      http.post<ExecutePublicationResponse>(`/api/v1/publications/${id}/execute`, body, o),
+    cancel: (id: string, body: CancelPublicationRequest, o?: Options) =>
+      http.post<void>(`/api/v1/publications/${id}/cancel`, body, o),
+    progress: (id: string, o?: Options) =>
+      http.get<PublicationProgressResponse>(`/api/v1/publications/${id}/progress`, o),
+    diff: ({ signal, ...query }: { targetSnapshotVersion: string; currentSnapshotVersion?: string; environment?: string; signal?: AbortSignal } = {}) =>
+      http.get<PublicationDiffResponse>('/api/v1/publications/diff', { query, signal }),
   }
 
   const plugins = {

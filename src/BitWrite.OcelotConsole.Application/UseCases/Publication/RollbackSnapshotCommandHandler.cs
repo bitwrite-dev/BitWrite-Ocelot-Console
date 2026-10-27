@@ -6,6 +6,7 @@ using BitWrite.OcelotConsole.Domain.Events;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Configuration;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Status;
+using StackExchange.Redis;
 using DomainPublication = BitWrite.OcelotConsole.Domain.Aggregates.Publication.Publication;
 
 namespace BitWrite.OcelotConsole.Application.UseCases.Publication;
@@ -19,6 +20,7 @@ public class RollbackSnapshotCommandHandler
     private readonly IDistributedLock _distributedLock;
     private readonly IRedisPublisher _redisPublisher;
     private readonly IDomainEventDispatcher _eventDispatcher;
+    private readonly IConnectionMultiplexer _connectionMultiplexer;
 
     public RollbackSnapshotCommandHandler(
         ISnapshotRepository snapshotRepository,
@@ -27,7 +29,8 @@ public class RollbackSnapshotCommandHandler
         ISnapshotIntegrityVerifier integrityVerifier,
         IDistributedLock distributedLock,
         IRedisPublisher redisPublisher,
-        IDomainEventDispatcher eventDispatcher)
+        IDomainEventDispatcher eventDispatcher,
+        IConnectionMultiplexer connectionMultiplexer)
     {
         _snapshotRepository = snapshotRepository;
         _publicationRepository = publicationRepository;
@@ -36,6 +39,7 @@ public class RollbackSnapshotCommandHandler
         _distributedLock = distributedLock;
         _redisPublisher = redisPublisher;
         _eventDispatcher = eventDispatcher;
+        _connectionMultiplexer = connectionMultiplexer;
     }
 
     public async Task<PublicationId> HandleAsync(RollbackSnapshotCommand command, CancellationToken cancellationToken = default)
@@ -122,11 +126,11 @@ public class RollbackSnapshotCommandHandler
             // 7. Persist Publication
             await _publicationRepository.AddAsync(publication, cancellationToken);
 
-            // 8. Atomic: Set ocelot:runtime:current:{env} = targetVersion
-            await _redisPublisher.PublishAsync(
-                $"ocelot:runtime:current:{command.Environment.Value}",
-                new { Version = targetVersion.Value.ToString(), Environment = command.Environment.Value },
-                cancellationToken);
+            // 8. Atomic: Set ocelot:runtime:current:{env} = targetVersion (via Redis SET key)
+            var db = _connectionMultiplexer.GetDatabase();
+            await db.StringSetAsync(
+                $"ocelot:runtime:current:{command.Environment.Value.ToLowerInvariant()}",
+                targetVersion.Value.ToString());
 
             // 9. Redis Pub/Sub: Notify gateways of rollback
             await _redisPublisher.PublishAsync(
