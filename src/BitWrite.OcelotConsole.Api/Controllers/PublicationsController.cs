@@ -1,7 +1,10 @@
+using BitWrite.OcelotConsole.Domain.ValueObjects.Configuration;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using Microsoft.AspNetCore.Mvc;
 using ApiDtos = BitWrite.OcelotConsole.Api.DTOs;
 using AppPublication = BitWrite.OcelotConsole.Application.UseCases.Publication;
+
+using DomainEnvironmentName = BitWrite.OcelotConsole.Domain.ValueObjects.Configuration.EnvironmentName;
 
 namespace BitWrite.OcelotConsole.Api.Controllers;
 
@@ -13,17 +16,32 @@ public class PublicationsController : BaseApiController
     private readonly AppPublication.GetCurrentPublicationQueryHandler _getCurrentPublicationQueryHandler;
     private readonly AppPublication.GetPublicationHistoryQueryHandler _getPublicationHistoryQueryHandler;
     private readonly AppPublication.GetPublicationDetailQueryHandler _getPublicationDetailQueryHandler;
+    private readonly AppPublication.CreatePublicationCommandHandler _createPublicationCommandHandler;
+    private readonly AppPublication.ExecutePublicationCommandHandler _executePublicationCommandHandler;
+    private readonly AppPublication.GetPublicationProgressQueryHandler _getPublicationProgressQueryHandler;
+    private readonly AppPublication.GetPublicationDiffQueryHandler _getPublicationDiffQueryHandler;
+    private readonly AppPublication.CancelPublicationCommandHandler _cancelPublicationCommandHandler;
 
     public PublicationsController(
         AppPublication.ListPublicationsQueryHandler listPublicationsQueryHandler,
         AppPublication.GetCurrentPublicationQueryHandler getCurrentPublicationQueryHandler,
         AppPublication.GetPublicationHistoryQueryHandler getPublicationHistoryQueryHandler,
-        AppPublication.GetPublicationDetailQueryHandler getPublicationDetailQueryHandler)
+        AppPublication.GetPublicationDetailQueryHandler getPublicationDetailQueryHandler,
+        AppPublication.CreatePublicationCommandHandler createPublicationCommandHandler,
+        AppPublication.ExecutePublicationCommandHandler executePublicationCommandHandler,
+        AppPublication.GetPublicationProgressQueryHandler getPublicationProgressQueryHandler,
+        AppPublication.GetPublicationDiffQueryHandler getPublicationDiffQueryHandler,
+        AppPublication.CancelPublicationCommandHandler cancelPublicationCommandHandler)
     {
         _listPublicationsQueryHandler = listPublicationsQueryHandler;
         _getCurrentPublicationQueryHandler = getCurrentPublicationQueryHandler;
         _getPublicationHistoryQueryHandler = getPublicationHistoryQueryHandler;
         _getPublicationDetailQueryHandler = getPublicationDetailQueryHandler;
+        _createPublicationCommandHandler = createPublicationCommandHandler;
+        _executePublicationCommandHandler = executePublicationCommandHandler;
+        _getPublicationProgressQueryHandler = getPublicationProgressQueryHandler;
+        _getPublicationDiffQueryHandler = getPublicationDiffQueryHandler;
+        _cancelPublicationCommandHandler = cancelPublicationCommandHandler;
     }
 
     [HttpGet]
@@ -116,6 +134,139 @@ public class PublicationsController : BaseApiController
         }
     }
 
+    [HttpPost("create")]
+    public async Task<ActionResult<ApiDtos.CreatePublicationResponse>> CreatePublication(
+        [FromBody] ApiDtos.CreatePublicationRequest request)
+    {
+        try
+        {
+            var command = new AppPublication.CreatePublicationCommand(
+                request.SnapshotVersion,
+                request.InitiatedBy,
+                DomainEnvironmentName.From(request.Environment),
+                request.CorrelationId ?? string.Empty,
+                request.TargetGatewayIds);
+
+            var result = await _createPublicationCommandHandler.HandleAsync(command);
+
+            var response = new ApiDtos.CreatePublicationResponse(
+                result.PublicationId,
+                result.SnapshotVersion,
+                result.Status,
+                result.GatewayProgress.Select(MapToGatewayProgress).ToList());
+
+            return HandleResult(response);
+        }
+        catch (Exception ex)
+        {
+            return HandleError(ex);
+        }
+    }
+
+    [HttpPost("{id}/execute")]
+    public async Task<ActionResult<ApiDtos.ExecutePublicationResponse>> ExecutePublication(
+        string id,
+        [FromBody] ApiDtos.ExecutePublicationRequest request)
+    {
+        try
+        {
+            var command = new AppPublication.ExecutePublicationCommand(
+                id,
+                request.InitiatedBy,
+                DomainEnvironmentName.From(request.Environment ?? "development"),
+                request.CorrelationId ?? string.Empty);
+
+            var publicationId = await _executePublicationCommandHandler.HandleAsync(command);
+
+            var response = new ApiDtos.ExecutePublicationResponse(publicationId);
+
+            return HandleResult(response);
+        }
+        catch (Exception ex)
+        {
+            return HandleError(ex);
+        }
+    }
+
+    [HttpPost("{id}/cancel")]
+    public async Task<ActionResult> CancelPublication(
+        string id,
+        [FromBody] ApiDtos.CancelPublicationRequest request)
+    {
+        try
+        {
+            var command = new AppPublication.CancelPublicationCommand(
+                id,
+                request.InitiatedBy,
+                request.CorrelationId ?? string.Empty);
+
+            await _cancelPublicationCommandHandler.HandleAsync(command);
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return HandleError(ex);
+        }
+    }
+    [HttpGet("{id}/progress")]
+    public async Task<ActionResult<ApiDtos.PublicationProgressResponse>> GetPublicationProgress(string id)
+    {
+        try
+        {
+            var query = new AppPublication.GetPublicationProgressQuery(id);
+            var result = await _getPublicationProgressQueryHandler.HandleAsync(query);
+
+            if (result == null)
+                return NotFound();
+
+            var response = new ApiDtos.PublicationProgressResponse(
+                result.PublicationId,
+                result.SnapshotVersion,
+                result.Status,
+                result.ProgressPercentage,
+                result.GatewayProgress.Select(MapToGatewayProgress).ToList(),
+                result.StartedAt,
+                result.CompletedAt,
+                result.FailureReason);
+
+            return HandleResult(response);
+        }
+        catch (Exception ex)
+        {
+            return HandleError(ex);
+        }
+    }
+
+    [HttpGet("diff")]
+    public async Task<ActionResult<ApiDtos.PublicationDiffResponse>> GetPublicationDiff(
+        [FromQuery] string targetSnapshotVersion,
+        [FromQuery] string? currentSnapshotVersion = null,
+        [FromQuery] string? environment = null)
+    {
+        try
+        {
+            var query = new AppPublication.GetPublicationDiffQuery(
+                targetSnapshotVersion,
+                currentSnapshotVersion,
+                string.IsNullOrEmpty(environment) ? null : DomainEnvironmentName.From(environment));
+
+            var result = await _getPublicationDiffQueryHandler.HandleAsync(query);
+
+            var response = new ApiDtos.PublicationDiffResponse(
+                result.HasDifferences,
+                result.Differences,
+                result.TargetSnapshotVersion,
+                result.CurrentSnapshotVersion);
+
+            return HandleResult(response);
+        }
+        catch (Exception ex)
+        {
+            return HandleError(ex);
+        }
+    }
+
     private static ApiDtos.PublicationResponse MapToResponse(AppPublication.PublicationResponse publication)
     {
         return new ApiDtos.PublicationResponse(
@@ -141,6 +292,22 @@ public class PublicationsController : BaseApiController
             state.HealthyAt,
             state.IsValid,
             state.FailedAt,
+            state.FailureReason
+        );
+    }
+
+    private static ApiDtos.GatewayProgressResponse MapToGatewayProgress(AppPublication.GatewayProgressResponse state)
+    {
+        return new ApiDtos.GatewayProgressResponse(
+            state.GatewayId,
+            state.GatewayName,
+            state.Status,
+            state.ReceivedAt,
+            state.ValidatedAt,
+            state.AppliedAt,
+            state.HealthyAt,
+            state.FailedAt,
+            state.IsValid,
             state.FailureReason
         );
     }
