@@ -195,7 +195,6 @@ export function PublicationsPage() {
 
       // Then execute it
       const executingId = result.publicationId
-      let executeError: string | null = null
       try {
         await executeMutation.mutateAsync({ 
           id: executingId, 
@@ -204,13 +203,14 @@ export function PublicationsPage() {
             environment: readSelectedEnvironment() || 'development'
           } 
         })
+        // Only set executing state if execution succeeded
+        setExecuting(true)
+        setExecutingId(executingId)
       } catch (error) {
         console.error('Execute failed:', error)
-        executeError = error instanceof Error ? error.message : String(error)
+        const executeError = error instanceof Error ? error.message : String(error)
         setPublishError(executeError)
       }
-      setExecuting(true)
-      setExecutingId(executingId)
     } catch (error) {
       console.error('Publication failed:', error)
       setPublishError(error instanceof Error ? error.message : String(error))
