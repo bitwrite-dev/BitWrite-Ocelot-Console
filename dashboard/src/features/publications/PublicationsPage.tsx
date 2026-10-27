@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-import { usePublications, usePublicationDetail, useCreatePublication, usePublicationProgress, usePublicationDiff, useCurrentPublication, useCancelPublication } from './queries'
+import { usePublications, usePublicationDetail, useCreatePublication, usePublicationProgress, usePublicationDiff, useExecutePublication, useCurrentPublication, useCancelPublication } from './queries'
 import { PublicationStatusBadge, PublicationProgressBar, GatewayProgressCard, MotionGraph } from './components'
 import { formatTimestamp, shortHash } from './queries'
 import { readSelectedEnvironment } from '@/lib/environment'
@@ -41,6 +41,7 @@ export function PublicationsPage() {
 
   const createMutation = useCreatePublication()
   const cancelMutation = useCancelPublication()
+  const executeMutation = useExecutePublication()
 
   async function handleCancel(publicationId: string) {
     try {
