@@ -1,8 +1,11 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { useApi } from '@/app-providers'
 import type {
   PublicationResponse,
+  CreatePublicationRequest,
+  ExecutePublicationRequest,
+  CancelPublicationRequest,
 } from '@/api'
 
 /**
@@ -16,6 +19,9 @@ export const publicationKeys = {
   current: () => ['publications', 'current'] as const,
   history: () => ['publications', 'history'] as const,
   detail: (id: string) => ['publications', 'detail', id] as const,
+  create: () => ['publications', 'create'] as const,
+  progress: (id: string) => ['publications', 'progress', id] as const,
+  diff: (targetVersion: string, currentVersion?: string) => ['publications', 'diff', targetVersion, currentVersion] as const,
 }
 
 const PAGE_SIZE = 20
@@ -37,6 +43,7 @@ export function useCurrentPublication() {
   return useQuery({
     queryKey: publicationKeys.current(),
     queryFn: ({ signal }) => api.resources.publications.current({ signal }),
+    placeholderData: (previous) => previous,
   })
 }
 
@@ -56,6 +63,89 @@ export function usePublicationDetail(id: string, enabled: boolean) {
     queryKey: publicationKeys.detail(id),
     queryFn: ({ signal }) => api.resources.publications.detail(id, { signal }),
     enabled: enabled && !!id,
+  })
+}
+
+/**
+ * Create a new publication record for review.
+ */
+export function useCreatePublication() {
+  const api = useApi()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (request: CreatePublicationRequest) =>
+      api.resources.publications.create(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['publications'] })
+      queryClient.invalidateQueries({ queryKey: ['publications', 'current'] })
+      queryClient.invalidateQueries({ queryKey: ['overview'] })
+    },
+  })
+}
+
+/**
+ * Execute a created publication.
+ */
+export function useExecutePublication() {
+  const api = useApi()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, request }: { id: string; request: ExecutePublicationRequest }) =>
+      api.resources.publications.execute(id, request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['publications'] })
+      queryClient.invalidateQueries({ queryKey: ['publications', 'current'] })
+      queryClient.invalidateQueries({ queryKey: ['overview'] })
+    },
+  })
+}
+
+/**
+ * Get real-time progress of a publication.
+ */
+export function usePublicationProgress(id: string, enabled: boolean) {
+  const api = useApi()
+
+  return useQuery({
+    queryKey: publicationKeys.progress(id),
+    queryFn: ({ signal }) => api.resources.publications.progress(id, { signal }),
+    enabled: enabled && !!id,
+    refetchInterval: 2000, // Poll every 2 seconds
+    placeholderData: (previous) => previous,
+  })
+}
+
+/**
+ * Cancel a pending publication.
+ */
+export function useCancelPublication() {
+  const api = useApi()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, request }: { id: string; request: CancelPublicationRequest }) =>
+      api.resources.publications.cancel(id, request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['publications'] })
+      queryClient.invalidateQueries({ queryKey: ['publications', 'current'] })
+      queryClient.invalidateQueries({ queryKey: ['overview'] })
+    },
+  })
+}
+export function usePublicationDiff(targetVersion: string, currentVersion?: string, enabled: boolean = true) {
+  const api = useApi()
+
+  return useQuery({
+    queryKey: publicationKeys.diff(targetVersion, currentVersion),
+    queryFn: ({ signal }) =>
+      api.resources.publications.diff({
+        targetSnapshotVersion: targetVersion,
+        currentSnapshotVersion: currentVersion,
+        signal,
+      }),
+    enabled: enabled && !!targetVersion,
   })
 }
 

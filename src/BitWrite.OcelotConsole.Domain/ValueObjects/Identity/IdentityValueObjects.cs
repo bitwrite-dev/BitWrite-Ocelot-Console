@@ -168,6 +168,13 @@ public record PublicationId : ValueObject
         return new PublicationId(value);
     }
 
+    public static PublicationId From(string value)
+    {
+        if (!Guid.TryParse(value, out var guid))
+            throw new DomainException($"Invalid PublicationId format: {value}", "INVALID_PUBLICATION_ID_FORMAT");
+        return From(guid);
+    }
+
     protected override IEnumerable<object> GetEqualityComponents()
     {
         yield return Value;

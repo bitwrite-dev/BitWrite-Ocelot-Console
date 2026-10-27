@@ -56,10 +56,11 @@ public class RedisPublicationRepository : RedisRepositoryBase, IPublicationRepos
         }
         else if (status == PublicationStatus.RolledBack.Value)
         {
-            publication.Rollback(
-                SnapshotVersion.From(int.Parse(GetEntry(entries, "TargetVersion"))),
-                GetEntry(entries, "FailureReason")
-            );
+            var targetVersionStr = GetEntry(entries, "TargetVersion");
+            var targetVersion = string.IsNullOrEmpty(targetVersionStr)
+                ? publication.SnapshotVersion
+                : SnapshotVersion.From(int.Parse(targetVersionStr));
+            publication.Rollback(targetVersion, GetEntry(entries, "FailureReason"));
         }
 
         return publication;
@@ -145,7 +146,7 @@ public class RedisPublicationRepository : RedisRepositoryBase, IPublicationRepos
             new("StartedAt", publication.StartedAt.ToString("O")),
             new("CompletedAt", publication.CompletedAt?.ToString("O") ?? ""),
             new("FailureReason", publication.FailureReason ?? ""),
-            new("FailureGatewayId", "") // Would need to track which gateway failed
+            new("TargetVersion", publication.RolledBackToVersion?.Value.ToString() ?? ""),
         };
 
         await SetHashAsync(key, entries);
