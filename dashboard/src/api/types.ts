@@ -180,67 +180,6 @@ export interface PublicationResponse {
   gatewayStates: GatewayDeploymentStateResponse[]
 }
 
-export interface CreatePublicationRequest {
-  snapshotVersion: string
-  initiatedBy: string
-  environment: string
-  correlationId?: string
-  targetGatewayIds?: string[]
-}
-
-export interface CreatePublicationResponse {
-  publicationId: string
-  snapshotVersion: number
-  status: string
-  gatewayProgress: GatewayProgressResponse[]
-}
-
-export interface ExecutePublicationRequest {
-  initiatedBy: string
-  environment?: string
-  correlationId?: string
-}
-
-export interface ExecutePublicationResponse {
-  publicationId: string
-}
-
-export interface PublicationProgressResponse {
-  publicationId: string
-  snapshotVersion: number
-  status: string
-  progressPercentage: number
-  gatewayProgress: GatewayProgressResponse[]
-  startedAt: string
-  completedAt: string | null
-  failureReason: string | null
-}
-
-export interface GatewayProgressResponse {
-  gatewayId: string
-  gatewayName: string
-  status: string
-  receivedAt: string | null
-  validatedAt: string | null
-  appliedAt: string | null
-  healthyAt: string | null
-  failedAt: string | null
-  isValid: boolean | null
-  failureReason: string | null
-}
-
-export interface CancelPublicationRequest {
-  initiatedBy: string
-  correlationId?: string
-}
-
-export interface PublicationDiffResponse {
-  hasDifferences: boolean
-  differences: string[]
-  targetSnapshotVersion: number
-  currentSnapshotVersion: number | null
-}
-
 export interface QoSConfigResponse {
   timeoutValue: number
   durationOfBreak: number
