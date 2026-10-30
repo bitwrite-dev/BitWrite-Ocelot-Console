@@ -34,26 +34,28 @@ export function Navbar({
   totalDrafts,
 }: NavbarProps) {
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-sidebar-border bg-sidebar/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar/60 px-4 md:px-6">
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-sidebar-border bg-sidebar/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar/60 px-4 md:px-6 flex-wrap">
       <MobileSidebar roles={roles} draftCounts={draftCounts} />
 
-      <div className="flex items-center gap-4">
-        <span className="font-heading text-lg font-semibold hidden sm:block text-sidebar-foreground">
+      <div className="flex items-center gap-4 shrink-0">
+        <span className="font-heading text-lg font-semibold hidden sm:block text-sidebar-foreground whitespace-nowrap">
           Ocelot Console
         </span>
       </div>
 
-      <div className="flex-1" />
+      <div className="flex-1 min-w-0" />
 
-      <div className="flex items-center gap-3">
-        <EnvironmentSelector />
+      <div className="flex items-center gap-2 shrink-0 flex-wrap">
+        <div className="hidden md:block">
+          <EnvironmentSelector />
+        </div>
 
-        <Separator className="h-6" />
+        <Separator className="h-6 hidden md:block" />
 
         <ThemeToggle />
 
         {totalDrafts !== null && totalDrafts > 0 && (
-          <Badge variant="destructive" className="ml-2">
+          <Badge variant="destructive" className="ml-2 whitespace-nowrap">
             {totalDrafts} pending
           </Badge>
         )}

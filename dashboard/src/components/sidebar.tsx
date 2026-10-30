@@ -11,6 +11,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { ThemeToggle } from '@/components/theme-toggle'
+import { EnvironmentSelector } from '@/components/environment-selector'
 import { NAV_SECTIONS, type Role } from '@/navigation'
 
 /**
@@ -163,12 +165,18 @@ export function MobileSidebar({
       <SheetContent side="left" className="w-64 bg-sidebar p-0">
         <SheetHeader>
           <SheetTitle className="px-6 py-5 text-left">
-            <span className="font-heading text-sm font-semibold">Ocelot Console</span>
+            <span className="font-heading text-sm font-semibold text-sidebar-foreground">Ocelot Console</span>
           </SheetTitle>
         </SheetHeader>
         <Separator />
         <NavLinks roles={roles} draftCounts={draftCounts} />
         <LifecycleGuardrail />
+        <div className="mx-3 mt-4 mb-4">
+          <EnvironmentSelector />
+        </div>
+        <div className="mx-3 mb-4 flex justify-center">
+          <ThemeToggle />
+        </div>
       </SheetContent>
     </Sheet>
   );
