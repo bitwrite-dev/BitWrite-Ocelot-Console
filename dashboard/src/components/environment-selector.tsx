@@ -37,15 +37,15 @@ export function EnvironmentSelector() {
   const label = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
 
   return (
-    <div className="mx-3 mt-4">
-      <label htmlFor="environment-select" className="mb-1 block text-xs font-medium text-muted-foreground">
+    <div className="flex items-center gap-2">
+      <label htmlFor="environment-select" className="text-xs font-medium text-primary-foreground hidden sm:block">
         Environment
       </label>
       <Select value={environment} onValueChange={handleChange}>
-        <SelectTrigger id="environment-select" className="w-full">
+        <SelectTrigger id="environment-select" className="w-[160px] bg-primary-foreground/10 border-primary/30 text-primary-foreground">
           <SelectValue placeholder="Select environment" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-popover border-border">
           {ENVIRONMENTS.map((value) => (
             <SelectItem key={value} value={value}>
               {label(value)}
@@ -53,9 +53,6 @@ export function EnvironmentSelector() {
           ))}
         </SelectContent>
       </Select>
-      <p className="mt-1 text-xs text-muted-foreground">
-        Select the environment to operate on. Reloads on change.
-      </p>
     </div>
   )
 }

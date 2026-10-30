@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { ThemeToggle } from '@/components/theme-toggle'
+import { NavbarThemeToggle } from '@/components/navbar-theme-toggle'
 import { EnvironmentSelector } from '@/components/environment-selector'
 import { MobileSidebar } from '@/components/sidebar'
 import type { Role } from '@/navigation'
@@ -34,11 +34,11 @@ export function Navbar({
   totalDrafts,
 }: NavbarProps) {
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-sidebar-border bg-sidebar/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar/60 px-4 md:px-6 flex-wrap">
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-primary bg-primary/95 backdrop-blur supports-[backdrop-filter]:bg-primary/60 px-4 md:px-6 flex-wrap">
       <MobileSidebar roles={roles} draftCounts={draftCounts} />
 
       <div className="flex items-center gap-4 shrink-0">
-        <span className="font-heading text-lg font-semibold hidden sm:block text-sidebar-foreground whitespace-nowrap">
+        <span className="font-heading text-lg font-semibold hidden sm:block text-primary-foreground whitespace-nowrap">
           Ocelot Console
         </span>
       </div>
@@ -50,12 +50,12 @@ export function Navbar({
           <EnvironmentSelector />
         </div>
 
-        <Separator className="h-6 hidden md:block" />
+        <Separator className="h-6 hidden md:block border-primary/30" />
 
-        <ThemeToggle />
+        <NavbarThemeToggle />
 
         {totalDrafts !== null && totalDrafts > 0 && (
-          <Badge variant="destructive" className="ml-2 whitespace-nowrap">
+          <Badge variant="secondary" className="ml-2 whitespace-nowrap">
             {totalDrafts} pending
           </Badge>
         )}
