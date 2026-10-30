@@ -11,8 +11,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { EnvironmentSelector } from '@/components/environment-selector'
 import { NAV_SECTIONS, type Role } from '@/navigation'
 
 /**
@@ -124,7 +122,7 @@ function LifecycleGuardrail() {
 
 function Brand() {
   return (
-    <div className="px-6 py-5">
+    <div className="px-6 py-5 border-b">
       <p className="font-heading text-sm font-semibold">Ocelot Console</p>
       <p className="text-xs text-muted-foreground">Management Console</p>
     </div>
@@ -139,13 +137,10 @@ export function Sidebar({
   draftCounts: { routes: number; services: number; globalConfig: number } | null
 }) {
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r bg-sidebar md:flex">
+    <aside className="fixed inset-y-0 left-0 z-50 w-64 shrink-0 flex-col border-r bg-sidebar md:flex">
       <Brand />
-      <Separator />
       <NavLinks roles={roles} draftCounts={draftCounts} />
       <LifecycleGuardrail />
-      <EnvironmentSelector />
-      <ThemeToggle />
     </aside>
   );
 }
@@ -174,7 +169,6 @@ export function MobileSidebar({
         <Separator />
         <NavLinks roles={roles} draftCounts={draftCounts} />
         <LifecycleGuardrail />
-        <EnvironmentSelector />
       </SheetContent>
     </Sheet>
   );

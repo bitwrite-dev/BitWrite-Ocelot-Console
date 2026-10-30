@@ -3,14 +3,15 @@ import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 
 import { Sidebar, MobileSidebar } from '@/components/sidebar'
+import { Navbar } from '@/components/navbar'
 import { LoadingState } from '@/components/page-state'
 import { SetupGuard } from '@/components/setup-guard'
 import { ThemeProvider } from '@/features/theme/theme-provider'
 import type { Role } from '@/navigation'
 
 /**
- * Application shell: sidebar, a top bar for the mobile trigger, and the routed
- * content region. The responsive collapse lives in #434's sidebar; the
+ * Application shell: fixed sidebar, navbar, and the routed
+ * content region. The responsive collapse lives in sidebar; the
  * navigation model is in `navigation.ts`.
  *
  * The shell owns the theme provider rather than the router, so anything that
@@ -59,18 +60,10 @@ function LayoutBody({
     <div className="flex min-h-screen bg-background">
       <Sidebar roles={roles} draftCounts={draftCounts} />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 items-center gap-3 border-b px-4 md:hidden">
-          <MobileSidebar roles={roles} draftCounts={draftCounts} />
-          <span className="font-heading text-sm font-semibold">Ocelot Console</span>
-          {totalDrafts !== null && totalDrafts > 0 && (
-            <Badge variant="destructive" className="ml-auto">
-              {totalDrafts} pending
-            </Badge>
-          )}
-        </header>
+      <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
+        <Navbar roles={roles} draftCounts={draftCounts} totalDrafts={totalDrafts} />
 
-        <main className="flex-1 overflow-x-hidden p-4 md:p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           <Suspense fallback={<LoadingState />}>
             {/* Setup comes before any page: an unconfigured install can answer
                 none of them, and each would have failed in its own words. */}
