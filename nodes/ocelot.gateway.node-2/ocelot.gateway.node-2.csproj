@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- The folder is ocelot.gateway.node-2; a namespace cannot hold a hyphen, so the
+       closest legal spelling stands in for it. The assembly and file names keep the
+       hyphen the folder has. -->
+    <RootNamespace>ocelot.gateway.node2</RootNamespace>
+    <AllowMissingPrunePackageData>true</AllowMissingPrunePackageData>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The node's types are internal by design — a node is a whole process, not a
+         library — but its own tests host the same pipeline, so they see them. -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>BitWrite.OcelotConsole.Gateway.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      18.0.0 because it is the only version OcelotVersionCatalog will emit: the
+      control plane refuses to build a configuration for any other, so a gateway on
+      a different major would be handed a shape nobody generated.
+    -->
+    <PackageReference Include="Ocelot" Version="18.0.0" />
+    <!-- Matches the control plane's, so both sides speak the same Redis protocol. -->
+    <PackageReference Include="StackExchange.Redis" Version="2.7.33" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Ocelot reads ocelot.{Environment}.json and resolves the path from the output
+      directory, so both names ship. What fills them is the subscriber; what they hold
+      at startup is nothing, which is correct for a gateway that has not been told what
+      to serve.
+    -->
+    <None Update="ocelot.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="ocelot.Production.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

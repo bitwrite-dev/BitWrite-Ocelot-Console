@@ -1,0 +1,49 @@
+{
+  "Routes": [
+    {
+      "UpstreamPathTemplate": "/uaa/api/v1/authorization/token",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
+      "DownstreamPathTemplate": "/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7001
+        }
+      ],
+      "Key": "create-token",
+      "Priority": 0,
+      "RouteIsCaseSensitive": false,
+      "DangerousAcceptAnyServerCertificateValidator": false
+    },
+    {
+      "UpstreamPathTemplate": "/uaa/api/v1/user/info",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
+      "DownstreamPathTemplate": "/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7071
+        }
+      ],
+      "Key": "user-info",
+      "RateLimitOptions": {
+        "enableRateLimiting": true,
+        "period": "Minute",
+        "limit": 100
+      },
+      "Priority": 0,
+      "RouteIsCaseSensitive": false,
+      "DangerousAcceptAnyServerCertificateValidator": false
+    }
+  ],
+  "GlobalConfiguration": {
+    "BaseUrl": "http://localhost:5002",
+    "RequestIdKey": "X-Request-Id"
+  }
+}
