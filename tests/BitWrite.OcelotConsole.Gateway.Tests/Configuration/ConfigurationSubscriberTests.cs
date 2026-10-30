@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using ocelot.gateway.node1.Configuration;
@@ -35,11 +36,15 @@ public class ConfigurationSubscriberTests : IDisposable
         multiplexer.Setup(m => m.GetDatabase(It.IsAny<int>(), It.IsAny<object>()))
             .Returns(_db.Object);
 
+        var configuration = new Mock<IConfiguration>();
+        configuration.Setup(c => c["Gateway:NodeName"]).Returns("test-gateway");
+
         Subscriber = new ConfigurationSubscriber(
             multiplexer.Object,
             new OcelotConfigurationWriter(_directory, "Production"),
             PublishedEnvironment.For("Production"),
-            Mock.Of<ILogger<ConfigurationSubscriber>>());
+            Mock.Of<ILogger<ConfigurationSubscriber>>(),
+            configuration.Object);
     }
 
     private ConfigurationSubscriber Subscriber { get; }
