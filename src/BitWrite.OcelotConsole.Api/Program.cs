@@ -18,6 +18,7 @@ using BitWrite.OcelotConsole.Infrastructure.EventHandlers;
 using BitWrite.OcelotConsole.Infrastructure.Outbox;
 using BitWrite.OcelotConsole.Infrastructure.Redis;
 using BitWrite.OcelotConsole.Infrastructure.Repositories;
+using BitWrite.OcelotConsole.Infrastructure.Services;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -228,6 +229,7 @@ namespace BitWrite.OcelotConsole.Api
 
             // Background Services
             builder.Services.AddHostedService<OutboxPublisher>();
+            builder.Services.AddHostedService<GatewayActivationProcessor>();
             if (!string.IsNullOrEmpty(builder.Configuration["Gateway:NodeName"]))
             {
                 builder.Services.AddHostedService<RuntimeAdapters.RuntimeAdapter>();

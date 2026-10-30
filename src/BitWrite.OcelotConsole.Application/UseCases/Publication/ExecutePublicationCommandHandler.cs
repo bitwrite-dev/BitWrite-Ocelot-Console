@@ -110,8 +110,8 @@ public class ExecutePublicationCommandHandler
                 },
                 cancellationToken);
 
-            // 7. Mark publication as completed
-            publication.Complete();
+            // 7. Persist publication with gateway states (still Pending)
+            // Completion happens naturally when all gateways report healthy via GatewayActivationProcessor
             await _publicationRepository.UpdateAsync(publication, cancellationToken);
 
             // 8. Mark snapshot as Published (if not already)
@@ -121,7 +121,7 @@ public class ExecutePublicationCommandHandler
                 await _snapshotRepository.UpdateAsync(snapshot, cancellationToken);
             }
 
-            // 6.6. Update publication progress in Redis for real-time tracking (after Complete)
+            // 6.6. Update publication progress in Redis for real-time tracking (pending state)
             var dbProgress = _connectionMultiplexer.GetDatabase();
             var progressKey = $"publication:progress:{publication.Id.Value}";
             var gatewayProgress = publication.GatewayStates.Select(kvp => new
@@ -152,23 +152,23 @@ public class ExecutePublicationCommandHandler
 
             await dbProgress.StringSetAsync(progressKey, System.Text.Json.JsonSerializer.Serialize(progressData), TimeSpan.FromHours(24));
 
-            // 9. Raise domain events
+            // 9. Raise domain events (PublicationStarted was raised in Publication.Start)
             foreach (var domainEvent in publication.DomainEvents)
             {
                 await _eventDispatcher.DispatchAsync(domainEvent, cancellationToken);
             }
 
-            // 10. Raise audit event
+            // 10. Raise audit event for publication initiation
             var auditEvent = new AuditRecorded(
                 command.InitiatedBy,
                 "PublishSnapshot",
                 "Publication",
                 publication.Id.Value.ToString(),
-                "Completed"
+                "Initiated"
             );
             await _eventDispatcher.DispatchAsync(auditEvent, cancellationToken);
 
-            // 11. Raise integration event
+            // 11. Raise integration event for snapshot publication initiation
             var integrationEvent = new SnapshotPublishedIntegrationEvent(snapshot.Version, DateTimeOffset.UtcNow);
             await _eventDispatcher.DispatchAsync(integrationEvent, cancellationToken);
 

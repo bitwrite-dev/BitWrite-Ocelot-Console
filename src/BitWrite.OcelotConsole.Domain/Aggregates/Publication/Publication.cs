@@ -111,8 +111,13 @@ public class Publication
     {
         EnsureGatewayExists(gatewayId);
 
-        _gatewayStates[gatewayId].Status = "Healthy";
-        _gatewayStates[gatewayId].HealthyAt = DateTimeOffset.UtcNow;
+        var gs = _gatewayStates[gatewayId];
+        gs.Status = "Healthy";
+        gs.ReceivedAt ??= DateTimeOffset.UtcNow;
+        gs.ValidatedAt ??= DateTimeOffset.UtcNow;
+        gs.AppliedAt ??= DateTimeOffset.UtcNow;
+        gs.HealthyAt = DateTimeOffset.UtcNow;
+        gs.IsValid = true;
 
         CheckCompletion();
     }
