@@ -124,8 +124,8 @@ function LifecycleGuardrail() {
 
 function Brand() {
   return (
-    <div className="px-6 py-5">
-      <p className="font-heading text-sm font-semibold">Ocelot Console</p>
+    <div className="px-6 py-5 border-b border-sidebar-border">
+      <p className="font-heading text-sm font-semibold text-sidebar-foreground">Ocelot Console</p>
       <p className="text-xs text-muted-foreground">Management Console</p>
     </div>
   )
@@ -139,13 +139,10 @@ export function Sidebar({
   draftCounts: { routes: number; services: number; globalConfig: number } | null
 }) {
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r bg-sidebar md:flex">
+    <aside className="fixed inset-y-0 left-0 z-50 w-64 shrink-0 flex-col border-r bg-sidebar md:flex">
       <Brand />
-      <Separator />
       <NavLinks roles={roles} draftCounts={draftCounts} />
       <LifecycleGuardrail />
-      <EnvironmentSelector />
-      <ThemeToggle />
     </aside>
   );
 }
@@ -168,13 +165,18 @@ export function MobileSidebar({
       <SheetContent side="left" className="w-64 bg-sidebar p-0">
         <SheetHeader>
           <SheetTitle className="px-6 py-5 text-left">
-            <span className="font-heading text-sm font-semibold">Ocelot Console</span>
+            <span className="font-heading text-sm font-semibold text-sidebar-foreground">Ocelot Console</span>
           </SheetTitle>
         </SheetHeader>
         <Separator />
         <NavLinks roles={roles} draftCounts={draftCounts} />
         <LifecycleGuardrail />
-        <EnvironmentSelector />
+        <div className="mx-3 mt-4 mb-4">
+          <EnvironmentSelector />
+        </div>
+        <div className="mx-3 mb-4 flex justify-center">
+          <ThemeToggle />
+        </div>
       </SheetContent>
     </Sheet>
   );
