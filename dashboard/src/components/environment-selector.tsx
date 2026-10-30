@@ -38,11 +38,11 @@ export function EnvironmentSelector() {
 
   return (
     <div className="flex items-center gap-2">
-      <label htmlFor="environment-select" className="text-xs font-medium text-primary-foreground hidden sm:block">
+      <label htmlFor="environment-select" className="text-xs font-medium text-muted-foreground hidden sm:block">
         Environment
       </label>
       <Select value={environment} onValueChange={handleChange}>
-        <SelectTrigger id="environment-select" className="w-[160px] bg-primary-foreground/10 border-primary/30 text-primary-foreground">
+        <SelectTrigger id="environment-select" className="w-[160px] bg-muted border-border text-foreground">
           <SelectValue placeholder="Select environment" />
         </SelectTrigger>
         <SelectContent className="bg-popover border-border">

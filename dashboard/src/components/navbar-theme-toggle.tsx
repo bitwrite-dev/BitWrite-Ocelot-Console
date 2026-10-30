@@ -10,7 +10,7 @@ const OPTIONS: ReadonlyArray<{ value: Theme; label: string; icon: typeof Sun }> 
 ]
 
 /**
- * Light / Dark / System theme toggle for navbar (primary background).
+ * Light / Dark / System theme toggle for navbar (background).
  */
 export function NavbarThemeToggle() {
   const { theme, setTheme } = useTheme()

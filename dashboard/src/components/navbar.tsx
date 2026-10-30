@@ -34,7 +34,7 @@ export function Navbar({
   totalDrafts,
 }: NavbarProps) {
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-primary bg-primary/95 backdrop-blur supports-[backdrop-filter]:bg-primary/60 px-4 md:px-6 flex-wrap">
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6 flex-wrap">
       <MobileSidebar roles={roles} draftCounts={draftCounts} />
 
       <div className="flex items-center gap-4 shrink-0 min-w-0">
@@ -44,7 +44,7 @@ export function Navbar({
       <div className="flex-1 min-w-0" />
 
       <div className="flex items-center gap-2 shrink-0 flex-wrap">
-        <Separator className="h-6 hidden md:block border-primary/30" />
+        <Separator className="h-6 hidden md:block border-border" />
 
         <NavbarThemeToggle />
 
