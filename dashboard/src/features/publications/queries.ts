@@ -112,7 +112,12 @@ export function usePublicationProgress(id: string, enabled: boolean) {
     queryKey: publicationKeys.progress(id),
     queryFn: ({ signal }) => api.resources.publications.progress(id, { signal }),
     enabled: enabled && !!id,
-    refetchInterval: 2000, // Poll every 2 seconds
+    refetchInterval: (data) => {
+      if (!data) return 2000;
+      const status = data.status?.toLowerCase();
+      const isDone = status === 'published' || status === 'completed' || status === 'success' || status?.includes('fail') || status?.includes('error');
+      return isDone ? false : 2000;
+    },
     placeholderData: (previous) => previous,
   })
 }

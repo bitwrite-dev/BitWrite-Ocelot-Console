@@ -35,23 +35,29 @@ public sealed class ConfigurationSubscriber : BackgroundService
     /// <summary>And a rollback, which is a publication of an earlier snapshot.</summary>
     public const string RolledBackChannel = "ocelot:snapshot:rolled-back";
 
+    /// <summary>Where gateway activation results are reported back to the control plane.</summary>
+    private const string GatewayActivationResultsKey = "ocelot:gateway:activation:results";
+
     private readonly ISubscriber _subscriber;
     private readonly IDatabase _database;
     private readonly OcelotConfigurationWriter _writer;
     private readonly PublishedEnvironment _environment;
     private readonly ILogger<ConfigurationSubscriber> _logger;
+    private readonly string _nodeName;
 
     public ConfigurationSubscriber(
         IConnectionMultiplexer connectionMultiplexer,
         OcelotConfigurationWriter writer,
         PublishedEnvironment environment,
-        ILogger<ConfigurationSubscriber> logger)
+        ILogger<ConfigurationSubscriber> logger,
+        IConfiguration configuration)
     {
         _subscriber = connectionMultiplexer.GetSubscriber();
         _database = connectionMultiplexer.GetDatabase();
         _writer = writer;
         _environment = environment;
         _logger = logger;
+        _nodeName = configuration["Gateway:NodeName"] ?? "unknown";
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -199,6 +205,7 @@ public sealed class ConfigurationSubscriber : BackgroundService
             _logger.LogWarning(
                 "Notification named version {Version} but {Key} holds nothing; keeping the current configuration",
                 version, key);
+            await ReportActivationResultAsync(version, false, $"Snapshot {version} not found in Redis", cancellationToken);
             return;
         }
 
@@ -208,15 +215,59 @@ public sealed class ConfigurationSubscriber : BackgroundService
         {
             _logger.LogError(
                 "Snapshot {Version} has no readable content; keeping the current configuration", version);
+            await ReportActivationResultAsync(version, false, $"Snapshot {version} has no readable content", cancellationToken);
             return;
         }
 
-        if (await _writer.WriteAsync(content, cancellationToken))
+        var success = await _writer.WriteAsync(content, cancellationToken);
+
+        if (success)
+        {
             _logger.LogInformation("Loaded published snapshot {Version}", version);
+            await ReportActivationResultAsync(version, true, null, cancellationToken);
+        }
         else
+        {
             _logger.LogWarning(
                 "Snapshot {Version} is not a configuration this gateway can serve; keeping the current one",
                 version);
+            await ReportActivationResultAsync(version, false, $"Snapshot {version} is not a valid Ocelot configuration", cancellationToken);
+        }
+    }
+
+    private async Task ReportActivationResultAsync(string version, bool success, string? error, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Read the actual GatewayId (GUID) from Redis registration key
+            var registrationKey = $"ocelot:gateway:registration:{_environment.KeySegment}:{_nodeName}";
+            var storedGatewayId = await _database.StringGetAsync(registrationKey);
+
+            if (storedGatewayId.IsNullOrEmpty)
+            {
+                _logger.LogWarning("No gateway registration found for {NodeName} in {Environment}, cannot report activation result", _nodeName, _environment.KeySegment);
+                return;
+            }
+
+            var gatewayId = storedGatewayId.ToString();
+
+            var result = new
+            {
+                GatewayId = gatewayId,
+                Version = version,
+                Success = success,
+                Error = error,
+                Timestamp = DateTimeOffset.UtcNow
+            };
+
+            var json = JsonSerializer.Serialize(result);
+            await _database.ListRightPushAsync(GatewayActivationResultsKey, json);
+            _logger.LogInformation("Reported activation result for gateway {GatewayId}, version {Version}, success={Success}", gatewayId, version, success);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to report activation result for version {Version}", version);
+        }
     }
 
     /// <summary>What a publication notification names.</summary>

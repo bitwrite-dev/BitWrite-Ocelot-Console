@@ -63,6 +63,51 @@ public class RedisPublicationRepository : RedisRepositoryBase, IPublicationRepos
             publication.Rollback(targetVersion, GetEntry(entries, "FailureReason"));
         }
 
+        // Restore gateway states
+        var gatewayStates = new Dictionary<Domain.ValueObjects.Identity.GatewayId, GatewayDeploymentState>();
+        foreach (var entry in entries)
+        {
+            var fieldName = entry.Name.ToString();
+            if (fieldName.StartsWith("gateway:"))
+            {
+                var gatewayIdStr = fieldName["gateway:".Length..];
+                if (Guid.TryParse(gatewayIdStr, out var gatewayGuid))
+                {
+                    var gsJson = GetEntry(entries, fieldName);
+                    try
+                    {
+                        using var doc = System.Text.Json.JsonDocument.Parse(gsJson);
+                        var root = doc.RootElement;
+                        var gs = new GatewayDeploymentState
+                        {
+                            GatewayId = Domain.ValueObjects.Identity.GatewayId.From(gatewayGuid),
+                            Status = root.TryGetProperty("Status", out var statusEl) ? statusEl.GetString() ?? "Pending" : "Pending",
+                            ReceivedAt = root.TryGetProperty("ReceivedAt", out var ra) && ra.ValueKind != System.Text.Json.JsonValueKind.Null ? ra.GetDateTimeOffset() : null,
+                            ValidatedAt = root.TryGetProperty("ValidatedAt", out var va) && va.ValueKind != System.Text.Json.JsonValueKind.Null ? va.GetDateTimeOffset() : null,
+                            AppliedAt = root.TryGetProperty("AppliedAt", out var aa) && aa.ValueKind != System.Text.Json.JsonValueKind.Null ? aa.GetDateTimeOffset() : null,
+                            HealthyAt = root.TryGetProperty("HealthyAt", out var ha) && ha.ValueKind != System.Text.Json.JsonValueKind.Null ? ha.GetDateTimeOffset() : null,
+                            FailedAt = root.TryGetProperty("FailedAt", out var fa) && fa.ValueKind != System.Text.Json.JsonValueKind.Null ? fa.GetDateTimeOffset() : null,
+                            IsValid = root.TryGetProperty("IsValid", out var iv) && iv.ValueKind != System.Text.Json.JsonValueKind.Null ? iv.GetBoolean() : null,
+                            FailureReason = root.TryGetProperty("FailureReason", out var fr) && fr.ValueKind != System.Text.Json.JsonValueKind.Null ? fr.GetString() : null
+                        };
+                        gatewayStates[Domain.ValueObjects.Identity.GatewayId.From(gatewayGuid)] = gs;
+                    }
+                    catch { }
+                }
+            }
+        }
+        // Use reflection to set gateway states
+        var field = typeof(Publication).GetField("_gatewayStates", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        if (field != null)
+        {
+            var dict = field.GetValue(publication) as System.Collections.IDictionary;
+            if (dict != null)
+            {
+                foreach (var kv in gatewayStates)
+                    dict[kv.Key] = kv.Value;
+            }
+        }
+
         return publication;
     }
 
@@ -151,6 +196,12 @@ public class RedisPublicationRepository : RedisRepositoryBase, IPublicationRepos
 
         await SetHashAsync(key, entries);
         await Database.SortedSetAddAsync(PublicationsIndexKey, publication.Id.Value.ToString(), ToUnixTimestamp(publication.StartedAt));
+
+        // Store gateway states
+        foreach (var kvp in publication.GatewayStates)
+        {
+            await Database.HashSetAsync(key, $"gateway:{kvp.Key.Value}", System.Text.Json.JsonSerializer.Serialize(kvp.Value));
+        }
     }
 
     public async Task UpdateAsync(Publication publication, CancellationToken cancellationToken = default)

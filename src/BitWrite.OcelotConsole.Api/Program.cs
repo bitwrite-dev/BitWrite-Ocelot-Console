@@ -16,6 +16,7 @@ using BitWrite.OcelotConsole.Domain.Events;
 using BitWrite.OcelotConsole.Infrastructure.Adapters;
 using BitWrite.OcelotConsole.Infrastructure.EventHandlers;
 using BitWrite.OcelotConsole.Infrastructure.Outbox;
+using BitWrite.OcelotConsole.Infrastructure.Services;
 using BitWrite.OcelotConsole.Infrastructure.Redis;
 using BitWrite.OcelotConsole.Infrastructure.Repositories;
 using FluentValidation;
@@ -228,6 +229,7 @@ namespace BitWrite.OcelotConsole.Api
 
             // Background Services
             builder.Services.AddHostedService<OutboxPublisher>();
+            builder.Services.AddHostedService<GatewayActivationProcessor>();
             if (!string.IsNullOrEmpty(builder.Configuration["Gateway:NodeName"]))
             {
                 builder.Services.AddHostedService<RuntimeAdapters.RuntimeAdapter>();

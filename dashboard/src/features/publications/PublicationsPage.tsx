@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 import { usePublications, usePublicationDetail, useCreatePublication, usePublicationProgress, usePublicationDiff, useExecutePublication, useCurrentPublication, useCancelPublication } from './queries'
+import { useGateways } from '@/features/gateways/queries'
 import { PublicationStatusBadge, PublicationProgressBar, GatewayProgressCard, MotionGraph } from './components'
 import { formatTimestamp, shortHash } from './queries'
 import { readSelectedEnvironment } from '@/lib/environment'
@@ -38,6 +39,8 @@ export function PublicationsPage() {
 
   const { data, isPending, isError, error, refetch } = usePublications(page)
   const { data: currentPublication } = useCurrentPublication()
+  const { data: gatewaysData } = useGateways(1, 100)
+  const allGatewayIds = gatewaysData?.gateways.map(g => g.id) ?? []
 
   const createMutation = useCreatePublication()
   const cancelMutation = useCancelPublication()
@@ -191,7 +194,7 @@ export function PublicationsPage() {
         snapshotVersion: snapshotVersion.toString(),
         initiatedBy: 'dashboard',
         environment,
-        targetGatewayIds: undefined
+        targetGatewayIds: allGatewayIds
       })
 
       // Then execute it
@@ -723,12 +726,13 @@ function ReviewPublicationPage({ snapshotVersion, onCancel, onConfirm }: {
 }
 
 function PublicationProgressPage({ publicationId, onClose }: { publicationId: string; onClose: () => void }) {
-  const { data: progress, isPending, isError, error } = usePublicationProgress(publicationId, true)
+  const { data: progress, isPending, isError, error, isFetching } = usePublicationProgress(publicationId, true)
 
   if (isPending) return <ProgressSkeleton />
 
   const isFailed = progress?.status?.toLowerCase().includes('fail') || progress?.status?.toLowerCase().includes('error')
   const isCompleted = progress?.status?.toLowerCase().includes('complete') || progress?.status?.toLowerCase().includes('success') || progress?.status?.toLowerCase() === 'published'
+  const isInProgress = !isCompleted && !isFailed
 
   // Default stages when progress data is not available
   const stages = progress ? [
@@ -749,9 +753,14 @@ function PublicationProgressPage({ publicationId, onClose }: { publicationId: st
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Publication Progress</h1>
+          <h1 className="text-2xl font-semibold flex items-center gap-2">
+            Publication Progress
+            {isInProgress && (
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            )}
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Publication #{publicationId.slice(0, 8)} in progress.
+            Publication #{publicationId.slice(0, 8)} {isInProgress ? 'in progress...' : isCompleted ? 'completed' : isFailed ? 'failed' : 'pending'}.
           </p>
         </div>
         <Button variant="outline" onClick={onClose}>Close</Button>
@@ -777,7 +786,15 @@ function PublicationProgressPage({ publicationId, onClose }: { publicationId: st
       <Separator />
 
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Gateway Deployment</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Gateway Deployment</h3>
+          {isFetching && (
+            <span className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Updating...
+            </span>
+          )}
+        </div>
         {progress && progress.gatewayProgress.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {progress.gatewayProgress.map((gw) => (
@@ -793,6 +810,7 @@ function PublicationProgressPage({ publicationId, onClose }: { publicationId: st
                 failedAt={gw.failedAt}
                 isValid={gw.isValid}
                 failureReason={gw.failureReason}
+                isLoading={isFetching && gw.status.toLowerCase() === 'pending'}
               />
             ))}
           </div>

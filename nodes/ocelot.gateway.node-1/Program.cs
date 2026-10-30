@@ -109,7 +109,16 @@ var host = Host.CreateDefaultBuilder(args)
 
             // Subscribes to ocelot:snapshot:published and loads the snapshot it names.
             // §19 and §20.3: the notification carries a version, not the configuration.
-            services.AddHostedService<ConfigurationSubscriber>();
+            services.AddHostedService(serviceProvider =>
+            {
+                var multiplexer = serviceProvider.GetRequiredService<IConnectionMultiplexer>();
+                var writer = serviceProvider.GetRequiredService<OcelotConfigurationWriter>();
+                var environment = serviceProvider.GetRequiredService<PublishedEnvironment>();
+                var logger = serviceProvider.GetRequiredService<ILogger<ConfigurationSubscriber>>();
+                var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+
+                return new ConfigurationSubscriber(multiplexer, writer, environment, logger, configuration);
+            });
 
             // Registers the node with the control plane so a publication can name it,
             // and reports that it is still here. A publication's target list cannot be
