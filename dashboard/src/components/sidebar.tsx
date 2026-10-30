@@ -122,8 +122,8 @@ function LifecycleGuardrail() {
 
 function Brand() {
   return (
-    <div className="px-6 py-5 border-b">
-      <p className="font-heading text-sm font-semibold">Ocelot Console</p>
+    <div className="px-6 py-5 border-b border-sidebar-border">
+      <p className="font-heading text-sm font-semibold text-sidebar-foreground">Ocelot Console</p>
       <p className="text-xs text-muted-foreground">Management Console</p>
     </div>
   )

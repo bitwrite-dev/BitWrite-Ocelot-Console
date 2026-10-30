@@ -34,11 +34,11 @@ export function Navbar({
   totalDrafts,
 }: NavbarProps) {
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 md:px-6">
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b border-sidebar-border bg-sidebar/95 backdrop-blur supports-[backdrop-filter]:bg-sidebar/60 px-4 md:px-6">
       <MobileSidebar roles={roles} draftCounts={draftCounts} />
 
       <div className="flex items-center gap-4">
-        <span className="font-heading text-lg font-semibold hidden sm:block">
+        <span className="font-heading text-lg font-semibold hidden sm:block text-sidebar-foreground">
           Ocelot Console
         </span>
       </div>
