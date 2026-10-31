@@ -109,6 +109,9 @@ function RouteWizard({ mode, routeId }: { mode: 'create' | 'edit'; routeId?: str
   const claims = draft.claims ?? { add: '', transform: '' }
   const authorization = draft.authorization ?? { policies: [], requirements: {} }
 
+  // Helper to get current transport from state updater
+  const getTransport = (current: RouteDraft) => current.transport ?? emptyTransportDraft()
+
   const services = useWizardServices()
   const createRoute = useCreateRoute()
   const updateRoute = useUpdateRoute()
@@ -811,7 +814,7 @@ function RouteWizard({ mode, routeId }: { mode: 'create' | 'edit'; routeId?: str
                             setDraft((current) => ({
                               ...current,
                               transport: {
-                                ...transport,
+                                ...getTransport(current),
                                 downstreamMethod: event.target.value,
                               },
                             }))
@@ -839,7 +842,7 @@ function RouteWizard({ mode, routeId }: { mode: 'create' | 'edit'; routeId?: str
                             setDraft((current) => ({
                               ...current,
                               transport: {
-                                ...transport,
+                                ...getTransport(current),
                                 downstreamTemplate: event.target.value,
                               },
                             }))
@@ -862,7 +865,7 @@ function RouteWizard({ mode, routeId }: { mode: 'create' | 'edit'; routeId?: str
                               setDraft((current) => ({
                                 ...current,
                                 transport: {
-                                  ...transport,
+                                  ...getTransport(current),
                                   downstreamHttpVersion: event.target.value,
                                 },
                               }))
@@ -893,7 +896,7 @@ function RouteWizard({ mode, routeId }: { mode: 'create' | 'edit'; routeId?: str
                               setDraft((current) => ({
                                 ...current,
                                 transport: {
-                                  ...transport,
+                                  ...getTransport(current),
                                   downstreamHttpVersionPolicy: event.target.value,
                                 },
                               }))
@@ -925,7 +928,7 @@ function RouteWizard({ mode, routeId }: { mode: 'create' | 'edit'; routeId?: str
                             setDraft((current) => ({
                               ...current,
                               transport: {
-                                ...transport,
+                                ...getTransport(current),
                                 timeoutSeconds: event.target.value,
                               },
                             }))
@@ -941,7 +944,7 @@ function RouteWizard({ mode, routeId }: { mode: 'create' | 'edit'; routeId?: str
                             setDraft((current) => ({
                               ...current,
                               transport: {
-                                ...transport,
+                                ...getTransport(current),
                                 acceptAnyServerCertificate: checked === true,
                               },
                             }))
@@ -971,7 +974,7 @@ function RouteWizard({ mode, routeId }: { mode: 'create' | 'edit'; routeId?: str
                             setDraft((current) => ({
                               ...current,
                               transport: {
-                                ...transport,
+                                ...getTransport(current),
                                 delegatingHandlers: event.target.value.split('\n'),
                               },
                             }))
@@ -987,8 +990,8 @@ function RouteWizard({ mode, routeId }: { mode: 'create' | 'edit'; routeId?: str
                           setDraft((current) => ({
                             ...current,
                             transport: {
-                              ...transport,
-                              httpClient: { ...transport.httpClient, enabled: checked },
+                              ...getTransport(current),
+                              httpClient: { ...getTransport(current).httpClient, enabled: checked },
                             },
                           }))
                         }
@@ -1012,9 +1015,9 @@ function RouteWizard({ mode, routeId }: { mode: 'create' | 'edit'; routeId?: str
                                   setDraft((current) => ({
                                     ...current,
                                     transport: {
-                                      ...transport,
+                                      ...getTransport(current),
                                       httpClient: {
-                                        ...transport.httpClient,
+                                        ...getTransport(current).httpClient,
                                         maxConnectionsPerServer: event.target.value,
                                       },
                                     },
@@ -1040,9 +1043,9 @@ function RouteWizard({ mode, routeId }: { mode: 'create' | 'edit'; routeId?: str
                                   setDraft((current) => ({
                                     ...current,
                                     transport: {
-                                      ...transport,
+                                      ...getTransport(current),
                                       httpClient: {
-                                        ...transport.httpClient,
+                                        ...getTransport(current).httpClient,
                                         pooledConnectionLifetimeSeconds: event.target.value,
                                       },
                                     },
@@ -1061,9 +1064,9 @@ function RouteWizard({ mode, routeId }: { mode: 'create' | 'edit'; routeId?: str
                                   setDraft((current) => ({
                                     ...current,
                                     transport: {
-                                      ...transport,
+                                      ...getTransport(current),
                                       httpClient: {
-                                        ...transport.httpClient,
+                                        ...getTransport(current).httpClient,
                                         [field]: checked === true,
                                       },
                                     },
