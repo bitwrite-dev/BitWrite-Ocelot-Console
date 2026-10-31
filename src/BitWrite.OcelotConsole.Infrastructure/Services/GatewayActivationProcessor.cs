@@ -122,6 +122,7 @@ public class GatewayActivationProcessor : BackgroundService
                             if (runtimeInstance != null)
                             {
                                 runtimeInstance.RecordConfigApplied(publication.SnapshotVersion);
+                                runtimeInstance.MarkApplying(publication.SnapshotVersion);
                                 runtimeInstance.MarkSynchronized(publication.SnapshotVersion);
                                 await runtimeInstanceRepository.UpdateAsync(runtimeInstance, cancellationToken);
 

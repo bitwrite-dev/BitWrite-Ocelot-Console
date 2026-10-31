@@ -1,42 +1,162 @@
 {
   "Routes": [
     {
-      "UpstreamPathTemplate": "/uaa/api/v1/authorization/token",
+      "UpstreamPathTemplate": "/api/orders",
       "UpstreamHttpMethod": [
-        "POST"
+        "GET"
       ],
       "DownstreamPathTemplate": "/{everything}",
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 7001
+          "Port": 8565
         }
       ],
-      "Key": "create-token",
+      "Key": "orders-get",
       "Priority": 0,
       "RouteIsCaseSensitive": false,
       "DangerousAcceptAnyServerCertificateValidator": false
     },
     {
-      "UpstreamPathTemplate": "/uaa/api/v1/user/info",
+      "UpstreamPathTemplate": "/api/orders",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
+      "DownstreamPathTemplate": "/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 8565
+        }
+      ],
+      "Key": "orders-post",
+      "Priority": 0,
+      "RouteIsCaseSensitive": false,
+      "DangerousAcceptAnyServerCertificateValidator": false
+    },
+    {
+      "UpstreamPathTemplate": "/api/products",
       "UpstreamHttpMethod": [
         "GET"
       ],
       "DownstreamPathTemplate": "/{everything}",
-      "DownstreamScheme": "https",
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 7071
+          "Port": 8565
         }
       ],
-      "Key": "user-info",
+      "Key": "products-get",
+      "RateLimitOptions": {
+        "enableRateLimiting": true,
+        "period": "Second",
+        "limit": 100
+      },
+      "QoSOptions": {
+        "timeoutValue": 30,
+        "durationOfBreak": 60
+      },
+      "Priority": 0,
+      "RouteIsCaseSensitive": false,
+      "DangerousAcceptAnyServerCertificateValidator": false
+    },
+    {
+      "UpstreamPathTemplate": "/api/products/{id}",
+      "UpstreamHttpMethod": [
+        "DELETE"
+      ],
+      "DownstreamPathTemplate": "/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 8565
+        }
+      ],
+      "Key": "products-delete",
+      "RateLimitOptions": {
+        "enableRateLimiting": true,
+        "period": "Minute",
+        "limit": 10
+      },
+      "QoSOptions": {
+        "timeoutValue": 10,
+        "durationOfBreak": 30
+      },
+      "Priority": 0,
+      "RouteIsCaseSensitive": false,
+      "DangerousAcceptAnyServerCertificateValidator": false
+    },
+    {
+      "UpstreamPathTemplate": "/api/users",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
+      "DownstreamPathTemplate": "/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 8565
+        }
+      ],
+      "Key": "users-get",
       "RateLimitOptions": {
         "enableRateLimiting": true,
         "period": "Minute",
         "limit": 100
       },
+      "Priority": 0,
+      "RouteIsCaseSensitive": false,
+      "DangerousAcceptAnyServerCertificateValidator": false
+    },
+    {
+      "UpstreamPathTemplate": "/api/users",
+      "UpstreamHttpMethod": [
+        "POST"
+      ],
+      "DownstreamPathTemplate": "/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 8565
+        }
+      ],
+      "Key": "users-post",
+      "RateLimitOptions": {
+        "enableRateLimiting": true,
+        "period": "Minute",
+        "limit": 100
+      },
+      "QoSOptions": {
+        "timeoutValue": 90,
+        "durationOfBreak": 30
+      },
+      "FileCacheOptions": {
+        "ttlSeconds": 300
+      },
+      "Priority": 0,
+      "RouteIsCaseSensitive": false,
+      "DangerousAcceptAnyServerCertificateValidator": false
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/users",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
+      "DownstreamPathTemplate": "/api/v1/users",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 8563
+        }
+      ],
+      "Key": "user-list",
       "Priority": 0,
       "RouteIsCaseSensitive": false,
       "DangerousAcceptAnyServerCertificateValidator": false
