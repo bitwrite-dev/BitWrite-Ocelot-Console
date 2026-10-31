@@ -1,6 +1,8 @@
 using System.Text.Json;
 using BitWrite.OcelotConsole.Application.Interfaces;
 using BitWrite.OcelotConsole.Domain.Aggregates.Publication;
+using BitWrite.OcelotConsole.Domain.Aggregates.RuntimeInstance;
+using BitWrite.OcelotConsole.Domain.Events;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Status;
 using BitWrite.OcelotConsole.Infrastructure.Redis;
@@ -63,6 +65,7 @@ public class GatewayActivationProcessor : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var publicationRepository = scope.ServiceProvider.GetRequiredService<IPublicationRepository>();
         var gatewayRepository = scope.ServiceProvider.GetRequiredService<IGatewayRepository>();
+        var runtimeInstanceRepository = scope.ServiceProvider.GetRequiredService<IRuntimeInstanceRepository>();
         var eventDispatcher = scope.ServiceProvider.GetRequiredService<IDomainEventDispatcher>();
 
         var gateways = await gatewayRepository.GetAllAsync(cancellationToken);
@@ -110,6 +113,27 @@ public class GatewayActivationProcessor : BackgroundService
                         catch (Exception ex)
                         {
                             _logger.LogWarning(ex, "Error recording healthy gateway {GatewayId} for publication {PublicationId}", gatewayId, publication.Id);
+                        }
+
+                        // Update RuntimeInstance to reflect the applied configuration version
+                        try
+                        {
+                            var runtimeInstance = await runtimeInstanceRepository.GetAsync(gatewayId, cancellationToken);
+                            if (runtimeInstance != null)
+                            {
+                                runtimeInstance.RecordConfigApplied(publication.SnapshotVersion);
+                                runtimeInstance.MarkApplying(publication.SnapshotVersion);
+                                runtimeInstance.MarkSynchronized(publication.SnapshotVersion);
+                                await runtimeInstanceRepository.UpdateAsync(runtimeInstance, cancellationToken);
+
+                                // Dispatch domain event
+                                var domainEvent = new GatewayConfigurationApplied(gatewayId, publication.SnapshotVersion);
+                                await eventDispatcher.DispatchAsync(domainEvent, cancellationToken);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Error updating RuntimeInstance for gateway {GatewayId}", gatewayId);
                         }
                     }
                     else

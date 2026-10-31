@@ -54,7 +54,9 @@ public class RedisRuntimeInstanceRepository : RedisRepositoryBase, IRuntimeInsta
                 ? status
                 : RuntimeStatus.Disconnected,
             ParseTimestamp(heartbeat?.Timestamp ?? instance.Timestamp),
-            ParseVersion(heartbeat?.Version ?? instance.Version));
+            ParseVersion(heartbeat?.Version ?? instance.Version),
+            ParseNullableTimestamp(instance.LastSynchronized),
+            ParseNullableTimestamp(instance.LastConfigApplied));
     }
 
     private static T? Deserialize<T>(string json) =>
@@ -65,6 +67,9 @@ public class RedisRuntimeInstanceRepository : RedisRepositoryBase, IRuntimeInsta
     private static DateTimeOffset ParseTimestamp(string? value) =>
         DateTimeOffset.TryParse(value, out var parsed) ? parsed : DateTimeOffset.UnixEpoch;
 
+    private static DateTimeOffset? ParseNullableTimestamp(string? value) =>
+        DateTimeOffset.TryParse(value, out var parsed) ? parsed : null;
+
     private static SnapshotVersion? ParseVersion(string? value) =>
         int.TryParse(value, out var number) ? SnapshotVersion.From(number) : null;
 
@@ -73,8 +78,11 @@ public class RedisRuntimeInstanceRepository : RedisRepositoryBase, IRuntimeInsta
         string? GatewayId,
         string? Name,
         string? Version,
+        string? TargetVersion,
         string? Status,
-        string? Timestamp);
+        string? Timestamp,
+        string? LastSynchronized,
+        string? LastConfigApplied);
 
     /// <summary>What the runtime last reported. Carries no status — it cannot know one.</summary>
     private sealed record HeartbeatDocument(
@@ -126,8 +134,11 @@ public class RedisRuntimeInstanceRepository : RedisRepositoryBase, IRuntimeInsta
             instance.GatewayId.Value.ToString(),
             instance.Name,
             instance.CurrentVersion?.Value.ToString(),
+            instance.TargetVersion?.Value.ToString(),
             instance.Status.Value,
-            instance.LastHeartbeat.ToString("O"));
+            instance.LastHeartbeat.ToString("O"),
+            instance.LastSynchronized?.ToString("O"),
+            instance.LastConfigApplied?.ToString("O"));
 
         await StringSetAsync(key, RedisSerializer.Serialize(document));
         await Database.SortedSetAddAsync(
