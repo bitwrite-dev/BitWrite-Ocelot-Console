@@ -51,122 +51,122 @@ public class GatewayActivationProcessor : BackgroundService
         _logger.LogInformation("Gateway Activation Processor stopped.");
     }
 
-private async Task ProcessActivationResultsAsync(CancellationToken cancellationToken)
+    private async Task ProcessActivationResultsAsync(CancellationToken cancellationToken)
+    {
+        var db = _connectionMultiplexer.GetDatabase();
+        var key = RedisKeyHelper.GatewayActivationResults;
+
+        var results = await db.ListRangeAsync(key, 0, 99);
+        if (results.Length == 0)
+            return;
+
+        await db.ListTrimAsync(key, results.Length, -1);
+
+        using var scope = _scopeFactory.CreateScope();
+        var publicationRepository = scope.ServiceProvider.GetRequiredService<IPublicationRepository>();
+        var gatewayRepository = scope.ServiceProvider.GetRequiredService<IGatewayRepository>();
+        var runtimeInstanceRepository = scope.ServiceProvider.GetRequiredService<IRuntimeInstanceRepository>();
+        var eventDispatcher = scope.ServiceProvider.GetRequiredService<IDomainEventDispatcher>();
+
+        var gateways = await gatewayRepository.GetAllAsync(cancellationToken);
+        var gatewayMap = gateways.ToDictionary(g => g.Id, g => g.Name);
+
+        foreach (var result in results)
         {
-            var db = _connectionMultiplexer.GetDatabase();
-            var key = RedisKeyHelper.GatewayActivationResults;
-
-            var results = await db.ListRangeAsync(key, 0, 99);
-            if (results.Length == 0)
-                return;
-
-            await db.ListTrimAsync(key, results.Length, -1);
-
-            using var scope = _scopeFactory.CreateScope();
-            var publicationRepository = scope.ServiceProvider.GetRequiredService<IPublicationRepository>();
-            var gatewayRepository = scope.ServiceProvider.GetRequiredService<IGatewayRepository>();
-            var runtimeInstanceRepository = scope.ServiceProvider.GetRequiredService<IRuntimeInstanceRepository>();
-            var eventDispatcher = scope.ServiceProvider.GetRequiredService<IDomainEventDispatcher>();
-
-            var gateways = await gatewayRepository.GetAllAsync(cancellationToken);
-            var gatewayMap = gateways.ToDictionary(g => g.Id, g => g.Name);
-
-            foreach (var result in results)
+            try
             {
+                if (result.IsNullOrEmpty) continue;
+                using var doc = JsonDocument.Parse(result.ToString());
+                var root = doc.RootElement;
+
+                if (!root.TryGetProperty("GatewayId", out var gatewayIdEl) ||
+                    !root.TryGetProperty("Version", out var versionEl))
+                    continue;
+
+                var gatewayIdStr = gatewayIdEl.GetString()!;
+                GatewayId gatewayId;
                 try
                 {
-                    if (result.IsNullOrEmpty) continue;
-                    using var doc = JsonDocument.Parse(result.ToString());
-                    var root = doc.RootElement;
-
-                    if (!root.TryGetProperty("GatewayId", out var gatewayIdEl) ||
-                        !root.TryGetProperty("Version", out var versionEl))
-                        continue;
-
-                    var gatewayIdStr = gatewayIdEl.GetString()!;
-                    GatewayId gatewayId;
-                    try
-                    {
-                        gatewayId = GatewayId.From(gatewayIdStr);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Invalid GatewayId format in activation result: {GatewayId}, skipping", gatewayIdStr);
-                        continue;
-                    }
-                    var versionStr = versionEl.ValueKind == JsonValueKind.String ? versionEl.GetString()! : versionEl.GetInt32().ToString();
-                    var version = int.Parse(versionStr);
-                    var success = root.TryGetProperty("Success", out var successEl) ? successEl.GetBoolean() : true;
-
-                    var publications = await publicationRepository.GetAllAsync(cancellationToken);
-                    foreach (var publication in publications)
-                    {
-                        if (publication.SnapshotVersion.Value != version)
-                            continue;
-
-                        if (success)
-                        {
-                            try
-                            {
-                                publication.RecordGatewayHealthy(gatewayId);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogWarning(ex, "Error recording healthy gateway {GatewayId} for publication {PublicationId}", gatewayId, publication.Id);
-                            }
-
-                            // Update RuntimeInstance to reflect the applied configuration version
-                            try
-                            {
-                                var runtimeInstance = await runtimeInstanceRepository.GetAsync(gatewayId, cancellationToken);
-                                if (runtimeInstance != null)
-                                {
-                                    runtimeInstance.RecordConfigApplied(publication.SnapshotVersion);
-                                    runtimeInstance.MarkSynchronized(publication.SnapshotVersion);
-                                    await runtimeInstanceRepository.UpdateAsync(runtimeInstance, cancellationToken);
-
-                                    // Dispatch domain event
-                                    var domainEvent = new GatewayConfigurationApplied(gatewayId, publication.SnapshotVersion);
-                                    await eventDispatcher.DispatchAsync(domainEvent, cancellationToken);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogWarning(ex, "Error updating RuntimeInstance for gateway {GatewayId}", gatewayId);
-                            }
-                        }
-                        else
-                        {
-                            var error = root.TryGetProperty("Error", out var errorEl) ? errorEl.GetString() : "Unknown error";
-                            try
-                            {
-                                publication.RecordGatewayFailed(gatewayId, error ?? "Unknown error");
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogWarning(ex, "Error recording failed gateway {GatewayId} for publication {PublicationId}", gatewayId, publication.Id);
-                            }
-                        }
-
-                        await publicationRepository.UpdateAsync(publication, cancellationToken);
-
-                        // Update Redis progress cache
-                        await UpdatePublicationProgressCacheAsync(db, publication, gatewayMap, cancellationToken);
-
-                        // Dispatch domain events
-                        foreach (var domainEvent in publication.DomainEvents)
-                        {
-                            await eventDispatcher.DispatchAsync(domainEvent, cancellationToken);
-                        }
-                        publication.ClearDomainEvents();
-                    }
+                    gatewayId = GatewayId.From(gatewayIdStr);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to process activation result");
+                    _logger.LogWarning(ex, "Invalid GatewayId format in activation result: {GatewayId}, skipping", gatewayIdStr);
+                    continue;
+                }
+                var versionStr = versionEl.ValueKind == JsonValueKind.String ? versionEl.GetString()! : versionEl.GetInt32().ToString();
+                var version = int.Parse(versionStr);
+                var success = root.TryGetProperty("Success", out var successEl) ? successEl.GetBoolean() : true;
+
+                var publications = await publicationRepository.GetAllAsync(cancellationToken);
+                foreach (var publication in publications)
+                {
+                    if (publication.SnapshotVersion.Value != version)
+                        continue;
+
+                    if (success)
+                    {
+                        try
+                        {
+                            publication.RecordGatewayHealthy(gatewayId);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Error recording healthy gateway {GatewayId} for publication {PublicationId}", gatewayId, publication.Id);
+                        }
+
+                        // Update RuntimeInstance to reflect the applied configuration version
+                        try
+                        {
+                            var runtimeInstance = await runtimeInstanceRepository.GetAsync(gatewayId, cancellationToken);
+                            if (runtimeInstance != null)
+                            {
+                                runtimeInstance.RecordConfigApplied(publication.SnapshotVersion);
+                                runtimeInstance.MarkSynchronized(publication.SnapshotVersion);
+                                await runtimeInstanceRepository.UpdateAsync(runtimeInstance, cancellationToken);
+
+                                // Dispatch domain event
+                                var domainEvent = new GatewayConfigurationApplied(gatewayId, publication.SnapshotVersion);
+                                await eventDispatcher.DispatchAsync(domainEvent, cancellationToken);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Error updating RuntimeInstance for gateway {GatewayId}", gatewayId);
+                        }
+                    }
+                    else
+                    {
+                        var error = root.TryGetProperty("Error", out var errorEl) ? errorEl.GetString() : "Unknown error";
+                        try
+                        {
+                            publication.RecordGatewayFailed(gatewayId, error ?? "Unknown error");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Error recording failed gateway {GatewayId} for publication {PublicationId}", gatewayId, publication.Id);
+                        }
+                    }
+
+                    await publicationRepository.UpdateAsync(publication, cancellationToken);
+
+                    // Update Redis progress cache
+                    await UpdatePublicationProgressCacheAsync(db, publication, gatewayMap, cancellationToken);
+
+                    // Dispatch domain events
+                    foreach (var domainEvent in publication.DomainEvents)
+                    {
+                        await eventDispatcher.DispatchAsync(domainEvent, cancellationToken);
+                    }
+                    publication.ClearDomainEvents();
                 }
             }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to process activation result");
+            }
         }
+    }
 
     private async Task UpdatePublicationProgressCacheAsync(
         IDatabase db,
