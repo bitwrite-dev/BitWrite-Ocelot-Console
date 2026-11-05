@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace BitWrite.OcelotConsole.Api.DTOs;
 
@@ -65,6 +66,7 @@ public record CreateRouteRequest(
     [property: RegularExpression("^RequestVersion(Exact|OrHigher|OrLower)$",
         ErrorMessage = "DownstreamHttpVersionPolicy must be RequestVersionExact, RequestVersionOrHigher or RequestVersionOrLower")]
     string? DownstreamHttpVersionPolicy = null,
+    [property: JsonPropertyName("dangerousAcceptAnyServerCertificateValidator")]
     bool AcceptAnyServerCertificate = false,
     List<string>? DelegatingHandlers = null,
     HttpClientOptionsRequest? HttpClientOptions = null,
@@ -127,6 +129,7 @@ public record UpdateRouteRequest(
     [property: RegularExpression("^RequestVersion(Exact|OrHigher|OrLower)$",
         ErrorMessage = "DownstreamHttpVersionPolicy must be RequestVersionExact, RequestVersionOrHigher or RequestVersionOrLower")]
     string? DownstreamHttpVersionPolicy = null,
+    [property: JsonPropertyName("dangerousAcceptAnyServerCertificateValidator")]
     bool AcceptAnyServerCertificate = false,
     List<string>? DelegatingHandlers = null,
     HttpClientOptionsRequest? HttpClientOptions = null,

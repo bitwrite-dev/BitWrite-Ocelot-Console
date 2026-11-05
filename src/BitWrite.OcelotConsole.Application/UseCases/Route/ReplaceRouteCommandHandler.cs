@@ -59,7 +59,14 @@ public class ReplaceRouteCommandHandler
             command.QoSOptions,
             command.CacheOptions,
             command.LoadBalancerOptions,
-            downstreamTemplate: command.DownstreamTemplate);
+            downstreamTemplate: command.DownstreamTemplate,
+            downstreamMethod: command.DownstreamMethod,
+            downstreamHttpVersion: command.DownstreamHttpVersion,
+            downstreamHttpVersionPolicy: command.DownstreamHttpVersionPolicy,
+            acceptAnyServerCertificate: command.AcceptAnyServerCertificate,
+            delegatingHandlers: command.DelegatingHandlers,
+            httpClientOptions: command.HttpClientOptions,
+            timeoutSeconds: command.TimeoutSeconds);
 
         await _routeRepository.UpdateAsync(route, cancellationToken);
 
