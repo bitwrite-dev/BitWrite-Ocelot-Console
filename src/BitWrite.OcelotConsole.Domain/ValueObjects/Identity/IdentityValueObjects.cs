@@ -251,3 +251,39 @@ public record LicenseId : ValueObject
     public static implicit operator Guid(LicenseId id) => id.Value;
     public static implicit operator string(LicenseId id) => id.Value.ToString();
 }
+
+public record UserId : ValueObject
+{
+    public Guid Value { get; init; }
+
+    private UserId(Guid value)
+    {
+        Value = value;
+    }
+
+    public static UserId New() => new(Guid.NewGuid());
+
+    public static UserId From(Guid value)
+    {
+        if (value == Guid.Empty)
+            throw new DomainException("UserId cannot be empty", "INVALID_USER_ID");
+        return new UserId(value);
+    }
+
+    public static UserId From(string value)
+    {
+        if (!Guid.TryParse(value, out var guid))
+            throw new DomainException($"Invalid UserId format: {value}", "INVALID_USER_ID_FORMAT");
+        return From(guid);
+    }
+
+    protected override IEnumerable<object> GetEqualityComponents()
+    {
+        yield return Value;
+    }
+
+    public override string ToString() => Value.ToString();
+
+    public static implicit operator Guid(UserId id) => id.Value;
+    public static implicit operator string(UserId id) => id.Value.ToString();
+}

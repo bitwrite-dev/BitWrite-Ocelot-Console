@@ -269,3 +269,38 @@ public record LicenseStatus : ValueObject
 
     public static implicit operator string(LicenseStatus status) => status.Value;
 }
+
+public record UserStatus : ValueObject
+{
+    public string Value { get; init; }
+
+    private UserStatus(string value)
+    {
+        Value = value;
+    }
+
+    public static UserStatus Active => new("Active");
+    public static UserStatus Disabled => new("Disabled");
+
+    public static UserStatus From(string value)
+    {
+        return value switch
+        {
+            "Active" => Active,
+            "Disabled" => Disabled,
+            _ => throw new DomainException($"Invalid UserStatus: {value}", "INVALID_USER_STATUS")
+        };
+    }
+
+    public bool IsActive => Value == "Active";
+    public bool IsDisabled => Value == "Disabled";
+
+    protected override IEnumerable<object> GetEqualityComponents()
+    {
+        yield return Value;
+    }
+
+    public override string ToString() => Value;
+
+    public static implicit operator string(UserStatus status) => status.Value;
+}
