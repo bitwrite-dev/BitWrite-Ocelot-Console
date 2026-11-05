@@ -134,6 +134,19 @@ public record LocalCredentialAuthenticated(UserId UserId) : DomainEvent;
 public record LocalCredentialAuthenticationFailed(UserId UserId, int FailedAttempts) : DomainEvent;
 public record LocalCredentialReset(UserId UserId, string ResetBy, string CorrelationId) : DomainEvent;
 
+// Session events (§8)
+public record SessionCreated(SessionId SessionId, UserId UserId, DateTimeOffset CreatedAt) : DomainEvent;
+public record SessionAuthenticated(SessionId SessionId, UserId UserId, string RefreshTokenId) : DomainEvent;
+public record SessionRevoked(SessionId SessionId, UserId UserId, string Reason, string RevokedBy, DateTimeOffset RevokedAt) : DomainEvent;
+
+// RefreshToken events (§8)
+public record RefreshTokenCreated(RefreshTokenId TokenId, UserId UserId, DateTimeOffset ExpiresAt, string CorrelationId) : DomainEvent;
+public record RefreshTokenRevoked(RefreshTokenId TokenId, UserId UserId, string RevokedBy, string Reason) : DomainEvent;
+public record RefreshTokenRotated(RefreshTokenId TokenId, UserId UserId, string ReplacedByTokenId) : DomainEvent;
+
+// TokenBlacklist events (§8)
+public record TokenBlacklisted(TokenBlacklistId TokenBlacklistId, string TokenHash, string TokenType, string? RevokedBy, string? Reason) : DomainEvent;
+
 // Audit event
 public record AuditRecorded(string Actor, string Action, string ResourceType, string ResourceId, string Result) : DomainEvent;
 
