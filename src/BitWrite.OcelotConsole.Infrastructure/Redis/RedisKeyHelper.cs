@@ -66,6 +66,24 @@ public static class RedisKeyHelper
     public const string AuthAttempts = "ocelot:auth:attempts:{id}";
     public static string AuthAttemptsKey(string id) => $"ocelot:auth:attempts:{id}";
     public static string AuthLockoutKey(string id) => $"ocelot:auth:lockout:{id}";
+
+    /// <summary>Identity & Access Management (IAM) namespace prefix (§10.1).</summary>
+    public const string IamNamespace = "ocelot:iam:v1";
+
+    /// <summary>IAM User key: <c>ocelot:iam:v1:user:{userId}</c>.</summary>
+    public static string IamUser(UserId id) => $"{IamNamespace}:user:{id.Value}";
+
+    /// <summary>ExternalIdentity lookup key: <c>ocelot:iam:v1:external:{issuer}:{subject}</c> (§7.4).</summary>
+    public static string IamExternalIdentity(string issuer, string subject) => $"{IamNamespace}:external:{issuer}:{subject}";
+
+    /// <summary>Session key: <c>ocelot:iam:v1:session:{sessionId}</c> (§8).</summary>
+    public static string IamSession(SessionId id) => $"{IamNamespace}:session:{id.Value}";
+
+    /// <summary>RefreshToken key: <c>ocelot:iam:v1:refreshtoken:{tokenId}</c> (§8).</summary>
+    public static string IamRefreshToken(RefreshTokenId id) => $"{IamNamespace}:refreshtoken:{id.Value}";
+
+    /// <summary>TokenBlacklist key: <c>ocelot:iam:v1:blacklist:{tokenHash}</c> (§8).</summary>
+    public static string IamTokenBlacklist(string tokenHash) => $"{IamNamespace}:blacklist:{tokenHash}";
 }
 
 public static class RedisSerializer
