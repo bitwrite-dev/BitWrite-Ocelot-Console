@@ -287,3 +287,40 @@ public record UserId : ValueObject
     public static implicit operator Guid(UserId id) => id.Value;
     public static implicit operator string(UserId id) => id.Value.ToString();
 }
+
+public record PasswordHash : ValueObject
+{
+    public string Value { get; init; }
+    public string Algorithm { get; init; }
+    public int WorkFactor { get; init; }
+
+    private PasswordHash(string value, string algorithm, int workFactor)
+    {
+        Value = value;
+        Algorithm = algorithm;
+        WorkFactor = workFactor;
+    }
+
+    public static PasswordHash From(string value, string algorithm, int workFactor)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            throw new DomainException("Password hash cannot be empty", "INVALID_PASSWORD_HASH");
+
+        if (string.IsNullOrWhiteSpace(algorithm))
+            throw new DomainException("Password hash algorithm cannot be empty", "INVALID_PASSWORD_ALGORITHM");
+
+        if (workFactor <= 0)
+            throw new DomainException("Password hash work factor must be positive", "INVALID_PASSWORD_WORK_FACTOR");
+
+        return new PasswordHash(value, algorithm, workFactor);
+    }
+
+    protected override IEnumerable<object> GetEqualityComponents()
+    {
+        yield return Value;
+        yield return Algorithm;
+        yield return WorkFactor;
+    }
+
+    public override string ToString() => $"{Algorithm}:{WorkFactor}:{Value}";
+}

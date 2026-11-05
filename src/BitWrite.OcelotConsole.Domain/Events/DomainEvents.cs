@@ -126,6 +126,13 @@ public record RoleRemovedFromUser(UserId UserId, string RoleId, string Correlati
 public record ExternalIdentityLinked(UserId UserId, Guid ExternalIdentityId, string CorrelationId) : DomainEvent;
 public record ExternalIdentityUnlinked(UserId UserId, Guid ExternalIdentityId, string CorrelationId) : DomainEvent;
 
+// LocalCredential events (§6)
+public record LocalCredentialCreated(UserId UserId, string CorrelationId) : DomainEvent;
+public record LocalCredentialChanged(UserId UserId, string ChangedBy, string CorrelationId) : DomainEvent;
+public record LocalCredentialAuthenticated(UserId UserId) : DomainEvent;
+public record LocalCredentialAuthenticationFailed(UserId UserId, int FailedAttempts) : DomainEvent;
+public record LocalCredentialReset(UserId UserId, string ResetBy, string CorrelationId) : DomainEvent;
+
 // Audit event
 public record AuditRecorded(string Actor, string Action, string ResourceType, string ResourceId, string Result) : DomainEvent;
 
