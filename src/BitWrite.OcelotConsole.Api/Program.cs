@@ -119,6 +119,9 @@ namespace BitWrite.OcelotConsole.Api
             builder.Services.AddSingleton<IOutboxRepository, RedisOutboxRepository>();
             builder.Services.AddScoped<AppInterfaces.IOutboxRepository, OutboxRepositoryAdapter>();
 
+            // Authentication throttling service - rate limits auth attempts per client IP
+            builder.Services.AddSingleton<IAuthenticationThrottleService, AuthenticationThrottleService>();
+
             // Infrastructure repository interfaces consumed by the Application-layer
             // adapters registered above. Without these the adapters cannot be activated
             // and the host fails to start with "Unable to resolve service for type".
@@ -304,6 +307,8 @@ namespace BitWrite.OcelotConsole.Api
             app.UseMiddleware<GlobalExceptionMiddleware>();
             app.UseMiddleware<CorrelationIdMiddleware>();
             app.UseCors(DashboardCorsPolicy);
+
+            app.UseMiddleware<AuthenticationThrottleMiddleware>();
 
             if (app.Environment.IsDevelopment())
             {

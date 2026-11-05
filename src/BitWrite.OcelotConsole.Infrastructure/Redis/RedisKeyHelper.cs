@@ -61,6 +61,11 @@ public static class RedisKeyHelper
     public static string IndexRouteSignature(string signature, EnvironmentName environment) =>
         $"ocelot:index:route-signature:{environment.Value}:{signature}";
     public static string IndexLicenseProductCodes = "ocelot:index:license-product-codes";
+
+    /// <summary>Authentication throttling keys.</summary>
+    public const string AuthAttempts = "ocelot:auth:attempts:{id}";
+    public static string AuthAttemptsKey(string id) => $"ocelot:auth:attempts:{id}";
+    public static string AuthLockoutKey(string id) => $"ocelot:auth:lockout:{id}";
 }
 
 public static class RedisSerializer
