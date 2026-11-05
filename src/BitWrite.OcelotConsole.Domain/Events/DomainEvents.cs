@@ -125,6 +125,7 @@ public record RoleAssignedToUser(UserId UserId, string RoleId, string Correlatio
 public record RoleRemovedFromUser(UserId UserId, string RoleId, string CorrelationId) : DomainEvent;
 public record ExternalIdentityLinked(UserId UserId, Guid ExternalIdentityId, string CorrelationId) : DomainEvent;
 public record ExternalIdentityUnlinked(UserId UserId, Guid ExternalIdentityId, string CorrelationId) : DomainEvent;
+public record ExternalIdentityAuthenticated(UserId UserId, Guid ExternalIdentityId, string CorrelationId) : DomainEvent;
 
 // LocalCredential events (§6)
 public record LocalCredentialCreated(UserId UserId, string CorrelationId) : DomainEvent;
