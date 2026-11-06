@@ -73,6 +73,15 @@ public static class RedisKeyHelper
     /// <summary>IAM User key: <c>ocelot:iam:v1:user:{userId}</c>.</summary>
     public static string IamUser(UserId id) => $"{IamNamespace}:user:{id.Value}";
 
+    /// <summary>IAM User data key: <c>ocelot:iam:v1:user-data:{userId}</c>.</summary>
+    public static string IamUserData(UserId id) => $"{IamNamespace}:user-data:{id.Value}";
+
+    /// <summary>Username lookup key: <c>ocelot:iam:v1:user:by-username:{username}</c>.</summary>
+    public static string IamUserByUsername(string username) => $"{IamNamespace}:user:by-username:{username.ToLowerInvariant()}";
+
+    /// <summary>All users set key: <c>ocelot:iam:v1:users</c>.</summary>
+    public static string IamUsers => $"{IamNamespace}:users";
+
     /// <summary>ExternalIdentity lookup key: <c>ocelot:iam:v1:external:{issuer}:{subject}</c> (§7.4).</summary>
     public static string IamExternalIdentity(string issuer, string subject) => $"{IamNamespace}:external:{issuer}:{subject}";
 
@@ -82,9 +91,8 @@ public static class RedisKeyHelper
     /// <summary>RefreshToken key: <c>ocelot:iam:v1:refreshtoken:{tokenId}</c> (§8).</summary>
     public static string IamRefreshToken(RefreshTokenId id) => $"{IamNamespace}:refreshtoken:{id.Value}";
 
-    /// <summary>TokenBlacklist key: <c>ocelot:iam:v1:blacklist:{tokenHash}</c> (§8).</summary>
-    public static string IamTokenBlacklist(string tokenHash) => $"{IamNamespace}:blacklist:{tokenHash}";
-}
+        /// <summary>Role key: <c>ocelot:iam:v1:role:{roleId}</c> (§6.2).</summary>
+    public static string IamRole(RoleId id) => $"{IamNamespace}:role:{id.Value}";
 
 public static class RedisSerializer
 {
