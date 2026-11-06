@@ -109,6 +109,9 @@
         "period": "Minute",
         "limit": 100
       },
+      "FileCacheOptions": {
+        "ttlSeconds": 300
+      },
       "Priority": 0,
       "RouteIsCaseSensitive": false,
       "DangerousAcceptAnyServerCertificateValidator": false
@@ -132,13 +135,24 @@
         "period": "Minute",
         "limit": 100
       },
-      "QoSOptions": {
-        "timeoutValue": 90,
-        "durationOfBreak": 30
-      },
-      "FileCacheOptions": {
-        "ttlSeconds": 300
-      },
+      "Priority": 0,
+      "RouteIsCaseSensitive": false,
+      "DangerousAcceptAnyServerCertificateValidator": false
+    },
+    {
+      "UpstreamPathTemplate": "/api/v1/product/{id}/images",
+      "UpstreamHttpMethod": [
+        "GET"
+      ],
+      "DownstreamPathTemplate": "/api/v1/product/{id}/images",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5058
+        }
+      ],
+      "Key": "product-images-by-id",
       "Priority": 0,
       "RouteIsCaseSensitive": false,
       "DangerousAcceptAnyServerCertificateValidator": false

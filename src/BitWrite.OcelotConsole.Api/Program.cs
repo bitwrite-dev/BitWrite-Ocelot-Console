@@ -136,6 +136,8 @@ namespace BitWrite.OcelotConsole.Api
             builder.Services.AddScoped<AppInterfaces.IDeliveryAttemptRepository, RedisDeliveryAttemptRepository>();
             builder.Services.AddScoped<AppInterfaces.IPublicationProgressRepository, RedisPublicationProgressRepository>();
             builder.Services.AddScoped<AppInterfaces.IRuntimeConfigurationRepository, RedisRuntimeConfigurationRepository>();
+            builder.Services.AddScoped<AppInterfaces.ISessionRepository, RedisSessionRepository>();
+            builder.Services.AddScoped<AppInterfaces.IRefreshTokenRepository, RedisRefreshTokenRepository>();
 
             // IOcelotConfigApplier Implementation (Infrastructure.Adapters - real impl with Redis/File providers)
             builder.Services.AddSingleton<InfraAdapters.IConfigurationProvider, InfraAdapters.RedisConfigurationProvider>();
