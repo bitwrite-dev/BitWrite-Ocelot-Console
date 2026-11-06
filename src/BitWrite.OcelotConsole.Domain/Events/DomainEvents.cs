@@ -116,16 +116,16 @@ public record LicenseRevoked(LicenseId LicenseId, string Reason) : DomainEvent;
 public record LicenseRenewed(LicenseId LicenseId, DateTimeOffset NewExpirationDate) : DomainEvent;
 
 // User events (§10)
-public record UserCreated(UserId UserId, string Username, string UserType, string CreatedBy, string CorrelationId) : DomainEvent;
-public record UserUpdated(UserId UserId, string UpdatedBy, string CorrelationId) : DomainEvent;
-public record UserEnabled(UserId UserId, string EnabledBy, string CorrelationId) : DomainEvent;
-public record UserDisabled(UserId UserId, string DisabledBy, string CorrelationId) : DomainEvent;
-public record UserAuthenticated(UserId UserId, string CorrelationId) : DomainEvent;
-public record RoleAssignedToUser(UserId UserId, string RoleId, string CorrelationId) : DomainEvent;
-public record RoleRemovedFromUser(UserId UserId, string RoleId, string CorrelationId) : DomainEvent;
-public record ExternalIdentityLinked(UserId UserId, Guid ExternalIdentityId, string CorrelationId) : DomainEvent;
-public record ExternalIdentityUnlinked(UserId UserId, Guid ExternalIdentityId, string CorrelationId) : DomainEvent;
-public record ExternalIdentityAuthenticated(UserId UserId, Guid ExternalIdentityId, string CorrelationId) : DomainEvent;
+public record UserCreated(UserId UserId, string Username, string UserType, string CreatedBy, string _CorrelationId) : DomainEvent;
+public record UserUpdated(UserId UserId, string UpdatedBy, string _CorrelationId) : DomainEvent;
+public record UserEnabled(UserId UserId, string EnabledBy, string _CorrelationId) : DomainEvent;
+public record UserDisabled(UserId UserId, string DisabledBy, string _CorrelationId) : DomainEvent;
+public record UserAuthenticated(UserId UserId, string _CorrelationId) : DomainEvent;
+public record RoleAssignedToUser(UserId UserId, string RoleId, string _CorrelationId) : DomainEvent;
+public record RoleRemovedFromUser(UserId UserId, string RoleId, string _CorrelationId) : DomainEvent;
+public record ExternalIdentityLinked(UserId UserId, Guid ExternalIdentityId, string _CorrelationId) : DomainEvent;
+public record ExternalIdentityUnlinked(UserId UserId, Guid ExternalIdentityId, string _CorrelationId) : DomainEvent;
+public record ExternalIdentityAuthenticated(UserId UserId, Guid ExternalIdentityId, string _CorrelationId) : DomainEvent;
 
 // LocalCredential events (§6)
 public record LocalCredentialCreated(UserId UserId, string CorrelationId) : DomainEvent;
