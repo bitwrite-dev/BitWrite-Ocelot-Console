@@ -178,6 +178,16 @@ public class ExecutePublicationCommandHandler
             publication.RecordFailureWithoutGateway(ex.Message);
             await _publicationRepository.UpdateAsync(publication, cancellationToken);
 
+            // Audit event for failed publication
+            var auditEvent = new AuditRecorded(
+                command.InitiatedBy,
+                "PublishSnapshot",
+                "Publication",
+                publication.Id.Value.ToString(),
+                "Failed"
+            );
+            await _eventDispatcher.DispatchAsync(auditEvent, cancellationToken);
+
             // Update Redis progress with failed status
             try
             {
