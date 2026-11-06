@@ -122,6 +122,9 @@ namespace BitWrite.OcelotConsole.Api
             // Authentication throttling service - rate limits auth attempts per client IP
             builder.Services.AddSingleton<IAuthenticationThrottleService, AuthenticationThrottleService>();
 
+            // Atomic operations service - Redis Lua script-based atomic operations
+            builder.Services.AddSingleton<AppInterfaces.IAtomicOperationService, Infrastructure.Redis.RedisAtomicOperationService>();
+
             // Password hashing service
             builder.Services.AddSingleton<AppInterfaces.IPasswordHasher, Infrastructure.Security.SimplePasswordHasher>();
 
