@@ -42,7 +42,7 @@ public class RedisAtomicOperationService : IAtomicOperationService
     public async Task<string?> GetAndSetAsync(string key, string value, CancellationToken cancellationToken = default)
     {
         var result = await _database.StringGetSetAsync(key, value);
-        return result.IsNullOrEmpty ? null : (string)result;
+        return result.IsNullOrEmpty ? (string?)null : result.ToString();
     }
 
     /// <summary>

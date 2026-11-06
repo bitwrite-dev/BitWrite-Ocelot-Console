@@ -160,6 +160,19 @@ public class GatewayActivationProcessor : BackgroundService
                         await eventDispatcher.DispatchAsync(domainEvent, cancellationToken);
                     }
                     publication.ClearDomainEvents();
+
+                    // Audit event for publication completion
+                    if (publication.Status.Value == "Published")
+                    {
+                        var completionAuditEvent = new AuditRecorded(
+                            "System",
+                            "PublishSnapshot",
+                            "Publication",
+                            publication.Id.Value.ToString(),
+                            "Completed"
+                        );
+                        await eventDispatcher.DispatchAsync(completionAuditEvent, cancellationToken);
+                    }
                 }
             }
             catch (Exception ex)
