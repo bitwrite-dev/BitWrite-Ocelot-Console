@@ -122,12 +122,17 @@ namespace BitWrite.OcelotConsole.Api
             // Authentication throttling service - rate limits auth attempts per client IP
             builder.Services.AddSingleton<IAuthenticationThrottleService, AuthenticationThrottleService>();
 
+            // Password hashing service
+            builder.Services.AddSingleton<AppInterfaces.IPasswordHasher, Infrastructure.Security.SimplePasswordHasher>();
+
             // Infrastructure repository interfaces consumed by the Application-layer
             // adapters registered above. Without these the adapters cannot be activated
             // and the host fails to start with "Unable to resolve service for type".
             builder.Services.AddScoped<IRuntimeInstanceRepository, RedisRuntimeInstanceRepository>();
             builder.Services.AddScoped<IPluginRepository, RedisPluginRepository>();
             builder.Services.AddScoped<AppInterfaces.IDeliveryAttemptRepository, RedisDeliveryAttemptRepository>();
+            builder.Services.AddScoped<AppInterfaces.IPublicationProgressRepository, RedisPublicationProgressRepository>();
+            builder.Services.AddScoped<AppInterfaces.IRuntimeConfigurationRepository, RedisRuntimeConfigurationRepository>();
 
             // IOcelotConfigApplier Implementation (Infrastructure.Adapters - real impl with Redis/File providers)
             builder.Services.AddSingleton<InfraAdapters.IConfigurationProvider, InfraAdapters.RedisConfigurationProvider>();

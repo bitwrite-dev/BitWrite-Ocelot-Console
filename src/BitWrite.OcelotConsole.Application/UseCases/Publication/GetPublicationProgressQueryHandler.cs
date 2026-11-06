@@ -3,23 +3,22 @@ using BitWrite.OcelotConsole.Application.Interfaces;
 using BitWrite.OcelotConsole.Application.UseCases.Publication;
 using BitWrite.OcelotConsole.Domain.Aggregates.Publication;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
-using StackExchange.Redis;
 
 namespace BitWrite.OcelotConsole.Application.UseCases.Publication;
 
 public class GetPublicationProgressQueryHandler
 {
     private readonly IPublicationRepository _publicationRepository;
-    private readonly IConnectionMultiplexer _connectionMultiplexer;
+    private readonly IPublicationProgressRepository _progressRepository;
     private readonly IGatewayRepository _gatewayRepository;
 
     public GetPublicationProgressQueryHandler(
         IPublicationRepository publicationRepository,
-        IConnectionMultiplexer connectionMultiplexer,
+        IPublicationProgressRepository progressRepository,
         IGatewayRepository gatewayRepository)
     {
         _publicationRepository = publicationRepository;
-        _connectionMultiplexer = connectionMultiplexer;
+        _progressRepository = progressRepository;
         _gatewayRepository = gatewayRepository;
     }
 
@@ -28,45 +27,31 @@ public class GetPublicationProgressQueryHandler
         var publicationId = PublicationId.From(query.PublicationId);
 
         // Try to read from Redis cache first (real-time data from GatewayActivationProcessor)
-        var db = _connectionMultiplexer.GetDatabase();
-        var progressKey = $"publication:progress:{publicationId.Value}";
-        var cachedProgress = await db.StringGetAsync(progressKey);
+        var cachedProgress = await _progressRepository.GetProgressAsync(publicationId, cancellationToken);
 
-        if (cachedProgress.HasValue)
+        if (cachedProgress != null)
         {
-            try
-            {
-                string jsonString = cachedProgress!;
-                var cached = JsonSerializer.Deserialize<CachedPublicationProgress>(jsonString);
-                if (cached != null)
-                {
-                    return new PublicationProgressResponse(
-                        PublicationId: cached.PublicationId,
-                        SnapshotVersion: cached.SnapshotVersion,
-                        Status: cached.Status,
-                        ProgressPercentage: cached.ProgressPercentage,
-                        GatewayProgress: cached.GatewayProgress.Select(g => new GatewayProgressResponse(
-                            GatewayId: g.GatewayId,
-                            GatewayName: g.GatewayName,
-                            Status: g.Status,
-                            ReceivedAt: g.ReceivedAt,
-                            ValidatedAt: g.ValidatedAt,
-                            AppliedAt: g.AppliedAt,
-                            HealthyAt: g.HealthyAt,
-                            FailedAt: g.FailedAt,
-                            IsValid: g.IsValid,
-                            FailureReason: g.FailureReason
-                        )).ToList(),
-                        StartedAt: cached.StartedAt,
-                        CompletedAt: cached.CompletedAt,
-                        FailureReason: cached.FailureReason
-                    );
-                }
-            }
-            catch
-            {
-                // Fall through to database if cache is corrupted
-            }
+            return new PublicationProgressResponse(
+                PublicationId: cachedProgress.PublicationId,
+                SnapshotVersion: cachedProgress.SnapshotVersion,
+                Status: cachedProgress.Status,
+                ProgressPercentage: cachedProgress.ProgressPercentage,
+                GatewayProgress: cachedProgress.GatewayProgress.Select(g => new GatewayProgressResponse(
+                    GatewayId: g.GatewayId,
+                    GatewayName: g.GatewayName,
+                    Status: g.Status,
+                    ReceivedAt: g.ReceivedAt,
+                    ValidatedAt: g.ValidatedAt,
+                    AppliedAt: g.AppliedAt,
+                    HealthyAt: g.HealthyAt,
+                    FailedAt: g.FailedAt,
+                    IsValid: g.IsValid,
+                    FailureReason: g.FailureReason
+                )).ToList(),
+                StartedAt: cachedProgress.StartedAt,
+                CompletedAt: cachedProgress.CompletedAt,
+                FailureReason: cachedProgress.FailureReason
+            );
         }
 
         // Fallback to database (authoritative source)
@@ -103,31 +88,5 @@ public class GetPublicationProgressQueryHandler
             CompletedAt: publication.CompletedAt,
             FailureReason: publication.FailureReason
         );
-    }
-
-    private class CachedPublicationProgress
-    {
-        public string PublicationId { get; set; } = "";
-        public int SnapshotVersion { get; set; }
-        public string Status { get; set; } = "";
-        public double ProgressPercentage { get; set; }
-        public List<CachedGatewayProgress> GatewayProgress { get; set; } = new();
-        public DateTimeOffset StartedAt { get; set; }
-        public DateTimeOffset? CompletedAt { get; set; }
-        public string? FailureReason { get; set; }
-    }
-
-    private class CachedGatewayProgress
-    {
-        public string GatewayId { get; set; } = "";
-        public string GatewayName { get; set; } = "";
-        public string Status { get; set; } = "";
-        public DateTimeOffset? ReceivedAt { get; set; }
-        public DateTimeOffset? ValidatedAt { get; set; }
-        public DateTimeOffset? AppliedAt { get; set; }
-        public DateTimeOffset? HealthyAt { get; set; }
-        public DateTimeOffset? FailedAt { get; set; }
-        public bool? IsValid { get; set; }
-        public string? FailureReason { get; set; }
     }
 }
