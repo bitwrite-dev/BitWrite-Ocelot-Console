@@ -28,9 +28,9 @@ using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
 using AppInterfaces = BitWrite.OcelotConsole.Application.Interfaces;
 using DomainServices = BitWrite.OcelotConsole.Domain.Services;
+using Infra = BitWrite.OcelotConsole.Infrastructure;
 using InfraAdapters = BitWrite.OcelotConsole.Infrastructure.Adapters;
 using RuntimeAdapters = BitWrite.OcelotConsole.Runtime.Adapters;
-using Infra = BitWrite.OcelotConsole.Infrastructure;
 
 namespace BitWrite.OcelotConsole.Api
 {
@@ -149,14 +149,14 @@ namespace BitWrite.OcelotConsole.Api
 
             // Token Blacklist Repository
             builder.Services.AddScoped<AppInterfaces.ITokenBlacklistRepository, RedisTokenBlacklistRepository>();
-//            // builder.Services.AddScoped<AppInterfaces.ITokenBlacklistRepository, RedisTokenBlacklistRepository>;
-//            builder.Services.AddSingleton<InfraAdapters.IConfigurationProvider, InfraAdapters.RedisConfigurationProvider>();
-//            builder.Services.AddSingleton<AppInterfaces.IOcelotConfigApplier, InfraAdapters.OcelotConfigApplier>();
 
             // JsonEventSerializer is stateless, so the interface mapping is a singleton.
-            // builder.Services.AddSingleton<JsonEventSerializer>();
-            // builder.Services.AddSingleton<IEventSerializer, JsonEventSerializer>();
+            builder.Services.AddSingleton<BitWrite.OcelotConsole.Infrastructure.Outbox.IEventSerializer, JsonEventSerializer>();
             builder.Services.AddScoped<AppInterfaces.IEventSerializer, EventSerializerAdapter>();
+
+            // Runtime/config application adapters required by some handlers (e.g. reconcile).
+            builder.Services.AddSingleton<InfraAdapters.IConfigurationProvider, InfraAdapters.RedisConfigurationProvider>();
+            builder.Services.AddSingleton<AppInterfaces.IOcelotConfigApplier, InfraAdapters.OcelotConfigApplier>();
 
             // System Settings Handlers
             builder.Services.AddScoped<SystemSettingsCommandHandler>();

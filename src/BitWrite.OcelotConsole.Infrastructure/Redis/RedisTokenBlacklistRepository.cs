@@ -1,7 +1,7 @@
+using System.Text.Json;
 using BitWrite.OcelotConsole.Application.Interfaces;
 using BitWrite.OcelotConsole.Domain.Aggregates.User.Session;
 using StackExchange.Redis;
-using System.Text.Json;
 
 namespace BitWrite.OcelotConsole.Infrastructure.Redis;
 

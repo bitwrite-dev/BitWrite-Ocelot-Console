@@ -1,9 +1,9 @@
-using BitWrite.OcelotConsole.Application.UseCases.Identity;
-using BitWrite.OcelotConsole.Domain.Aggregates.User.Session;
-using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using BitWrite.OcelotConsole.Application.UseCases.Identity;
+using BitWrite.OcelotConsole.Domain.Aggregates.User.Session;
+using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 
 namespace BitWrite.OcelotConsole.Application.Interfaces;
 
