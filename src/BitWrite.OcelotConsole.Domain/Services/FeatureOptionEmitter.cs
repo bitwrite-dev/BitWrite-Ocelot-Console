@@ -49,48 +49,48 @@ internal static class FeatureOptionEmitter
     public static OcelotClaimsRequirement? Authorization(
             AuthorizationOptions? options,
             OcelotVersion version)
+    {
+        if (options == null) return null;
+
+        // Check if there are any explicit allow rules
+        var hasExplicitAllowRules = options.Policies.Count > 0
+            || options.Scopes.Count > 0
+            || options.Requirements.Count > 0;
+
+        // Default-deny: if no explicit allow rules and DefaultDeny is true, deny access
+        if (options.DefaultDeny && !hasExplicitAllowRules)
         {
-            if (options == null) return null;
-
-            // Check if there are any explicit allow rules
-            var hasExplicitAllowRules = options.Policies.Count > 0 
-                || options.Scopes.Count > 0 
-                || options.Requirements.Count > 0;
-
-            // Default-deny: if no explicit allow rules and DefaultDeny is true, deny access
-            if (options.DefaultDeny && !hasExplicitAllowRules)
+            // Return a requirement that will never match (empty key that no request will have)
+            return new OcelotClaimsRequirement
             {
-                // Return a requirement that will never match (empty key that no request will have)
-                return new OcelotClaimsRequirement 
-                { 
-                    Claims = new Dictionary<string, string> { { "__default_deny__", "__deny__" } } 
-                };
-            }
+                Claims = new Dictionary<string, string> { { "__default_deny__", "__deny__" } }
+            };
+        }
 
-            // If no explicit allow rules and DefaultDeny is false, allow all (backward compatibility)
-            if (!hasExplicitAllowRules)
-            {
-                return null;
-            }
+        // If no explicit allow rules and DefaultDeny is false, allow all (backward compatibility)
+        if (!hasExplicitAllowRules)
+        {
+            return null;
+        }
 
-            // Policies and scopes are not supported in Ocelot 18
-            if (options.Policies.Count > 0)
-            {
-                throw new NotExpressibleException(
-                    "authorizationOptions.policies",
-                    "Ocelot 18 has no route-level policy; only claim requirements are supported");
-            }
+        // Policies and scopes are not supported in Ocelot 18
+        if (options.Policies.Count > 0)
+        {
+            throw new NotExpressibleException(
+                "authorizationOptions.policies",
+                "Ocelot 18 has no route-level policy; only claim requirements are supported");
+        }
 
-            if (options.Scopes.Count > 0)
-            {
-                throw new NotExpressibleException(
-                    "authorizationOptions.scopes",
-                    "Ocelot 18 has no route-level scope; scopes belong to AuthenticationOptions.AllowedScopes");
-            }
+        if (options.Scopes.Count > 0)
+        {
+            throw new NotExpressibleException(
+                "authorizationOptions.scopes",
+                "Ocelot 18 has no route-level scope; scopes belong to AuthenticationOptions.AllowedScopes");
+        }
 
-            if (options.Requirements.Count == 0) return null;
+        if (options.Requirements.Count == 0) return null;
 
-            return new OcelotClaimsRequirement { Claims = new Dictionary<string, string>(options.Requirements) };
+        return new OcelotClaimsRequirement { Claims = new Dictionary<string, string>(options.Requirements) };
     }
 
     public static Dictionary<string, string>? AddClaimsToRequest(
