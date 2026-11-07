@@ -73,6 +73,15 @@ public static class RedisKeyHelper
     /// <summary>IAM User key: <c>ocelot:iam:v1:user:{userId}</c>.</summary>
     public static string IamUser(UserId id) => $"{IamNamespace}:user:{id.Value}";
 
+    /// <summary>IAM User data key: <c>ocelot:iam:v1:user-data:{userId}</c>.</summary>
+    public static string IamUserData(UserId id) => $"{IamNamespace}:user-data:{id.Value}";
+
+    /// <summary>Username lookup key: <c>ocelot:iam:v1:user:by-username:{username}</c>.</summary>
+    public static string IamUserByUsername(string username) => $"{IamNamespace}:user:by-username:{username.ToLowerInvariant()}";
+
+    /// <summary>All users set key: <c>ocelot:iam:v1:users</c>.</summary>
+    public static string IamUsers => $"{IamNamespace}:users";
+
     /// <summary>ExternalIdentity lookup key: <c>ocelot:iam:v1:external:{issuer}:{subject}</c> (§7.4).</summary>
     public static string IamExternalIdentity(string issuer, string subject) => $"{IamNamespace}:external:{issuer}:{subject}";
 
@@ -82,60 +91,12 @@ public static class RedisKeyHelper
     /// <summary>RefreshToken key: <c>ocelot:iam:v1:refreshtoken:{tokenId}</c> (§8).</summary>
     public static string IamRefreshToken(RefreshTokenId id) => $"{IamNamespace}:refreshtoken:{id.Value}";
 
-    /// <summary>TokenBlacklist key: <c>ocelot:iam:v1:blacklist:{tokenHash}</c> (§8).</summary>
+    /// <summary>Role key: <c>ocelot:iam:v1:role:{roleId}</c> (§6.2).</summary>
+    public static string IamRole(RoleId id) => $"{IamNamespace}:role:{id.Value}";
+
+    /// <summary>Roles index key: <c>ocelot:iam:v1:roles</c>.</summary>
+    public static string IndexRoles => $"{IamNamespace}:roles";
+
+    /// <summary>Token blacklist key: <c>ocelot:iam:v1:blacklist:{tokenHash}</c> (§8).</summary>
     public static string IamTokenBlacklist(string tokenHash) => $"{IamNamespace}:blacklist:{tokenHash}";
-}
-
-public static class RedisSerializer
-{
-    private static readonly JsonSerializerOptions Options = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false
-    };
-
-    public static string Serialize<T>(T value) => JsonSerializer.Serialize(value, Options);
-
-    public static T? Deserialize<T>(string json) => JsonSerializer.Deserialize<T>(json, Options);
-
-    public static HashEntry[] ToHashEntries(object obj)
-    {
-        var properties = obj.GetType().GetProperties();
-        var entries = new List<HashEntry>();
-
-        foreach (var prop in properties)
-        {
-            var value = prop.GetValue(obj);
-            if (value != null)
-            {
-                var json = Serialize(value);
-                entries.Add(new HashEntry(prop.Name, json));
-            }
-        }
-
-        return entries.ToArray();
-    }
-
-    public static T FromHashEntries<T>(HashEntry[] entries) where T : new()
-    {
-        var obj = new T();
-        var properties = typeof(T).GetProperties()
-            .ToDictionary(p => p.Name, p => p);
-
-        foreach (var entry in entries)
-        {
-            if (properties.TryGetValue(entry.Name!, out var prop))
-            {
-                var value = Deserialize(prop.PropertyType, entry.Value.ToString());
-                prop.SetValue(obj, value);
-            }
-        }
-
-        return obj;
-    }
-
-    private static object? Deserialize(Type type, string json)
-    {
-        return JsonSerializer.Deserialize(json, type, Options);
-    }
 }

@@ -127,6 +127,12 @@ public record ExternalIdentityLinked(UserId UserId, Guid ExternalIdentityId, str
 public record ExternalIdentityUnlinked(UserId UserId, Guid ExternalIdentityId, string _CorrelationId) : DomainEvent;
 public record ExternalIdentityAuthenticated(UserId UserId, Guid ExternalIdentityId, string _CorrelationId) : DomainEvent;
 
+// Role events (§6.2)
+public record RoleCreated(RoleId RoleId, string Name, string CreatedBy, string _CorrelationId) : DomainEvent;
+public record RoleUpdated(RoleId RoleId, string Name, string Description, string UpdatedBy, string _CorrelationId) : DomainEvent;
+public record PermissionAddedToRole(RoleId RoleId, string Permission, string UpdatedBy, string _CorrelationId) : DomainEvent;
+public record PermissionRemovedFromRole(RoleId RoleId, string Permission, string UpdatedBy, string _CorrelationId) : DomainEvent;
+
 // LocalCredential events (§6)
 public record LocalCredentialCreated(UserId UserId, string CorrelationId) : DomainEvent;
 public record LocalCredentialChanged(UserId UserId, string ChangedBy, string CorrelationId) : DomainEvent;
