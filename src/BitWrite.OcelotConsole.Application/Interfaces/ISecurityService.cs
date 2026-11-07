@@ -23,6 +23,11 @@ public interface ISecurityService
     Task<string> GenerateRefreshTokenAsync(UserId userId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Generates and persists a refresh token, returning both the raw token and stored entity.
+    /// </summary>
+    Task<(string RawToken, RefreshToken Entity)> IssueRefreshTokenAsync(UserId userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Validates an access token and returns the user ID if valid (§7).
     /// </summary>
     Task<UserId?> ValidateAccessTokenAsync(string token, CancellationToken cancellationToken = default);
