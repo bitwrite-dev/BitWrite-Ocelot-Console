@@ -4,6 +4,7 @@ using BitWrite.OcelotConsole.Application.Events;
 using BitWrite.OcelotConsole.Application.UseCases.Audit;
 using BitWrite.OcelotConsole.Application.UseCases.Gateway;
 using BitWrite.OcelotConsole.Application.UseCases.GlobalConfiguration;
+using BitWrite.OcelotConsole.Application.UseCases.Identity;
 using BitWrite.OcelotConsole.Application.UseCases.License;
 using BitWrite.OcelotConsole.Application.UseCases.Plugin;
 using BitWrite.OcelotConsole.Application.UseCases.Publication;
@@ -12,6 +13,7 @@ using BitWrite.OcelotConsole.Application.UseCases.Runtime;
 using BitWrite.OcelotConsole.Application.UseCases.Service;
 using BitWrite.OcelotConsole.Application.UseCases.Snapshot;
 using BitWrite.OcelotConsole.Application.UseCases.SystemSettings;
+using BitWrite.OcelotConsole.Application.UseCases.Identity;
 using BitWrite.OcelotConsole.Domain.Events;
 using BitWrite.OcelotConsole.Infrastructure.Adapters;
 using BitWrite.OcelotConsole.Infrastructure.EventHandlers;
@@ -231,6 +233,22 @@ namespace BitWrite.OcelotConsole.Api
             builder.Services.AddScoped<GetAuditLogsQueryHandler>();
             builder.Services.AddScoped<GetAuditLogByIdQueryHandler>();
             builder.Services.AddScoped<GetAuditStatsQueryHandler>();
+
+            // Identity UseCase Handlers
+            builder.Services.AddScoped<CreateSessionCommandHandler>();
+            builder.Services.AddScoped<RefreshAccessTokenCommandHandler>();
+            builder.Services.AddScoped<RevokeSessionCommandHandler>();
+            builder.Services.AddScoped<RevokeRefreshTokenCommandHandler>();
+            builder.Services.AddScoped<GetUserSessionsQueryHandler>();
+            builder.Services.AddScoped<RotateRefreshTokenCommandHandler>();
+
+            // Identity UseCase Handlers
+            builder.Services.AddScoped<CreateSessionCommandHandler>();
+            builder.Services.AddScoped<RefreshAccessTokenCommandHandler>();
+            builder.Services.AddScoped<RevokeSessionCommandHandler>();
+            builder.Services.AddScoped<RevokeRefreshTokenCommandHandler>();
+            builder.Services.AddScoped<GetUserSessionsQueryHandler>();
+            builder.Services.AddScoped<RotateRefreshTokenCommandHandler>();
             // Gateway UseCase Handlers
             builder.Services.AddScoped<RegisterGatewayCommandHandler>();
             builder.Services.AddScoped<GetGatewayQueryHandler>();
