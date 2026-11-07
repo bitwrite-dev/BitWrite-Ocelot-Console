@@ -47,14 +47,33 @@ public class NotExpressibleException : DomainException
 internal static class FeatureOptionEmitter
 {
     public static OcelotClaimsRequirement? Authorization(
-        AuthorizationOptions? options,
-        OcelotVersion version)
+            AuthorizationOptions? options,
+            OcelotVersion version)
     {
         if (options == null) return null;
 
-        // 18 has one mechanism: a flat claim requirement. Policies and scopes
-        // have no counterpart, and inventing one would be a silent no-op at the
-        // gateway.
+        // Check if there are any explicit allow rules
+        var hasExplicitAllowRules = options.Policies.Count > 0
+            || options.Scopes.Count > 0
+            || options.Requirements.Count > 0;
+
+        // Default-deny: if no explicit allow rules and DefaultDeny is true, deny access
+        if (options.DefaultDeny && !hasExplicitAllowRules)
+        {
+            // Return a requirement that will never match (empty key that no request will have)
+            return new OcelotClaimsRequirement
+            {
+                Claims = new Dictionary<string, string> { { "__default_deny__", "__deny__" } }
+            };
+        }
+
+        // If no explicit allow rules and DefaultDeny is false, allow all (backward compatibility)
+        if (!hasExplicitAllowRules)
+        {
+            return null;
+        }
+
+        // Policies and scopes are not supported in Ocelot 18
         if (options.Policies.Count > 0)
         {
             throw new NotExpressibleException(
