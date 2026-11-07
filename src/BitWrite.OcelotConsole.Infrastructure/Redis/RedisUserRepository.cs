@@ -1,9 +1,9 @@
+using System.Text.Json;
 using BitWrite.OcelotConsole.Application.Interfaces;
 using BitWrite.OcelotConsole.Domain.Aggregates.User;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using BitWrite.OcelotConsole.Infrastructure.Redis;
 using StackExchange.Redis;
-using System.Text.Json;
 
 namespace BitWrite.OcelotConsole.Infrastructure.Redis;
 
@@ -62,10 +62,10 @@ public class RedisUserRepository : IUserRepository
         await _db.StringSetAsync(key, json);
 
         var userKey = RedisKeyHelper.IamUserByUsername(user.Username);
-        await _db.StringSetAsync(userKey, user.Id.Value);
+        await _db.StringSetAsync(userKey, user.Id.Value.ToString());
 
-        var usersKey = RedisKeyHelper.IamUsers;
-        await _db.SetAddAsync(usersKey, user.Id.Value);
+var usersKey = RedisKeyHelper.IamUsers;
+            await _db.SetAddAsync(usersKey, user.Id.Value.ToString());
     }
 
     public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)

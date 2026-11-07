@@ -91,59 +91,12 @@ public static class RedisKeyHelper
     /// <summary>RefreshToken key: <c>ocelot:iam:v1:refreshtoken:{tokenId}</c> (§8).</summary>
     public static string IamRefreshToken(RefreshTokenId id) => $"{IamNamespace}:refreshtoken:{id.Value}";
 
-        /// <summary>Role key: <c>ocelot:iam:v1:role:{roleId}</c> (§6.2).</summary>
+    /// <summary>Role key: <c>ocelot:iam:v1:role:{roleId}</c> (§6.2).</summary>
     public static string IamRole(RoleId id) => $"{IamNamespace}:role:{id.Value}";
 
-public static class RedisSerializer
-{
-    private static readonly JsonSerializerOptions Options = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false
-    };
+    /// <summary>Roles index key: <c>ocelot:iam:v1:roles</c>.</summary>
+    public static string IndexRoles => $"{IamNamespace}:roles";
 
-    public static string Serialize<T>(T value) => JsonSerializer.Serialize(value, Options);
-
-    public static T? Deserialize<T>(string json) => JsonSerializer.Deserialize<T>(json, Options);
-
-    public static HashEntry[] ToHashEntries(object obj)
-    {
-        var properties = obj.GetType().GetProperties();
-        var entries = new List<HashEntry>();
-
-        foreach (var prop in properties)
-        {
-            var value = prop.GetValue(obj);
-            if (value != null)
-            {
-                var json = Serialize(value);
-                entries.Add(new HashEntry(prop.Name, json));
-            }
-        }
-
-        return entries.ToArray();
-    }
-
-    public static T FromHashEntries<T>(HashEntry[] entries) where T : new()
-    {
-        var obj = new T();
-        var properties = typeof(T).GetProperties()
-            .ToDictionary(p => p.Name, p => p);
-
-        foreach (var entry in entries)
-        {
-            if (properties.TryGetValue(entry.Name!, out var prop))
-            {
-                var value = Deserialize(prop.PropertyType, entry.Value.ToString());
-                prop.SetValue(obj, value);
-            }
-        }
-
-        return obj;
-    }
-
-    private static object? Deserialize(Type type, string json)
-    {
-        return JsonSerializer.Deserialize(json, type, Options);
-    }
+    /// <summary>Token blacklist key: <c>ocelot:iam:v1:blacklist:{tokenHash}</c> (§8).</summary>
+    public static string IamTokenBlacklist(string tokenHash) => $"{IamNamespace}:blacklist:{tokenHash}";
 }

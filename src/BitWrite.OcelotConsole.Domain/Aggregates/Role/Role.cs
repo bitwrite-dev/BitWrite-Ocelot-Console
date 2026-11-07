@@ -50,7 +50,7 @@ public sealed class Role
         {
             Id = id,
             Name = normalizedName,
-            Description = description?.Trim(),
+            Description = description?.Trim() ?? string.Empty,
             IsSystemRole = false,
             CreatedAt = DateTimeOffset.UtcNow
         };
