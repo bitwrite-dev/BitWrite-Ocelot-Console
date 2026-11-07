@@ -47,31 +47,50 @@ public class NotExpressibleException : DomainException
 internal static class FeatureOptionEmitter
 {
     public static OcelotClaimsRequirement? Authorization(
-        AuthorizationOptions? options,
-        OcelotVersion version)
-    {
-        if (options == null) return null;
-
-        // 18 has one mechanism: a flat claim requirement. Policies and scopes
-        // have no counterpart, and inventing one would be a silent no-op at the
-        // gateway.
-        if (options.Policies.Count > 0)
+            AuthorizationOptions? options,
+            OcelotVersion version)
         {
-            throw new NotExpressibleException(
-                "authorizationOptions.policies",
-                "Ocelot 18 has no route-level policy; only claim requirements are supported");
-        }
+            if (options == null) return null;
 
-        if (options.Scopes.Count > 0)
-        {
-            throw new NotExpressibleException(
-                "authorizationOptions.scopes",
-                "Ocelot 18 has no route-level scope; scopes belong to AuthenticationOptions.AllowedScopes");
-        }
+            // Check if there are any explicit allow rules
+            var hasExplicitAllowRules = options.Policies.Count > 0 
+                || options.Scopes.Count > 0 
+                || options.Requirements.Count > 0;
 
-        if (options.Requirements.Count == 0) return null;
+            // Default-deny: if no explicit allow rules and DefaultDeny is true, deny access
+            if (options.DefaultDeny && !hasExplicitAllowRules)
+            {
+                // Return a requirement that will never match (empty key that no request will have)
+                return new OcelotClaimsRequirement 
+                { 
+                    Claims = new Dictionary<string, string> { { "__default_deny__", "__deny__" } } 
+                };
+            }
 
-        return new OcelotClaimsRequirement { Claims = new Dictionary<string, string>(options.Requirements) };
+            // If no explicit allow rules and DefaultDeny is false, allow all (backward compatibility)
+            if (!hasExplicitAllowRules)
+            {
+                return null;
+            }
+
+            // Policies and scopes are not supported in Ocelot 18
+            if (options.Policies.Count > 0)
+            {
+                throw new NotExpressibleException(
+                    "authorizationOptions.policies",
+                    "Ocelot 18 has no route-level policy; only claim requirements are supported");
+            }
+
+            if (options.Scopes.Count > 0)
+            {
+                throw new NotExpressibleException(
+                    "authorizationOptions.scopes",
+                    "Ocelot 18 has no route-level scope; scopes belong to AuthenticationOptions.AllowedScopes");
+            }
+
+            if (options.Requirements.Count == 0) return null;
+
+            return new OcelotClaimsRequirement { Claims = new Dictionary<string, string>(options.Requirements) };
     }
 
     public static Dictionary<string, string>? AddClaimsToRequest(

@@ -42,19 +42,22 @@ public record AuthorizationOptions : ValueObject
     public List<string> Policies { get; init; } = new();
     public List<string> Scopes { get; init; } = new();
     public Dictionary<string, string> Requirements { get; init; } = new();
+    public bool DefaultDeny { get; init; } = false;
 
     private AuthorizationOptions() { }
 
     public static AuthorizationOptions Create(
         List<string>? policies = null,
         List<string>? scopes = null,
-        Dictionary<string, string>? requirements = null)
+        Dictionary<string, string>? requirements = null,
+        bool defaultDeny = false)
     {
         return new AuthorizationOptions
         {
             Policies = policies?.Where(p => !string.IsNullOrWhiteSpace(p)).Select(p => p.Trim()).ToList() ?? new(),
             Scopes = scopes?.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim()).ToList() ?? new(),
-            Requirements = requirements ?? new Dictionary<string, string>()
+            Requirements = requirements ?? new Dictionary<string, string>(),
+            DefaultDeny = defaultDeny
         };
     }
 
@@ -73,6 +76,7 @@ public record AuthorizationOptions : ValueObject
             yield return kvp.Key;
             yield return kvp.Value;
         }
+        yield return DefaultDeny;
     }
 }
 
