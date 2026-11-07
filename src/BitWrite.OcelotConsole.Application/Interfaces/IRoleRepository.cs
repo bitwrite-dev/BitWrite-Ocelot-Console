@@ -1,5 +1,5 @@
-using RoleEntity = BitWrite.OcelotConsole.Domain.Aggregates.Role.Role;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
+using RoleEntity = BitWrite.OcelotConsole.Domain.Aggregates.Role.Role;
 
 namespace BitWrite.OcelotConsole.Application.Interfaces;
 

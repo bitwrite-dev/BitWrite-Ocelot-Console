@@ -1,9 +1,9 @@
 using System.Text.Json;
 using BitWrite.OcelotConsole.Application.Interfaces;
-using RoleEntity = BitWrite.OcelotConsole.Domain.Aggregates.Role.Role;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using BitWrite.OcelotConsole.Infrastructure.Redis;
 using StackExchange.Redis;
+using RoleEntity = BitWrite.OcelotConsole.Domain.Aggregates.Role.Role;
 
 namespace BitWrite.OcelotConsole.Infrastructure.Redis;
 

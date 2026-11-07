@@ -64,8 +64,8 @@ public class RedisUserRepository : IUserRepository
         var userKey = RedisKeyHelper.IamUserByUsername(user.Username);
         await _db.StringSetAsync(userKey, user.Id.Value.ToString());
 
-var usersKey = RedisKeyHelper.IamUsers;
-            await _db.SetAddAsync(usersKey, user.Id.Value.ToString());
+        var usersKey = RedisKeyHelper.IamUsers;
+        await _db.SetAddAsync(usersKey, user.Id.Value.ToString());
     }
 
     public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)
