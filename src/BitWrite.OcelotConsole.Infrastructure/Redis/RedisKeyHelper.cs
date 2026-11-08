@@ -71,6 +71,7 @@ public static class RedisKeyHelper
     public const string IamNamespace = "ocelot:iam:v1";
 
     /// <summary>IAM User key: <c>ocelot:iam:v1:user:{userId}</c>.</summary>
+    /// <remarks>Legacy/simple user key helper kept for compatibility with existing code paths.</remarks>
     public static string IamUser(UserId id) => $"{IamNamespace}:user:{id.Value}";
 
     /// <summary>IAM User data key: <c>ocelot:iam:v1:user-data:{userId}</c>.</summary>
@@ -88,8 +89,17 @@ public static class RedisKeyHelper
     /// <summary>Session key: <c>ocelot:iam:v1:session:{sessionId}</c> (§8).</summary>
     public static string IamSession(SessionId id) => $"{IamNamespace}:session:{id.Value}";
 
+    /// <summary>Per-user session index: <c>ocelot:iam:v1:user:{userId}:sessions</c> (§8).</summary>
+    public static string IamUserSessions(UserId id) => $"{IamNamespace}:user:{id.Value}:sessions";
+
     /// <summary>RefreshToken key: <c>ocelot:iam:v1:refreshtoken:{tokenId}</c> (§8).</summary>
     public static string IamRefreshToken(RefreshTokenId id) => $"{IamNamespace}:refreshtoken:{id.Value}";
+
+    /// <summary>Refresh token hash lookup: <c>ocelot:iam:v1:refreshtoken:hash:{tokenHash}</c> (§8).</summary>
+    public static string IamRefreshTokenByHash(string tokenHash) => $"{IamNamespace}:refreshtoken:hash:{tokenHash}";
+
+    /// <summary>Per-user refresh token index: <c>ocelot:iam:v1:user:{userId}:refreshtokens</c> (§8).</summary>
+    public static string IamUserRefreshTokens(UserId id) => $"{IamNamespace}:user:{id.Value}:refreshtokens";
 
     /// <summary>Role key: <c>ocelot:iam:v1:role:{roleId}</c> (§6.2).</summary>
     public static string IamRole(RoleId id) => $"{IamNamespace}:role:{id.Value}";

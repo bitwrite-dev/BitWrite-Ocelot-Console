@@ -13,6 +13,7 @@ namespace BitWrite.OcelotConsole.Infrastructure.Repositories;
 public class RedisSessionRepository : ISessionRepository
 {
     private readonly IDatabase _db;
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public RedisSessionRepository(IConnectionMultiplexer connectionMultiplexer)
     {
@@ -26,18 +27,21 @@ public class RedisSessionRepository : ISessionRepository
         if (json.IsNullOrEmpty)
             return null;
 
-        return JsonSerializer.Deserialize<Session>(json!.ToString());
+        return JsonSerializer.Deserialize<Session>(json!.ToString(), JsonOptions);
     }
 
     public async Task<List<Session>> GetByUserIdAsync(UserId userId, CancellationToken cancellationToken = default)
     {
-        var key = RedisKeyHelper.IamUser(userId);
+        var key = RedisKeyHelper.IamUserSessions(userId);
         var members = await _db.SetMembersAsync(key);
-        var sessions = new List<Session>();
+        var sessions = new List<Session>(members.Length);
 
         foreach (var member in members)
         {
-            var session = await GetAsync(SessionId.From(member.ToString()), cancellationToken);
+            if (!Guid.TryParse(member.ToString(), out var sessionGuid))
+                continue;
+
+            var session = await GetAsync(SessionId.From(sessionGuid), cancellationToken);
             if (session != null)
                 sessions.Add(session);
         }
@@ -48,16 +52,17 @@ public class RedisSessionRepository : ISessionRepository
     public async Task<List<Session>> GetActiveSessionsAsync(UserId userId, CancellationToken cancellationToken = default)
     {
         var sessions = await GetByUserIdAsync(userId, cancellationToken);
-        return sessions.Where(s => !s.IsRevoked && s.ExpiresAt > DateTimeOffset.UtcNow).ToList();
+        var now = DateTimeOffset.UtcNow;
+        return sessions.Where(s => !s.IsRevoked && s.ExpiresAt > now).ToList();
     }
 
     public async Task AddAsync(Session session, CancellationToken cancellationToken = default)
     {
         var key = RedisKeyHelper.IamSession(session.Id);
-        var json = JsonSerializer.Serialize(session);
+        var json = JsonSerializer.Serialize(session, JsonOptions);
         await _db.StringSetAsync(key, json);
 
-        var userKey = RedisKeyHelper.IamUser(session.UserId);
+        var userKey = RedisKeyHelper.IamUserSessions(session.UserId);
         await _db.SetAddAsync(userKey, session.Id.Value.ToString());
     }
 
@@ -74,7 +79,7 @@ public class RedisSessionRepository : ISessionRepository
         var key = RedisKeyHelper.IamSession(id);
         await _db.KeyDeleteAsync(key);
 
-        var userKey = RedisKeyHelper.IamUser(session.UserId);
+        var userKey = RedisKeyHelper.IamUserSessions(session.UserId);
         await _db.SetRemoveAsync(userKey, id.Value.ToString());
     }
 }

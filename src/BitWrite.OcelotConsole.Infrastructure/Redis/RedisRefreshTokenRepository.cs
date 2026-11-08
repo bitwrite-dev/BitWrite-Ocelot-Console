@@ -2,7 +2,6 @@ using System.Text.Json;
 using BitWrite.OcelotConsole.Application.Interfaces;
 using BitWrite.OcelotConsole.Domain.Aggregates.User.Session;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
-using BitWrite.OcelotConsole.Infrastructure.Redis;
 using StackExchange.Redis;
 
 namespace BitWrite.OcelotConsole.Infrastructure.Redis;
@@ -13,6 +12,7 @@ namespace BitWrite.OcelotConsole.Infrastructure.Redis;
 public class RedisRefreshTokenRepository : IRefreshTokenRepository
 {
     private readonly IDatabase _db;
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public RedisRefreshTokenRepository(IConnectionMultiplexer connectionMultiplexer)
     {
@@ -26,28 +26,37 @@ public class RedisRefreshTokenRepository : IRefreshTokenRepository
         if (json.IsNullOrEmpty)
             return null;
 
-        return JsonSerializer.Deserialize<RefreshToken>(json!.ToString());
+        return JsonSerializer.Deserialize<RefreshToken>(json!.ToString(), JsonOptions);
     }
 
     public async Task<RefreshToken?> GetByTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default)
     {
-        var key = RedisKeyHelper.IamTokenBlacklist(tokenHash);
-        var json = await _db.StringGetAsync(key);
-        if (json.IsNullOrEmpty)
+        if (string.IsNullOrWhiteSpace(tokenHash))
             return null;
 
-        return JsonSerializer.Deserialize<RefreshToken>(json!.ToString());
+        var hashKey = RedisKeyHelper.IamRefreshTokenByHash(tokenHash);
+        var tokenIdValue = await _db.StringGetAsync(hashKey);
+        if (tokenIdValue.IsNullOrEmpty)
+            return null;
+
+        if (!Guid.TryParse(tokenIdValue.ToString(), out var tokenGuid))
+            return null;
+
+        return await GetAsync(RefreshTokenId.From(tokenGuid), cancellationToken);
     }
 
     public async Task<List<RefreshToken>> GetByUserIdAsync(UserId userId, CancellationToken cancellationToken = default)
     {
-        var key = RedisKeyHelper.IamUser(userId);
+        var key = RedisKeyHelper.IamUserRefreshTokens(userId);
         var members = await _db.SetMembersAsync(key);
-        var tokens = new List<RefreshToken>();
+        var tokens = new List<RefreshToken>(members.Length);
 
         foreach (var member in members)
         {
-            var token = await GetAsync(RefreshTokenId.From(member.ToString()), cancellationToken);
+            if (!Guid.TryParse(member.ToString(), out var tokenGuid))
+                continue;
+
+            var token = await GetAsync(RefreshTokenId.From(tokenGuid), cancellationToken);
             if (token != null)
                 tokens.Add(token);
         }
@@ -64,16 +73,25 @@ public class RedisRefreshTokenRepository : IRefreshTokenRepository
     public async Task AddAsync(RefreshToken refreshToken, CancellationToken cancellationToken = default)
     {
         var key = RedisKeyHelper.IamRefreshToken(refreshToken.Id);
-        var json = JsonSerializer.Serialize(refreshToken);
-        await _db.StringSetAsync(key, json);
+        var json = JsonSerializer.Serialize(refreshToken, JsonOptions);
+        var ttl = refreshToken.ExpiresAt - DateTimeOffset.UtcNow;
+        if (ttl <= TimeSpan.Zero)
+            ttl = TimeSpan.FromMinutes(1);
 
-        var userKey = RedisKeyHelper.IamUser(refreshToken.UserId);
-        await _db.SetAddAsync(userKey, refreshToken.Id.Value.ToString());
+        await _db.StringSetAsync(key, json, ttl);
+        await _db.SetAddAsync(RedisKeyHelper.IamUserRefreshTokens(refreshToken.UserId), refreshToken.Id.Value.ToString());
+        await _db.StringSetAsync(RedisKeyHelper.IamRefreshTokenByHash(refreshToken.TokenHash), refreshToken.Id.Value.ToString(), ttl);
     }
 
     public async Task UpdateAsync(RefreshToken refreshToken, CancellationToken cancellationToken = default)
     {
         await AddAsync(refreshToken, cancellationToken);
+
+        // If the token is no longer usable, remove hash lookup to prevent replay/use.
+        if (refreshToken.IsRevoked || refreshToken.IsExpired)
+        {
+            await _db.KeyDeleteAsync(RedisKeyHelper.IamRefreshTokenByHash(refreshToken.TokenHash));
+        }
     }
 
     public async Task DeleteAsync(RefreshTokenId id, CancellationToken cancellationToken = default)
@@ -81,10 +99,8 @@ public class RedisRefreshTokenRepository : IRefreshTokenRepository
         var token = await GetAsync(id, cancellationToken);
         if (token == null) return;
 
-        var key = RedisKeyHelper.IamRefreshToken(id);
-        await _db.KeyDeleteAsync(key);
-
-        var userKey = RedisKeyHelper.IamUser(token.UserId);
-        await _db.SetRemoveAsync(userKey, id.Value.ToString());
+        await _db.KeyDeleteAsync(RedisKeyHelper.IamRefreshToken(id));
+        await _db.KeyDeleteAsync(RedisKeyHelper.IamRefreshTokenByHash(token.TokenHash));
+        await _db.SetRemoveAsync(RedisKeyHelper.IamUserRefreshTokens(token.UserId), id.Value.ToString());
     }
 }

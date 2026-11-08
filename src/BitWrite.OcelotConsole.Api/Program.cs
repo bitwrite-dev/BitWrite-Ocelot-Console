@@ -4,6 +4,7 @@ using BitWrite.OcelotConsole.Application.Events;
 using BitWrite.OcelotConsole.Application.UseCases.Audit;
 using BitWrite.OcelotConsole.Application.UseCases.Gateway;
 using BitWrite.OcelotConsole.Application.UseCases.GlobalConfiguration;
+using BitWrite.OcelotConsole.Application.UseCases.Identity;
 using BitWrite.OcelotConsole.Application.UseCases.License;
 using BitWrite.OcelotConsole.Application.UseCases.Plugin;
 using BitWrite.OcelotConsole.Application.UseCases.Publication;
@@ -23,9 +24,11 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
 using AppInterfaces = BitWrite.OcelotConsole.Application.Interfaces;
 using DomainServices = BitWrite.OcelotConsole.Domain.Services;
+using Infra = BitWrite.OcelotConsole.Infrastructure;
 using InfraAdapters = BitWrite.OcelotConsole.Infrastructure.Adapters;
 using RuntimeAdapters = BitWrite.OcelotConsole.Runtime.Adapters;
 
@@ -136,19 +139,24 @@ namespace BitWrite.OcelotConsole.Api
             builder.Services.AddScoped<AppInterfaces.IDeliveryAttemptRepository, RedisDeliveryAttemptRepository>();
             builder.Services.AddScoped<AppInterfaces.IPublicationProgressRepository, RedisPublicationProgressRepository>();
             builder.Services.AddScoped<AppInterfaces.IRuntimeConfigurationRepository, RedisRuntimeConfigurationRepository>();
-            builder.Services.AddScoped<AppInterfaces.ISessionRepository, RedisSessionRepository>();
+            builder.Services.AddScoped<AppInterfaces.ISessionRepository, BitWrite.OcelotConsole.Infrastructure.Repositories.RedisSessionRepository>();
             builder.Services.AddScoped<AppInterfaces.IRefreshTokenRepository, RedisRefreshTokenRepository>();
             builder.Services.AddScoped<AppInterfaces.IUserRepository, RedisUserRepository>();
             builder.Services.AddScoped<AppInterfaces.IRoleRepository, RedisRoleRepository>();
 
-            // IOcelotConfigApplier Implementation (Infrastructure.Adapters - real impl with Redis/File providers)
-            builder.Services.AddSingleton<InfraAdapters.IConfigurationProvider, InfraAdapters.RedisConfigurationProvider>();
-            builder.Services.AddSingleton<AppInterfaces.IOcelotConfigApplier, InfraAdapters.OcelotConfigApplier>();
+            // Security Service for JWT, tokens, sessions, etc.
+            builder.Services.AddScoped<AppInterfaces.ISecurityService, BitWrite.OcelotConsole.Infrastructure.Services.SecurityService>();
+
+            // Token Blacklist Repository
+            builder.Services.AddScoped<AppInterfaces.ITokenBlacklistRepository, RedisTokenBlacklistRepository>();
 
             // JsonEventSerializer is stateless, so the interface mapping is a singleton.
-            builder.Services.AddSingleton<JsonEventSerializer>();
-            builder.Services.AddSingleton<IEventSerializer, JsonEventSerializer>();
+            builder.Services.AddSingleton<BitWrite.OcelotConsole.Infrastructure.Outbox.IEventSerializer, JsonEventSerializer>();
             builder.Services.AddScoped<AppInterfaces.IEventSerializer, EventSerializerAdapter>();
+
+            // Runtime/config application adapters required by some handlers (e.g. reconcile).
+            builder.Services.AddSingleton<InfraAdapters.IConfigurationProvider, InfraAdapters.RedisConfigurationProvider>();
+            builder.Services.AddSingleton<AppInterfaces.IOcelotConfigApplier, InfraAdapters.OcelotConfigApplier>();
 
             // System Settings Handlers
             builder.Services.AddScoped<SystemSettingsCommandHandler>();
@@ -231,6 +239,14 @@ namespace BitWrite.OcelotConsole.Api
             builder.Services.AddScoped<GetAuditLogsQueryHandler>();
             builder.Services.AddScoped<GetAuditLogByIdQueryHandler>();
             builder.Services.AddScoped<GetAuditStatsQueryHandler>();
+
+            // Identity UseCase Handlers (session/refresh token management)
+            builder.Services.AddScoped<CreateSessionCommandHandler>();
+            builder.Services.AddScoped<RefreshAccessTokenCommandHandler>();
+            builder.Services.AddScoped<RevokeSessionCommandHandler>();
+            builder.Services.AddScoped<RevokeRefreshTokenCommandHandler>();
+            builder.Services.AddScoped<GetUserSessionsQueryHandler>();
+            builder.Services.AddScoped<RotateRefreshTokenCommandHandler>();
             // Gateway UseCase Handlers
             builder.Services.AddScoped<RegisterGatewayCommandHandler>();
             builder.Services.AddScoped<GetGatewayQueryHandler>();
