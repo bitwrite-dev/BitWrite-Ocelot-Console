@@ -22,6 +22,11 @@ public interface IAtomicOperationService
     Task<long> DecrementAsync(string key, long delta = 1, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets a value. Used for read checks where atomic mutation is not required.
+    /// </summary>
+    Task<string?> GetAsync(string key, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Atomically gets and sets a value. Returns the previous value.
     /// </summary>
     Task<string?> GetAndSetAsync(string key, string value, CancellationToken cancellationToken = default);

@@ -35,6 +35,12 @@ public class RedisAtomicOperationService : IAtomicOperationService
         return await _database.StringDecrementAsync(key, delta);
     }
 
+    public async Task<string?> GetAsync(string key, CancellationToken cancellationToken = default)
+    {
+        var result = await _database.StringGetAsync(key);
+        return result.IsNullOrEmpty ? (string?)null : result.ToString();
+    }
+
     /// <summary>
     /// Atomically gets and sets a value. Returns the previous value.
     /// Uses Redis GETSET which is atomic at the server level.

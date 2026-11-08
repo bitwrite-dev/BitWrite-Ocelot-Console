@@ -109,4 +109,13 @@ public static class RedisKeyHelper
 
     /// <summary>Token blacklist key: <c>ocelot:iam:v1:blacklist:{tokenHash}</c> (§8).</summary>
     public static string IamTokenBlacklist(string tokenHash) => $"{IamNamespace}:blacklist:{tokenHash}";
+
+    /// <summary>IAM bootstrap completion marker: <c>ocelot:iam:v1:bootstrap:completed</c>.</summary>
+    public static string IamBootstrapCompleted => $"{IamNamespace}:bootstrap:completed";
+
+    /// <summary>IAM bootstrap distributed lock resource name.</summary>
+    public static string IamBootstrapLock => $"{IamNamespace}:bootstrap";
+
+    /// <summary>IAM local credential key: <c>ocelot:iam:v1:credential:{userId}</c>.</summary>
+    public static string IamLocalCredential(UserId id) => $"{IamNamespace}:credential:{id.Value}";
 }
