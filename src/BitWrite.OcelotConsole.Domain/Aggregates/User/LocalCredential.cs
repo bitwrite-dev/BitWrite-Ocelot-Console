@@ -22,6 +22,8 @@ public sealed class LocalCredential
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset? LastChangedAt { get; private set; }
     public DateTimeOffset? LastAuthenticatedAt { get; private set; }
+    /// <summary>Bootstrap-created credentials may require the administrator to establish a new secure password.</summary>
+    public bool MustChangePassword { get; private set; }
 
     public IReadOnlyList<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
@@ -34,7 +36,8 @@ public sealed class LocalCredential
         UserId userId,
         string plainTextPassword,
         PasswordHash passwordHash,
-        string correlationId = "")
+        string correlationId = "",
+        bool mustChangePassword = false)
     {
         if (string.IsNullOrWhiteSpace(plainTextPassword))
             throw new DomainException("Plain text password cannot be empty", "INVALID_PASSWORD");
@@ -49,7 +52,8 @@ public sealed class LocalCredential
             FailedLoginAttempts = 0,
             LockedOutUntil = null,
             CreatedAt = DateTimeOffset.UtcNow,
-            LastAuthenticatedAt = null
+            LastAuthenticatedAt = null,
+            MustChangePassword = mustChangePassword
         };
 
         credential.AddDomainEvent(new LocalCredentialCreated(userId, correlationId));
@@ -71,6 +75,7 @@ public sealed class LocalCredential
         LastChangedAt = DateTimeOffset.UtcNow;
         FailedLoginAttempts = 0;
         LockedOutUntil = null;
+        MustChangePassword = false;
 
         AddDomainEvent(new LocalCredentialChanged(UserId, changedBy, correlationId));
     }
@@ -117,6 +122,7 @@ public sealed class LocalCredential
         LastChangedAt = DateTimeOffset.UtcNow;
         FailedLoginAttempts = 0;
         LockedOutUntil = null;
+        MustChangePassword = false;
 
         AddDomainEvent(new LocalCredentialReset(UserId, resetBy, correlationId));
     }

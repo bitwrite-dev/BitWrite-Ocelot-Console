@@ -4,7 +4,9 @@
 **Status:** In Progress  
 **Total Tasks:** 26  
 **Completed:** 8  
-**Pending:** 18  
+**In Review:** 2  
+**In Progress:** 1  
+**Pending:** 15  
 **Critical:** 7 | **Important:** 8 | **Deferred:** 11  
 
 ---
@@ -27,9 +29,9 @@
 | T-12 | Audit All User Management Operations | Application | Important | Todo | T-01 | #634 | 2 days | - |
 | T-13 | Role Assignment to User - RBAC Integration | Application | Important | Todo | T-01 | #631 | 3 days | - |
 | T-14 | Default-deny Authorization | Application | Important | Todo | T-01 | #632 | 2 days | - |
-| T-15 | Session and Refresh Token Management | Infrastructure | Important | Todo | T-01 | #647 | 4 days | - |
-| T-16 | MFA Architecture Readiness (TOTP-ready) | Architecture | Deferred | Todo | - | #638 | 2 days | - |
-| T-17 | Bootstrap & Initial Administrator | Infrastructure | Deferred | Todo | T-01 | #639 | 4 days | - |
+| T-15 | Session and Refresh Token Management | Infrastructure | Important | In Review | T-01 | #647 | 4 days | #664 |
+| T-16 | MFA Architecture Readiness (TOTP-ready) | Architecture | Deferred | In Review | - | #638 | 2 days | #665 |
+| T-17 | Bootstrap & Initial Administrator | Infrastructure | Deferred | In Progress | T-01 | #639 | 4 days | - |
 | T-18 | Permission Catalog Definition | Documentation | Deferred | Todo | - | #640 | 2 days | - |
 | T-19 | External Authentication Plugin Contract | Application/Infrastructure | Deferred | Todo | T-01 | #641 | 5 days | - |
 | T-20 | Domain Model - User, LocalCredential, ExternalIdentity | Domain | Deferred | Todo | T-01 | #642 | 3 days | - |
@@ -65,13 +67,13 @@
 | T-12 | Audit All Operations | Application | Todo | #634 | - |
 | T-13 | Role Assignment | Application | Todo | #631 | - |
 | T-14 | Default-deny Authorization | Application | Todo | #632 | - |
-| T-15 | Session & Refresh Token Mgmt | Infrastructure | Todo | #647 | - |
+| T-15 | Session & Refresh Token Mgmt | Infrastructure | In Review | #647 | #664 |
 
 ### 🟡 Deferred (11 tasks) - Do after Important
 | ID | Title | Type | Status | Issue | PR |
 |----|-------|------|--------|-------|-----|
-| T-16 | MFA Architecture Readiness | Architecture | Todo | #638 | - |
-| T-17 | Bootstrap & Initial Admin | Infrastructure | Todo | #639 | - |
+| T-16 | MFA Architecture Readiness | Architecture | In Review | #638 | #665 |
+| T-17 | Bootstrap & Initial Admin | Infrastructure | In Progress | #639 | - |
 | T-18 | Permission Catalog | Documentation | Todo | #640 | - |
 | T-19 | External Auth Plugin Contract | Application/Infrastructure | Todo | #641 | - |
 | T-20 | Domain Model - User, LocalCredential, ExternalIdentity | Domain | Todo | #642 | - |
@@ -133,7 +135,7 @@ T-01 (User Model) ──→ T-02 (Password Hashing) ──→ T-03 (Auth Throttl
 | T-13 | Role Assignment | Application | Todo |
 | T-14 | Default-deny Authorization | Application | Todo |
 | T-11 | Session Revocation | Application | Todo |
-| T-15 | Session & Refresh Token Mgmt | Infrastructure | Todo |
+| T-15 | Session & Refresh Token Mgmt | Infrastructure | In Review |
 
 ### Sprint 5 - Audit & Observability (Week 9)
 | ID | Title | Type | Status |
@@ -143,8 +145,8 @@ T-01 (User Model) ──→ T-02 (Password Hashing) ──→ T-03 (Auth Throttl
 ### Sprint 6 - Deferred Features (Week 10+)
 | ID | Title | Type | Status |
 |----|-------|------|--------|
-| T-16 | MFA Architecture Readiness | Architecture | Todo |
-| T-17 | Bootstrap & Initial Admin | Infrastructure | Todo |
+| T-16 | MFA Architecture Readiness | Architecture | In Review |
+| T-17 | Bootstrap & Initial Admin | Infrastructure | In Progress |
 | T-18 | Permission Catalog | Documentation | Todo |
 | T-19 | External Auth Plugin Contract | Application/Infrastructure | Todo |
 | T-20 | Domain Model Details | Domain | Todo |

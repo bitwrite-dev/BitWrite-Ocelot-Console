@@ -1,3 +1,4 @@
+using BitWrite.OcelotConsole.Api.HostedServices;
 using BitWrite.OcelotConsole.Api.Middleware;
 using BitWrite.OcelotConsole.Api.Validators;
 using BitWrite.OcelotConsole.Application.Events;
@@ -5,6 +6,7 @@ using BitWrite.OcelotConsole.Application.UseCases.Audit;
 using BitWrite.OcelotConsole.Application.UseCases.Gateway;
 using BitWrite.OcelotConsole.Application.UseCases.GlobalConfiguration;
 using BitWrite.OcelotConsole.Application.UseCases.Identity;
+using BitWrite.OcelotConsole.Application.UseCases.Identity.Bootstrap;
 using BitWrite.OcelotConsole.Application.UseCases.License;
 using BitWrite.OcelotConsole.Application.UseCases.Plugin;
 using BitWrite.OcelotConsole.Application.UseCases.Publication;
@@ -140,6 +142,7 @@ namespace BitWrite.OcelotConsole.Api
             builder.Services.AddScoped<AppInterfaces.IPublicationProgressRepository, RedisPublicationProgressRepository>();
             builder.Services.AddScoped<AppInterfaces.IRuntimeConfigurationRepository, RedisRuntimeConfigurationRepository>();
             builder.Services.AddScoped<AppInterfaces.ISessionRepository, BitWrite.OcelotConsole.Infrastructure.Repositories.RedisSessionRepository>();
+            builder.Services.AddScoped<AppInterfaces.ILocalCredentialRepository, RedisLocalCredentialRepository>();
             builder.Services.AddScoped<AppInterfaces.IRefreshTokenRepository, RedisRefreshTokenRepository>();
             builder.Services.AddScoped<AppInterfaces.IUserRepository, RedisUserRepository>();
             builder.Services.AddScoped<AppInterfaces.IRoleRepository, RedisRoleRepository>();
@@ -247,6 +250,12 @@ namespace BitWrite.OcelotConsole.Api
             builder.Services.AddScoped<RevokeRefreshTokenCommandHandler>();
             builder.Services.AddScoped<GetUserSessionsQueryHandler>();
             builder.Services.AddScoped<RotateRefreshTokenCommandHandler>();
+
+            // IAM bootstrap (T-17): deployment-supplied secure config only; no default credentials.
+            var bootstrapOptions = builder.Configuration.GetSection("Iam:BootstrapInitialAdmin").Get<BootstrapInitialAdminOptions>() ?? new BootstrapInitialAdminOptions();
+            builder.Services.AddSingleton(bootstrapOptions);
+            builder.Services.AddScoped<BootstrapInitialAdminCommandHandler>();
+            builder.Services.AddHostedService<BootstrapInitialAdminHostedService>();
             // Gateway UseCase Handlers
             builder.Services.AddScoped<RegisterGatewayCommandHandler>();
             builder.Services.AddScoped<GetGatewayQueryHandler>();
