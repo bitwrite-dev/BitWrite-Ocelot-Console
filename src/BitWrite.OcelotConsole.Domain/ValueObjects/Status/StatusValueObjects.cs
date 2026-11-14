@@ -304,3 +304,38 @@ public record UserStatus : ValueObject
 
     public static implicit operator string(UserStatus status) => status.Value;
 }
+
+public record RoleStatus : ValueObject
+{
+    public string Value { get; init; }
+
+    private RoleStatus(string value)
+    {
+        Value = value;
+    }
+
+    public static RoleStatus Active => new("Active");
+    public static RoleStatus Inactive => new("Inactive");
+
+    public static RoleStatus From(string value)
+    {
+        return value switch
+        {
+            "Active" => Active,
+            "Inactive" => Inactive,
+            _ => throw new DomainException($"Invalid RoleStatus: {value}", "INVALID_ROLE_STATUS")
+        };
+    }
+
+    public bool IsActive => Value == "Active";
+    public bool IsInactive => Value == "Inactive";
+
+    protected override IEnumerable<object> GetEqualityComponents()
+    {
+        yield return Value;
+    }
+
+    public override string ToString() => Value;
+
+    public static implicit operator string(RoleStatus status) => status.Value;
+}

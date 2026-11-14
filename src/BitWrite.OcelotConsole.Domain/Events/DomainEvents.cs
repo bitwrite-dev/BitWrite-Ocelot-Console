@@ -130,6 +130,9 @@ public record ExternalIdentityAuthenticated(UserId UserId, Guid ExternalIdentity
 // Role events (§6.2)
 public record RoleCreated(RoleId RoleId, string Name, string CreatedBy, string _CorrelationId) : DomainEvent;
 public record RoleUpdated(RoleId RoleId, string Name, string Description, string UpdatedBy, string _CorrelationId) : DomainEvent;
+public record RoleRenamed(RoleId RoleId, string OldName, string NewName, string UpdatedBy, string _CorrelationId) : DomainEvent;
+public record RoleActivated(RoleId RoleId, string ActivatedBy, string _CorrelationId) : DomainEvent;
+public record RoleDeactivated(RoleId RoleId, string DeactivatedBy, string _CorrelationId) : DomainEvent;
 public record PermissionAddedToRole(RoleId RoleId, string Permission, string UpdatedBy, string _CorrelationId) : DomainEvent;
 public record PermissionRemovedFromRole(RoleId RoleId, string Permission, string UpdatedBy, string _CorrelationId) : DomainEvent;
 

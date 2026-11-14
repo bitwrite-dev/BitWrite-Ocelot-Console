@@ -1,6 +1,7 @@
 using BitWrite.OcelotConsole.Domain.Events;
 using BitWrite.OcelotConsole.Domain.Exceptions;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
+using BitWrite.OcelotConsole.Domain.ValueObjects.Status;
 
 namespace BitWrite.OcelotConsole.Domain.Aggregates.Role;
 
@@ -8,9 +9,11 @@ namespace BitWrite.OcelotConsole.Domain.Aggregates.Role;
 /// Role Aggregate - Represents a role in the RBAC system (§6.2).
 /// </summary>
 /// <remarks>
-/// A Role contains one or more Permissions. Users are assigned Roles via UserRoleAssignment.
-/// Roles are managed by operators/administrators.
-/// </summary>
+/// A Role is an assignment mechanism that groups permission references.
+/// Canonical identity is <see cref="RoleId"/>; <see cref="Name"/> is the unique technical,
+/// JWT-facing role name. Active/Inactive lifecycle affects authorization eligibility;
+/// user-role assignments are managed outside this aggregate and are not removed on deactivation.
+/// </remarks>
 public sealed class Role
 {
     private readonly List<DomainEvent> _domainEvents = new();
@@ -20,18 +23,17 @@ public sealed class Role
     public string Name { get; private set; } = null!;
     public string Description { get; private set; } = string.Empty;
     public bool IsSystemRole { get; private set; }
+    public RoleStatus Status { get; private set; } = RoleStatus.Active;
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public string? UpdatedBy { get; private set; }
 
     public IReadOnlyList<string> Permissions => _permissions.AsReadOnly();
     public IReadOnlyList<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+    public bool IsActive => Status.IsActive;
 
     private Role() { }
 
-    /// <summary>
-    /// Creates a new Role (§6.2).
-    /// </summary>
     public static Role Create(
         RoleId id,
         string name,
@@ -39,12 +41,7 @@ public sealed class Role
         string createdBy,
         string correlationId = "")
     {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new DomainException("Role name cannot be empty", "INVALID_ROLE_NAME");
-
-        var normalizedName = name.Trim().ToLowerInvariant();
-        if (normalizedName.Length < 3)
-            throw new DomainException("Role name must be at least 3 characters", "ROLE_NAME_TOO_SHORT");
+        var normalizedName = NormalizeName(name);
 
         var role = new Role
         {
@@ -52,6 +49,7 @@ public sealed class Role
             Name = normalizedName,
             Description = description?.Trim() ?? string.Empty,
             IsSystemRole = false,
+            Status = RoleStatus.Active,
             CreatedAt = DateTimeOffset.UtcNow
         };
 
@@ -60,53 +58,113 @@ public sealed class Role
     }
 
     /// <summary>
-    /// Adds a permission to the role (§6.2).
+    /// Renames the role. Allowed only when no stored permission references exist.
+    /// </summary>
+    /// <remarks>
+    /// The check is based on stored permission references (including retained historical
+    /// references), not on active/effective catalog permissions.
+    /// </remarks>
+    public void Rename(string newName, string updatedBy, string correlationId = "")
+    {
+        var normalizedName = NormalizeName(newName);
+
+        if (_permissions.Count > 0)
+            throw new DomainException(
+                "Role name cannot be changed while the role has stored permission references",
+                "ROLE_RENAME_NOT_ALLOWED");
+
+        if (string.Equals(Name, normalizedName, StringComparison.Ordinal))
+            return;
+
+        var oldName = Name;
+        Name = normalizedName;
+        MarkUpdated(updatedBy);
+        AddDomainEvent(new RoleRenamed(Id, oldName, normalizedName, updatedBy, correlationId));
+    }
+
+    public void Activate(string activatedBy, string correlationId = "")
+    {
+        if (Status.IsActive)
+            throw new DomainException("Role is already active", "ROLE_ALREADY_ACTIVE");
+
+        Status = RoleStatus.Active;
+        MarkUpdated(activatedBy);
+        AddDomainEvent(new RoleActivated(Id, activatedBy, correlationId));
+    }
+
+    public void Deactivate(string deactivatedBy, string correlationId = "")
+    {
+        if (Status.IsInactive)
+            throw new DomainException("Role is already inactive", "ROLE_ALREADY_INACTIVE");
+
+        Status = RoleStatus.Inactive;
+        MarkUpdated(deactivatedBy);
+        AddDomainEvent(new RoleDeactivated(Id, deactivatedBy, correlationId));
+    }
+
+    /// <summary>
+    /// Adds a stored permission reference to the role.
     /// </summary>
     public void AddPermission(string permission, string updatedBy, string correlationId = "")
     {
-        if (string.IsNullOrWhiteSpace(permission))
-            throw new DomainException("Permission cannot be empty", "INVALID_PERMISSION");
-
-        var normalizedPermission = permission.Trim().ToLowerInvariant();
+        var normalizedPermission = NormalizePermission(permission);
         if (_permissions.Contains(normalizedPermission))
-            throw new DomainException($"Permission {normalizedPermission} is already assigned to role", "PERMISSION_ALREADY_ASSIGNED");
+            throw new DomainException(
+                $"Permission {normalizedPermission} is already assigned to role",
+                "PERMISSION_ALREADY_ASSIGNED");
 
         _permissions.Add(normalizedPermission);
-        UpdatedAt = DateTimeOffset.UtcNow;
-        UpdatedBy = updatedBy;
-
+        MarkUpdated(updatedBy);
         AddDomainEvent(new PermissionAddedToRole(Id, normalizedPermission, updatedBy, correlationId));
     }
 
     /// <summary>
-    /// Removes a permission from the role (§6.2).
+    /// Removes a stored permission reference from the role.
     /// </summary>
     public void RemovePermission(string permission, string updatedBy, string correlationId = "")
+    {
+        var normalizedPermission = NormalizePermission(permission);
+        if (!_permissions.Contains(normalizedPermission))
+            throw new DomainException(
+                $"Permission {normalizedPermission} is not assigned to role",
+                "PERMISSION_NOT_ASSIGNED");
+
+        _permissions.Remove(normalizedPermission);
+        MarkUpdated(updatedBy);
+        AddDomainEvent(new PermissionRemovedFromRole(Id, normalizedPermission, updatedBy, correlationId));
+    }
+
+    public void UpdateDescription(string? description, string updatedBy, string correlationId = "")
+    {
+        Description = description?.Trim() ?? string.Empty;
+        MarkUpdated(updatedBy);
+        AddDomainEvent(new RoleUpdated(Id, Name, Description, updatedBy, correlationId));
+    }
+
+    private static string NormalizeName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new DomainException("Role name cannot be empty", "INVALID_ROLE_NAME");
+
+        var normalizedName = name.Trim().ToLowerInvariant();
+        if (normalizedName.Length < 3)
+            throw new DomainException("Role name must be at least 3 characters", "ROLE_NAME_TOO_SHORT");
+
+        return normalizedName;
+    }
+
+    private static string NormalizePermission(string permission)
     {
         if (string.IsNullOrWhiteSpace(permission))
             throw new DomainException("Permission cannot be empty", "INVALID_PERMISSION");
 
-        var normalizedPermission = permission.Trim().ToLowerInvariant();
-        if (!_permissions.Contains(normalizedPermission))
-            throw new DomainException($"Permission {normalizedPermission} is not assigned to role", "PERMISSION_NOT_ASSIGNED");
-
-        _permissions.Remove(normalizedPermission);
-        UpdatedAt = DateTimeOffset.UtcNow;
-        UpdatedBy = updatedBy;
-
-        AddDomainEvent(new PermissionRemovedFromRole(Id, normalizedPermission, updatedBy, correlationId));
+        return permission.Trim().ToLowerInvariant();
     }
 
-    /// <summary>
-    /// Updates the role description.
-    /// </summary>
-    public void UpdateDescription(string? description, string updatedBy, string correlationId = "")
+    private void MarkUpdated(string updatedBy)
     {
-        Description = description?.Trim();
         UpdatedAt = DateTimeOffset.UtcNow;
         UpdatedBy = updatedBy;
-
-        AddDomainEvent(new RoleUpdated(Id, Name, description, updatedBy, correlationId));
     }
 
     private void AddDomainEvent(DomainEvent domainEvent)
