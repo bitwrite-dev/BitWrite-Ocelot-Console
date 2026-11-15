@@ -7,6 +7,7 @@ public interface IRoleRepository
 {
     Task<RoleEntity?> GetByIdAsync(RoleId id, CancellationToken cancellationToken = default);
     Task<RoleEntity?> GetByNameAsync(string name, CancellationToken cancellationToken = default);
+    Task<RoleId?> GetIdByNameAsync(string name, CancellationToken cancellationToken = default);
     Task<List<RoleEntity>> GetAllAsync(CancellationToken cancellationToken = default);
     Task AddAsync(RoleEntity role, CancellationToken cancellationToken = default);
     Task UpdateAsync(RoleEntity role, CancellationToken cancellationToken = default);

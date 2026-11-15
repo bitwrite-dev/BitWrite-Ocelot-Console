@@ -149,30 +149,32 @@ public sealed class User
     }
 
     /// <summary>
-    /// Assigns a role to the user (§6.2).
+    /// Assigns a role to the user by canonical RoleId (§6.2).
     /// </summary>
-    public void AssignRole(string roleId, string correlationId = "")
+    public void AssignRole(RoleId roleId, string correlationId = "")
     {
         if (Status == UserStatus.Disabled)
             throw new DomainException("Cannot assign role to disabled user", "USER_DISABLED");
 
-        if (_roleIds.Contains(roleId))
-            throw new DomainException($"Role {roleId} is already assigned to user", "ROLE_ALREADY_ASSIGNED");
+        var roleIdValue = roleId.Value;
+        if (_roleIds.Contains(roleIdValue))
+            throw new DomainException($"Role {roleIdValue} is already assigned to user", "ROLE_ALREADY_ASSIGNED");
 
-        _roleIds.Add(roleId);
-        AddDomainEvent(new RoleAssignedToUser(Id, roleId, correlationId));
+        _roleIds.Add(roleIdValue);
+        AddDomainEvent(new RoleAssignedToUser(Id, roleIdValue, correlationId));
     }
 
     /// <summary>
-    /// Removes a role from the user (§6.2).
+    /// Removes a role assignment from the user by canonical RoleId (§6.2).
     /// </summary>
-    public void RemoveRole(string roleId, string correlationId = "")
+    public void RemoveRole(RoleId roleId, string correlationId = "")
     {
-        if (!_roleIds.Contains(roleId))
-            throw new DomainException($"Role {roleId} is not assigned to user", "ROLE_NOT_ASSIGNED");
+        var roleIdValue = roleId.Value;
+        if (!_roleIds.Contains(roleIdValue))
+            throw new DomainException($"Role {roleIdValue} is not assigned to user", "ROLE_NOT_ASSIGNED");
 
-        _roleIds.Remove(roleId);
-        AddDomainEvent(new RoleRemovedFromUser(Id, roleId, correlationId));
+        _roleIds.Remove(roleIdValue);
+        AddDomainEvent(new RoleRemovedFromUser(Id, roleIdValue, correlationId));
     }
 
     /// <summary>

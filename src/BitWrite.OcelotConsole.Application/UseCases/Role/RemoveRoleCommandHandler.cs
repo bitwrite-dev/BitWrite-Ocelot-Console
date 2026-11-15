@@ -32,7 +32,7 @@ public class RemoveRoleCommandHandler
         if (role == null)
             throw new DomainException($"Role {command.RoleId} not found", "ROLE_NOT_FOUND");
 
-        user.RemoveRole(role.Name, command.CorrelationId);
+        user.RemoveRole(role.Id, command.CorrelationId);
 
         await _userRepository.UpdateAsync(user, cancellationToken);
 

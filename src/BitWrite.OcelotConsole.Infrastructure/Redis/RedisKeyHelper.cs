@@ -104,8 +104,14 @@ public static class RedisKeyHelper
     /// <summary>Role key: <c>ocelot:iam:v1:role:{roleId}</c> (§6.2).</summary>
     public static string IamRole(RoleId id) => $"{IamNamespace}:role:{id.Value}";
 
+    /// <summary>Normalized unique RoleName index key: <c>ocelot:iam:v1:role:by-name:{normalizedName}</c>.</summary>
+    public static string IamRoleByName(string normalizedName) =>
+        $"{IamNamespace}:role:by-name:{NormalizeRoleName(normalizedName)}";
+
     /// <summary>Roles index key: <c>ocelot:iam:v1:roles</c>.</summary>
     public static string IndexRoles => $"{IamNamespace}:roles";
+
+    public static string NormalizeRoleName(string name) => name.Trim().ToLowerInvariant();
 
     /// <summary>Token blacklist key: <c>ocelot:iam:v1:blacklist:{tokenHash}</c> (§8).</summary>
     public static string IamTokenBlacklist(string tokenHash) => $"{IamNamespace}:blacklist:{tokenHash}";

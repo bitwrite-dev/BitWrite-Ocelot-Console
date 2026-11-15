@@ -80,20 +80,57 @@ public class RefreshAccessTokenCommandHandler
     private async Task<List<string>> ResolveRoleNamesAsync(BitWrite.OcelotConsole.Domain.Aggregates.User.User user, CancellationToken cancellationToken)
     {
         var roles = new List<string>();
-        foreach (var roleName in user.RoleIds.Distinct(StringComparer.OrdinalIgnoreCase))
+        var changed = false;
+
+        foreach (var roleRef in user.RoleIds.Distinct(StringComparer.OrdinalIgnoreCase).ToList())
         {
-            if (string.IsNullOrWhiteSpace(roleName))
+            if (string.IsNullOrWhiteSpace(roleRef))
                 continue;
 
-            var role = await _roleRepository.GetByNameAsync(roleName, cancellationToken);
+            BitWrite.OcelotConsole.Domain.Aggregates.Role.Role? role = null;
+            RoleId? resolvedId = null;
+
+            try
+            {
+                var asId = RoleId.From(roleRef);
+                role = await _roleRepository.GetByIdAsync(asId, cancellationToken);
+                if (role is not null)
+                    resolvedId = asId;
+            }
+            catch { /* legacy/non-id ref */ }
+
+            if (role is null)
+            {
+                var mappedId = await _roleRepository.GetIdByNameAsync(roleRef, cancellationToken);
+                if (mappedId is not null)
+                {
+                    role = await _roleRepository.GetByIdAsync(mappedId, cancellationToken);
+                    resolvedId = mappedId;
+                }
+            }
+
             if (role is not null)
+            {
                 roles.Add(role.Name);
-            else
-                roles.Add(roleName);
+                if (resolvedId is not null && !string.Equals(roleRef, resolvedId.Value, StringComparison.Ordinal))
+                {
+                    // Best-effort idempotent migration of legacy name refs to RoleId.
+                    if (!user.RoleIds.Contains(resolvedId.Value))
+                    {
+                        try { user.AssignRole(resolvedId, string.Empty); changed = true; } catch { }
+                    }
+                }
+                continue;
+            }
+
+            // Unmappable/orphaned ref: do not escalate privileges; skip issuing claim for it.
         }
+
+        if (changed)
+            await _userRepository.UpdateAsync(user, cancellationToken);
 
         if (roles.Count == 0)
             roles.Add("operator");
-        return roles;
+        return roles.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
 }
