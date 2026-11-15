@@ -111,7 +111,7 @@ public class SettingsController : BaseApiController
     /// them, and has no update path.
     /// </summary>
     [HttpPut]
-    [Authorize(Policy = "Admin")]
+    [Authorize]
     [ProducesResponseType(typeof(SystemSettingsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<SystemSettingsResponse>> Update(
