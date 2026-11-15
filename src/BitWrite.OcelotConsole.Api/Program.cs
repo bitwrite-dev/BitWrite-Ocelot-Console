@@ -149,9 +149,12 @@ namespace BitWrite.OcelotConsole.Api
             builder.Services.AddSingleton<BitWrite.OcelotConsole.Application.Permissions.IPermissionCatalog>(
                 new BitWrite.OcelotConsole.Application.Permissions.SourceCodePermissionCatalog(
                     BitWrite.OcelotConsole.Application.Permissions.BitWritePermissionCatalogDefinitions.All));
+            builder.Services.AddScoped<BitWrite.OcelotConsole.Application.Permissions.IEffectivePermissionResolver, BitWrite.OcelotConsole.Application.Permissions.EffectivePermissionResolver>();
 
             // Security Service for JWT, tokens, sessions, etc.
             builder.Services.AddScoped<AppInterfaces.ISecurityService, BitWrite.OcelotConsole.Infrastructure.Services.SecurityService>();
+            builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, BitWrite.OcelotConsole.Api.Authorization.CurrentStatePermissionAuthorizationHandler>();
+            builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationPolicyProvider, BitWrite.OcelotConsole.Api.Authorization.PermissionAuthorizationPolicyProvider>();
 
             // Token Blacklist Repository
             builder.Services.AddScoped<AppInterfaces.ITokenBlacklistRepository, RedisTokenBlacklistRepository>();
@@ -330,10 +333,8 @@ namespace BitWrite.OcelotConsole.Api
 
             builder.Services.AddAuthorization(options =>
             {
-                options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
-                options.AddPolicy("GatewayManager", policy => policy.RequireRole("Admin", "GatewayManager"));
-                options.AddPolicy("RouteManager", policy => policy.RequireRole("Admin", "RouteManager"));
-                options.AddPolicy("SnapshotManager", policy => policy.RequireRole("Admin", "SnapshotManager"));
+                // Legacy role-based policies removed/migrated in IAM-08; permission-based policies (perm:*) are provided dynamically.
+                // Endpoint-to-permission mapping is gated (P-GATE-1/2) and applied in IAM-09/10.
             });
 
             var app = builder.Build();

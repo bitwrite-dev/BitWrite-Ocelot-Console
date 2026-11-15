@@ -8,7 +8,7 @@ namespace BitWrite.OcelotConsole.Api.Controllers;
 /// <summary>
 /// Session and refresh token management endpoints (T-15 / #647).
 /// </summary>
-[Authorize(Policy = "Operator")]
+[Authorize]
 public class IdentityController : BaseApiController
 {
     private readonly CreateSessionCommandHandler _createSession;
