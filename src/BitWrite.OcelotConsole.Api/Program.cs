@@ -256,6 +256,12 @@ namespace BitWrite.OcelotConsole.Api
             builder.Services.AddScoped<RevokeRefreshTokenCommandHandler>();
             builder.Services.AddScoped<GetUserSessionsQueryHandler>();
             builder.Services.AddScoped<RotateRefreshTokenCommandHandler>();
+            builder.Services.Configure<BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions>(
+                builder.Configuration.GetSection(BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions.SectionName));
+            var jitProvisionOptions = builder.Configuration.GetSection(BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions.SectionName)
+                .Get<BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions>() ?? new BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions();
+            builder.Services.AddSingleton(jitProvisionOptions);
+            builder.Services.AddScoped<JitProvisionCommandHandler>();
 
             // IAM bootstrap (T-17): deployment-supplied secure config only; no default credentials.
             var bootstrapOptions = builder.Configuration.GetSection("Iam:BootstrapInitialAdmin").Get<BootstrapInitialAdminOptions>() ?? new BootstrapInitialAdminOptions();
