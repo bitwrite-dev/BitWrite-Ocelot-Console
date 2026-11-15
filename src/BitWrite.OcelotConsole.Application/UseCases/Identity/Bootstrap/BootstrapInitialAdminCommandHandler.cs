@@ -92,7 +92,7 @@ public class BootstrapInitialAdminCommandHandler
             var adminRole = await EnsureAdminRoleAsync(roleName, command.CorrelationId, cancellationToken);
             var userId = UserId.New();
             var user = User.CreateLocal(userId, username, _options.DisplayName, _options.Email, BootstrapActor, command.CorrelationId);
-            user.AssignRole(adminRole.Name, command.CorrelationId);
+            user.AssignRole(adminRole.Id, command.CorrelationId);
 
             var hash = PasswordHash.From(await _passwordHasher.HashPasswordAsync(_options.Password!, cancellationToken), "PBKDF2-SHA256", 10000);
             var credential = LocalCredential.Create(userId, _options.Password!, hash, command.CorrelationId, mustChangePassword: true);
@@ -161,9 +161,9 @@ public class BootstrapInitialAdminCommandHandler
     private async Task EnsureAdminRoleAssignedAsync(User user, string roleName, string correlationId, CancellationToken cancellationToken)
     {
         var role = await EnsureAdminRoleAsync(roleName, correlationId, cancellationToken);
-        if (user.RoleIds.Any(r => string.Equals(r, role.Name, StringComparison.OrdinalIgnoreCase)))
+        if (user.RoleIds.Any(r => string.Equals(r, role.Id.Value, StringComparison.Ordinal)))
             return;
-        user.AssignRole(role.Name, correlationId);
+        user.AssignRole(role.Id, correlationId);
         await _userRepository.UpdateAsync(user, cancellationToken);
         foreach (var domainEvent in user.DomainEvents)
             await _eventDispatcher.DispatchAsync(domainEvent, cancellationToken);

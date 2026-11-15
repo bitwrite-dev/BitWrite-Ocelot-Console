@@ -29,7 +29,7 @@ public class AssignRoleCommandHandler
         if (role == null)
             throw new DomainException($"Role {command.RoleId} not found", "ROLE_NOT_FOUND");
 
-        user.AssignRole(role.Name, command.CorrelationId);
+        user.AssignRole(role.Id, command.CorrelationId);
 
         await _userRepository.UpdateAsync(user, cancellationToken);
 

@@ -10,15 +10,18 @@ public class JitProvisionCommandHandler
 {
     private readonly IUserRepository _userRepository;
     private readonly IExternalIdentityRepository _externalIdentityRepository;
+    private readonly IRoleRepository _roleRepository;
     private readonly IDomainEventDispatcher _eventDispatcher;
 
     public JitProvisionCommandHandler(
         IUserRepository userRepository,
         IExternalIdentityRepository externalIdentityRepository,
+        IRoleRepository roleRepository,
         IDomainEventDispatcher eventDispatcher)
     {
         _userRepository = userRepository;
         _externalIdentityRepository = externalIdentityRepository;
+        _roleRepository = roleRepository;
         _eventDispatcher = eventDispatcher;
     }
 
@@ -80,9 +83,9 @@ public class JitProvisionCommandHandler
         await _externalIdentityRepository.AddAsync(externalIdentity, cancellationToken);
 
         // 4. Assign restricted default Role (§7.2: JIT gets restricted default Role)
-        // Note: Role assignment logic is in T-13. Here we record the intent.
-        // The default Role ID should come from configuration.
-        var defaultRoleId = "restricted-user"; // Placeholder - configured in system settings
+        // Note: default role resolution is finalized in IAM-11; keep safe name-based lookup here.
+        var defaultRoleName = "restricted-user"; // Placeholder - configured in system settings
+        var defaultRoleId = await ResolveDefaultRoleIdAsync(defaultRoleName, cancellationToken);
         user.AssignRole(defaultRoleId, Guid.NewGuid().ToString());
 
         await _userRepository.UpdateAsync(user, cancellationToken);
@@ -109,4 +112,15 @@ public class JitProvisionCommandHandler
             user.RoleIds
         );
     }
+
+    private async Task<RoleId> ResolveDefaultRoleIdAsync(string roleName, CancellationToken cancellationToken)
+    {
+        var mapped = await _roleRepository.GetIdByNameAsync(roleName, cancellationToken);
+        if (mapped is not null)
+            return mapped;
+
+        var role = await _roleRepository.GetByNameAsync(roleName, cancellationToken);
+        return role?.Id ?? RoleId.From(roleName);
+    }
+
 }

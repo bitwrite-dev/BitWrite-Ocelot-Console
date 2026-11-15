@@ -57,7 +57,8 @@ public class SessionRefreshTokenManagementTests
         var oldToken = CreateRefreshToken(userId, "old-hash");
         var newToken = CreateRefreshToken(userId, "new-hash");
         var session = Session.Create(userId, DateTimeOffset.UtcNow.AddHours(1));
-        var user = CreateUser(userId, "admin");
+        var adminRole = RoleEntity.Create(RoleId.From("admin-role-id"), "admin", null, "test");
+        var user = CreateUser(userId, adminRole.Id);
 
         var security = new Mock<ISecurityService>();
         security.Setup(s => s.ComputeSha256Hash("raw-old")).Returns("old-hash");
@@ -76,7 +77,7 @@ public class SessionRefreshTokenManagementTests
         userRepo.Setup(r => r.GetAsync(userId, It.IsAny<CancellationToken>())).ReturnsAsync(user);
 
         var roleRepo = new Mock<IRoleRepository>();
-        roleRepo.Setup(r => r.GetByNameAsync("admin", It.IsAny<CancellationToken>())).ReturnsAsync((RoleEntity?)null);
+        roleRepo.Setup(r => r.GetByIdAsync(adminRole.Id, It.IsAny<CancellationToken>())).ReturnsAsync(adminRole);
 
         var sut = new RefreshAccessTokenCommandHandler(security.Object, refreshRepo.Object, sessionRepo.Object, userRepo.Object, roleRepo.Object);
 
@@ -140,7 +141,7 @@ public class SessionRefreshTokenManagementTests
     private static RefreshToken CreateRefreshToken(UserId userId, string tokenHash) =>
         RefreshToken.Create(userId, tokenHash, DateTimeOffset.UtcNow.AddDays(7));
 
-    private static User CreateUser(UserId userId, string roleName)
+    private static User CreateUser(UserId userId, RoleId roleId)
     {
         var user = User.CreateLocal(
             userId,
@@ -148,7 +149,7 @@ public class SessionRefreshTokenManagementTests
             "Test User",
             null,
             "test");
-        user.AssignRole(roleName, "test");
+        user.AssignRole(roleId, "test");
         user.ClearDomainEvents();
         return user;
     }
