@@ -146,6 +146,9 @@ namespace BitWrite.OcelotConsole.Api
             builder.Services.AddScoped<AppInterfaces.IRefreshTokenRepository, RedisRefreshTokenRepository>();
             builder.Services.AddScoped<AppInterfaces.IUserRepository, RedisUserRepository>();
             builder.Services.AddScoped<AppInterfaces.IRoleRepository, RedisRoleRepository>();
+            builder.Services.AddSingleton<BitWrite.OcelotConsole.Application.Permissions.IPermissionCatalog>(
+                new BitWrite.OcelotConsole.Application.Permissions.SourceCodePermissionCatalog(
+                    BitWrite.OcelotConsole.Application.Permissions.BitWritePermissionCatalogDefinitions.All));
 
             // Security Service for JWT, tokens, sessions, etc.
             builder.Services.AddScoped<AppInterfaces.ISecurityService, BitWrite.OcelotConsole.Infrastructure.Services.SecurityService>();
@@ -318,6 +321,11 @@ namespace BitWrite.OcelotConsole.Api
                     options.Authority = builder.Configuration["Authentication:Authority"];
                     options.Audience = builder.Configuration["Authentication:Audience"];
                     options.RequireHttpsMetadata = false; // For development
+                    options.MapInboundClaims = false;
+                    options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                    {
+                        RoleClaimType = BitWrite.OcelotConsole.Infrastructure.Services.SecurityService.RoleClaimType
+                    };
                 });
 
             builder.Services.AddAuthorization(options =>
