@@ -29,6 +29,9 @@ public class AssignRoleCommandHandler
         if (role == null)
             throw new DomainException($"Role {command.RoleId} not found", "ROLE_NOT_FOUND");
 
+        if (!role.IsActive)
+            throw new DomainException($"Role {role.Id} is inactive", "ROLE_INACTIVE");
+
         user.AssignRole(role.Id, command.CorrelationId);
 
         await _userRepository.UpdateAsync(user, cancellationToken);
