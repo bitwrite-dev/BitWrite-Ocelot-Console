@@ -47,11 +47,14 @@ public class SettingsControllerContractTests
     }
 
     [Fact]
-    public void UpdatingRequiresTheAdminPolicy()
+    public void UpdatingRequiresAuthentication()
     {
+        // Legacy role policies were removed in IAM-08; endpoint-to-permission mapping
+        // is gated and applied in later rollout issues. Updates still require an
+        // authenticated caller.
         Endpoint("Update").GetCustomAttributes<AuthorizeAttribute>()
             .Should().ContainSingle()
-            .Which.Policy.Should().Be("Admin");
+            .Which.Policy.Should().BeNull();
     }
 
     [Fact]
