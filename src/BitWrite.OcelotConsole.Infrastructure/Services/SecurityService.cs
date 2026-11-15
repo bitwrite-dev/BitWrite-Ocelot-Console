@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using BitWrite.OcelotConsole.Application.Interfaces;
+using BitWrite.OcelotConsole.Application.Permissions;
 using BitWrite.OcelotConsole.Domain.Aggregates.User.Session;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using Microsoft.Extensions.Configuration;
@@ -15,10 +16,14 @@ namespace BitWrite.OcelotConsole.Infrastructure.Services;
 /// </summary>
 public class SecurityService : ISecurityService
 {
+    public const string RoleClaimType = "role";
+
     private readonly ISessionRepository _sessionRepository;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly ITokenBlacklistRepository _tokenBlacklistRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IRoleRepository _roleRepository;
+    private readonly IPermissionCatalog _permissionCatalog;
     private readonly IPasswordHasher _passwordHasher;
     private readonly string _signingKey;
     private readonly string _issuer;
@@ -31,6 +36,8 @@ public class SecurityService : ISecurityService
         IRefreshTokenRepository refreshTokenRepository,
         ITokenBlacklistRepository tokenBlacklistRepository,
         IUserRepository userRepository,
+        IRoleRepository roleRepository,
+        IPermissionCatalog permissionCatalog,
         IPasswordHasher passwordHasher,
         IConfiguration configuration)
     {
@@ -38,6 +45,8 @@ public class SecurityService : ISecurityService
         _refreshTokenRepository = refreshTokenRepository;
         _tokenBlacklistRepository = tokenBlacklistRepository;
         _userRepository = userRepository;
+        _roleRepository = roleRepository;
+        _permissionCatalog = permissionCatalog;
         _passwordHasher = passwordHasher;
 
         _signingKey = configuration["Security:SigningKey"] ?? throw new InvalidOperationException("Security:SigningKey not configured");
@@ -47,8 +56,10 @@ public class SecurityService : ISecurityService
         _refreshTokenExpirationDays = int.Parse(configuration["Security:RefreshTokenExpirationDays"] ?? "7");
     }
 
-    public async Task<string> GenerateAccessTokenAsync(UserId userId, IList<string> roles, CancellationToken cancellationToken = default)
+    public async Task<string> GenerateAccessTokenAsync(UserId userId, CancellationToken cancellationToken = default)
     {
+        var eligibleRoleNames = await ResolveEligibleRoleNamesAsync(userId, cancellationToken);
+
         var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, userId.Value.ToString()),
@@ -56,9 +67,9 @@ public class SecurityService : ISecurityService
             new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
         };
 
-        foreach (var role in roles)
+        foreach (var roleName in eligibleRoleNames)
         {
-            claims.Add(new Claim(ClaimTypes.Role, role));
+            claims.Add(new Claim(RoleClaimType, roleName));
         }
 
         var token = new JwtSecurityToken(
@@ -72,6 +83,65 @@ public class SecurityService : ISecurityService
                 SecurityAlgorithms.HmacSha256));
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private async Task<IReadOnlyList<string>> ResolveEligibleRoleNamesAsync(UserId userId, CancellationToken cancellationToken)
+    {
+        var user = await _userRepository.GetAsync(userId, cancellationToken);
+        if (user is null || !user.Status.IsActive)
+            return Array.Empty<string>();
+
+        var eligible = new List<string>();
+        var seenRoleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var seenRoleNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var roleRef in user.RoleIds)
+        {
+            if (string.IsNullOrWhiteSpace(roleRef))
+                continue;
+
+            BitWrite.OcelotConsole.Domain.Aggregates.Role.Role? role = null;
+            RoleId? resolvedId = null;
+
+            try
+            {
+                var asId = RoleId.From(roleRef);
+                role = await _roleRepository.GetByIdAsync(asId, cancellationToken);
+                if (role is not null)
+                    resolvedId = asId;
+            }
+            catch { /* legacy/non-id ref */ }
+
+            if (role is null)
+            {
+                var mappedId = await _roleRepository.GetIdByNameAsync(roleRef, cancellationToken);
+                if (mappedId is not null)
+                {
+                    role = await _roleRepository.GetByIdAsync(mappedId, cancellationToken);
+                    resolvedId = mappedId;
+                }
+            }
+
+            if (role is null || resolvedId is null)
+                continue;
+
+            if (!seenRoleIds.Add(resolvedId.Value))
+                continue;
+
+            if (!role.Status.IsActive)
+                continue;
+
+            // Eligibility: role must have >=1 permission with catalog status Active.
+            // This is a per-role catalog-status check over stored refs (no effective-permission calc).
+            var hasActiveCatalogPermission = role.Permissions.Any(p => _permissionCatalog.Lookup(p).IsActive);
+            if (!hasActiveCatalogPermission)
+                continue;
+
+            if (seenRoleNames.Add(role.Name))
+                eligible.Add(role.Name);
+        }
+
+        return eligible;
     }
 
     public async Task<string> GenerateRefreshTokenAsync(UserId userId, CancellationToken cancellationToken = default)

@@ -11,20 +11,17 @@ public class RefreshAccessTokenCommandHandler
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly ISessionRepository _sessionRepository;
     private readonly IUserRepository _userRepository;
-    private readonly IRoleRepository _roleRepository;
 
     public RefreshAccessTokenCommandHandler(
         ISecurityService securityService,
         IRefreshTokenRepository refreshTokenRepository,
         ISessionRepository sessionRepository,
-        IUserRepository userRepository,
-        IRoleRepository roleRepository)
+        IUserRepository userRepository)
     {
         _securityService = securityService;
         _refreshTokenRepository = refreshTokenRepository;
         _sessionRepository = sessionRepository;
         _userRepository = userRepository;
-        _roleRepository = roleRepository;
     }
 
     public async Task<RefreshAccessTokenResponse> HandleAsync(RefreshAccessTokenCommand command, CancellationToken cancellationToken = default)
@@ -45,7 +42,9 @@ public class RefreshAccessTokenCommandHandler
         if (user is null)
             throw new DomainException("User not found", "USER_NOT_FOUND");
 
-        var roles = await ResolveRoleNamesAsync(user, cancellationToken);
+        if (!user.Status.IsActive)
+            throw new DomainException("User is not active", "USER_NOT_ACTIVE");
+
         var (newRefreshToken, newRefreshTokenEntity) = await _securityService.IssueRefreshTokenAsync(userId, cancellationToken);
 
         oldRefreshToken.MarkAsReplaced(newRefreshTokenEntity.Id.Value.ToString());
@@ -55,7 +54,7 @@ public class RefreshAccessTokenCommandHandler
         session.RecordAuthentication(newRefreshTokenEntity.Id.Value.ToString(), newRefreshTokenEntity.ExpiresAt);
         await _sessionRepository.UpdateAsync(session, cancellationToken);
 
-        var accessToken = await _securityService.GenerateAccessTokenAsync(userId, roles, cancellationToken);
+        var accessToken = await _securityService.GenerateAccessTokenAsync(userId, cancellationToken);
         var accessTokenExpiresAt = DateTimeOffset.UtcNow.AddMinutes(15);
 
         return new RefreshAccessTokenResponse(
@@ -75,62 +74,5 @@ public class RefreshAccessTokenCommandHandler
         session = Session.Create(userId, refreshToken.ExpiresAt);
         await _sessionRepository.AddAsync(session, cancellationToken);
         return session;
-    }
-
-    private async Task<List<string>> ResolveRoleNamesAsync(BitWrite.OcelotConsole.Domain.Aggregates.User.User user, CancellationToken cancellationToken)
-    {
-        var roles = new List<string>();
-        var changed = false;
-
-        foreach (var roleRef in user.RoleIds.Distinct(StringComparer.OrdinalIgnoreCase).ToList())
-        {
-            if (string.IsNullOrWhiteSpace(roleRef))
-                continue;
-
-            BitWrite.OcelotConsole.Domain.Aggregates.Role.Role? role = null;
-            RoleId? resolvedId = null;
-
-            try
-            {
-                var asId = RoleId.From(roleRef);
-                role = await _roleRepository.GetByIdAsync(asId, cancellationToken);
-                if (role is not null)
-                    resolvedId = asId;
-            }
-            catch { /* legacy/non-id ref */ }
-
-            if (role is null)
-            {
-                var mappedId = await _roleRepository.GetIdByNameAsync(roleRef, cancellationToken);
-                if (mappedId is not null)
-                {
-                    role = await _roleRepository.GetByIdAsync(mappedId, cancellationToken);
-                    resolvedId = mappedId;
-                }
-            }
-
-            if (role is not null)
-            {
-                roles.Add(role.Name);
-                if (resolvedId is not null && !string.Equals(roleRef, resolvedId.Value, StringComparison.Ordinal))
-                {
-                    // Best-effort idempotent migration of legacy name refs to RoleId.
-                    if (!user.RoleIds.Contains(resolvedId.Value))
-                    {
-                        try { user.AssignRole(resolvedId, string.Empty); changed = true; } catch { }
-                    }
-                }
-                continue;
-            }
-
-            // Unmappable/orphaned ref: do not escalate privileges; skip issuing claim for it.
-        }
-
-        if (changed)
-            await _userRepository.UpdateAsync(user, cancellationToken);
-
-        if (roles.Count == 0)
-            roles.Add("operator");
-        return roles.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
 }

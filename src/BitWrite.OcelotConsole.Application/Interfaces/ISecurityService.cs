@@ -14,8 +14,9 @@ public interface ISecurityService
 {
     /// <summary>
     /// Generates a JWT access token for the specified user (§7.1).
+    /// Role claims are emitted based on current eligible role state.
     /// </summary>
-    Task<string> GenerateAccessTokenAsync(UserId userId, IList<string> roles, CancellationToken cancellationToken = default);
+    Task<string> GenerateAccessTokenAsync(UserId userId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Generates a refresh token (§8).

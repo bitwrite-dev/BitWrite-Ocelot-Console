@@ -6,7 +6,6 @@ using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using FluentAssertions;
 using Moq;
 using Xunit;
-using RoleEntity = BitWrite.OcelotConsole.Domain.Aggregates.Role.Role;
 
 namespace BitWrite.OcelotConsole.Application.Tests.UseCases.Identity;
 
@@ -51,20 +50,19 @@ public class SessionRefreshTokenManagementTests
     }
 
     [Fact]
-    public async Task RefreshAccessToken_RotatesRefreshTokenAndResolvesRoles()
+    public async Task RefreshAccessToken_RotatesRefreshTokenAndIssuesAccessToken()
     {
         var userId = UserId.New();
         var oldToken = CreateRefreshToken(userId, "old-hash");
         var newToken = CreateRefreshToken(userId, "new-hash");
         var session = Session.Create(userId, DateTimeOffset.UtcNow.AddHours(1));
-        var adminRole = RoleEntity.Create(RoleId.From("admin-role-id"), "admin", null, "test");
-        var user = CreateUser(userId, adminRole.Id);
+        var user = CreateUser(userId, RoleId.From("admin-role-id"));
 
         var security = new Mock<ISecurityService>();
         security.Setup(s => s.ComputeSha256Hash("raw-old")).Returns("old-hash");
         security.Setup(s => s.ValidateRefreshTokenAsync("old-hash", It.IsAny<CancellationToken>())).ReturnsAsync(userId);
         security.Setup(s => s.IssueRefreshTokenAsync(userId, It.IsAny<CancellationToken>())).ReturnsAsync(("raw-new", newToken));
-        security.Setup(s => s.GenerateAccessTokenAsync(userId, It.IsAny<IList<string>>(), It.IsAny<CancellationToken>()))
+        security.Setup(s => s.GenerateAccessTokenAsync(userId, It.IsAny<CancellationToken>()))
             .ReturnsAsync("access-token");
 
         var refreshRepo = new Mock<IRefreshTokenRepository>();
@@ -76,10 +74,7 @@ public class SessionRefreshTokenManagementTests
         var userRepo = new Mock<IUserRepository>();
         userRepo.Setup(r => r.GetAsync(userId, It.IsAny<CancellationToken>())).ReturnsAsync(user);
 
-        var roleRepo = new Mock<IRoleRepository>();
-        roleRepo.Setup(r => r.GetByIdAsync(adminRole.Id, It.IsAny<CancellationToken>())).ReturnsAsync(adminRole);
-
-        var sut = new RefreshAccessTokenCommandHandler(security.Object, refreshRepo.Object, sessionRepo.Object, userRepo.Object, roleRepo.Object);
+        var sut = new RefreshAccessTokenCommandHandler(security.Object, refreshRepo.Object, sessionRepo.Object, userRepo.Object);
 
         var result = await sut.HandleAsync(new RefreshAccessTokenCommand("raw-old", "corr"));
 
@@ -88,7 +83,7 @@ public class SessionRefreshTokenManagementTests
         result.RefreshTokenExpiresAt.Should().Be(newToken.ExpiresAt);
         oldToken.IsRevoked.Should().BeTrue();
         session.RefreshTokenId.Should().Be(newToken.Id.Value.ToString());
-        security.Verify(s => s.GenerateAccessTokenAsync(userId, It.Is<IList<string>>(r => r.Contains("admin")), It.IsAny<CancellationToken>()), Times.Once);
+        security.Verify(s => s.GenerateAccessTokenAsync(userId, It.IsAny<CancellationToken>()), Times.Once);
         refreshRepo.Verify(r => r.UpdateAsync(oldToken, It.IsAny<CancellationToken>()), Times.Once);
         sessionRepo.Verify(r => r.UpdateAsync(session, It.IsAny<CancellationToken>()), Times.Once);
         sessionRepo.Verify(r => r.AddAsync(It.IsAny<Session>(), It.IsAny<CancellationToken>()), Times.Never);
