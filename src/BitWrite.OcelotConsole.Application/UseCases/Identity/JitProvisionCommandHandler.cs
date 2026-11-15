@@ -12,17 +12,20 @@ public class JitProvisionCommandHandler
     private readonly IExternalIdentityRepository _externalIdentityRepository;
     private readonly IRoleRepository _roleRepository;
     private readonly IDomainEventDispatcher _eventDispatcher;
+    private readonly JitProvisionOptions _options;
 
     public JitProvisionCommandHandler(
         IUserRepository userRepository,
         IExternalIdentityRepository externalIdentityRepository,
         IRoleRepository roleRepository,
-        IDomainEventDispatcher eventDispatcher)
+        IDomainEventDispatcher eventDispatcher,
+        JitProvisionOptions options)
     {
         _userRepository = userRepository;
         _externalIdentityRepository = externalIdentityRepository;
         _roleRepository = roleRepository;
         _eventDispatcher = eventDispatcher;
+        _options = options ?? new JitProvisionOptions();
     }
 
     /// <summary>
@@ -54,7 +57,10 @@ public class JitProvisionCommandHandler
             );
         }
 
-        // 2. Create new internal User (§5.2: automatic JIT provisioning)
+        // 2. Resolve and validate configured restricted default role before creating any state.
+        var defaultRole = await ResolveConfiguredDefaultRoleAsync(cancellationToken);
+
+        // 3. Create new internal User (§5.2: automatic JIT provisioning)
         var userId = UserId.New();
         var username = string.IsNullOrWhiteSpace(request.Username)
             ? $"ext_{request.Issuer}_{request.Subject}"
@@ -65,13 +71,16 @@ public class JitProvisionCommandHandler
             username,
             request.DisplayName,
             request.Email,
-            createdBy: "system", // System-initiated for JIT
+            createdBy: "system",
             correlationId: Guid.NewGuid().ToString()
         );
 
+        // 4. Assign restricted default Role by configured RoleId (§7.2)
+        user.AssignRole(defaultRole.Id, Guid.NewGuid().ToString());
+
         await _userRepository.AddAsync(user, cancellationToken);
 
-        // 3. Create External Identity association (§7.4)
+        // 5. Create External Identity association (§7.4)
         var externalIdentity = ExternalIdentity.Create(
             userId,
             request.Issuer,
@@ -82,15 +91,7 @@ public class JitProvisionCommandHandler
 
         await _externalIdentityRepository.AddAsync(externalIdentity, cancellationToken);
 
-        // 4. Assign restricted default Role (§7.2: JIT gets restricted default Role)
-        // Note: default role resolution is finalized in IAM-11; keep safe name-based lookup here.
-        var defaultRoleName = "restricted-user"; // Placeholder - configured in system settings
-        var defaultRoleId = await ResolveDefaultRoleIdAsync(defaultRoleName, cancellationToken);
-        user.AssignRole(defaultRoleId, Guid.NewGuid().ToString());
-
-        await _userRepository.UpdateAsync(user, cancellationToken);
-
-        // 5. Dispatch domain events
+        // 6. Dispatch domain events
         foreach (var domainEvent in user.DomainEvents)
         {
             await _eventDispatcher.DispatchAsync(domainEvent, cancellationToken);
@@ -113,14 +114,24 @@ public class JitProvisionCommandHandler
         );
     }
 
-    private async Task<RoleId> ResolveDefaultRoleIdAsync(string roleName, CancellationToken cancellationToken)
+    private async Task<BitWrite.OcelotConsole.Domain.Aggregates.Role.Role> ResolveConfiguredDefaultRoleAsync(CancellationToken cancellationToken)
     {
-        var mapped = await _roleRepository.GetIdByNameAsync(roleName, cancellationToken);
-        if (mapped is not null)
-            return mapped;
+        var configured = _options.DefaultRoleId?.Trim();
+        if (string.IsNullOrWhiteSpace(configured))
+            throw new DomainException("JIT default role is not configured", "JIT_DEFAULT_ROLE_NOT_CONFIGURED");
 
-        var role = await _roleRepository.GetByNameAsync(roleName, cancellationToken);
-        return role?.Id ?? RoleId.From(roleName);
+        if (!Guid.TryParse(configured, out _))
+            throw new DomainException("Configured JIT default role identifier is invalid", "JIT_DEFAULT_ROLE_INVALID");
+
+        var roleId = RoleId.From(configured);
+
+        var role = await _roleRepository.GetByIdAsync(roleId, cancellationToken);
+        if (role is null)
+            throw new DomainException("Configured JIT default role was not found", "JIT_DEFAULT_ROLE_NOT_FOUND");
+
+        if (!role.IsActive)
+            throw new DomainException("Configured JIT default role is not active", "JIT_DEFAULT_ROLE_INACTIVE");
+
+        return role;
     }
-
 }

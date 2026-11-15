@@ -146,6 +146,7 @@ namespace BitWrite.OcelotConsole.Api
             builder.Services.AddScoped<AppInterfaces.IRefreshTokenRepository, RedisRefreshTokenRepository>();
             builder.Services.AddScoped<AppInterfaces.IUserRepository, RedisUserRepository>();
             builder.Services.AddScoped<AppInterfaces.IRoleRepository, RedisRoleRepository>();
+            builder.Services.AddScoped<AppInterfaces.IExternalIdentityRepository, BitWrite.OcelotConsole.Infrastructure.Redis.RedisExternalIdentityRepository>();
             builder.Services.AddSingleton<BitWrite.OcelotConsole.Application.Permissions.IPermissionCatalog>(
                 new BitWrite.OcelotConsole.Application.Permissions.SourceCodePermissionCatalog(
                     BitWrite.OcelotConsole.Application.Permissions.BitWritePermissionCatalogDefinitions.All));
@@ -256,6 +257,12 @@ namespace BitWrite.OcelotConsole.Api
             builder.Services.AddScoped<RevokeRefreshTokenCommandHandler>();
             builder.Services.AddScoped<GetUserSessionsQueryHandler>();
             builder.Services.AddScoped<RotateRefreshTokenCommandHandler>();
+            builder.Services.Configure<BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions>(
+                builder.Configuration.GetSection(BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions.SectionName));
+            var jitProvisionOptions = builder.Configuration.GetSection(BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions.SectionName)
+                .Get<BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions>() ?? new BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions();
+            builder.Services.AddSingleton(jitProvisionOptions);
+            builder.Services.AddScoped<JitProvisionCommandHandler>();
 
             // IAM bootstrap (T-17): deployment-supplied secure config only; no default credentials.
             var bootstrapOptions = builder.Configuration.GetSection("Iam:BootstrapInitialAdmin").Get<BootstrapInitialAdminOptions>() ?? new BootstrapInitialAdminOptions();
