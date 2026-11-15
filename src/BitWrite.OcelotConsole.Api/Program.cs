@@ -146,6 +146,7 @@ namespace BitWrite.OcelotConsole.Api
             builder.Services.AddScoped<AppInterfaces.IRefreshTokenRepository, RedisRefreshTokenRepository>();
             builder.Services.AddScoped<AppInterfaces.IUserRepository, RedisUserRepository>();
             builder.Services.AddScoped<AppInterfaces.IRoleRepository, RedisRoleRepository>();
+            builder.Services.AddScoped<AppInterfaces.IExternalIdentityRepository, BitWrite.OcelotConsole.Infrastructure.Redis.RedisExternalIdentityRepository>();
             builder.Services.AddSingleton<BitWrite.OcelotConsole.Application.Permissions.IPermissionCatalog>(
                 new BitWrite.OcelotConsole.Application.Permissions.SourceCodePermissionCatalog(
                     BitWrite.OcelotConsole.Application.Permissions.BitWritePermissionCatalogDefinitions.All));

@@ -86,6 +86,12 @@ public static class RedisKeyHelper
     /// <summary>ExternalIdentity lookup key: <c>ocelot:iam:v1:external:{issuer}:{subject}</c> (§7.4).</summary>
     public static string IamExternalIdentity(string issuer, string subject) => $"{IamNamespace}:external:{issuer}:{subject}";
 
+    /// <summary>ExternalIdentity data key: <c>ocelot:iam:v1:external-identity:{id}</c>.</summary>
+    public static string IamExternalIdentityData(Guid id) => $"{IamNamespace}:external-identity:{id:D}";
+
+    /// <summary>Per-user external identity index: <c>ocelot:iam:v1:user:{userId}:external-identities</c>.</summary>
+    public static string IamUserExternalIdentities(UserId id) => $"{IamNamespace}:user:{id.Value}:external-identities";
+
     /// <summary>Session key: <c>ocelot:iam:v1:session:{sessionId}</c> (§8).</summary>
     public static string IamSession(SessionId id) => $"{IamNamespace}:session:{id.Value}";
 
