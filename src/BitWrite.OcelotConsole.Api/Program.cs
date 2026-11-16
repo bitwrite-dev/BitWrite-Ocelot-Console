@@ -257,6 +257,13 @@ namespace BitWrite.OcelotConsole.Api
             builder.Services.AddScoped<RevokeRefreshTokenCommandHandler>();
             builder.Services.AddScoped<GetUserSessionsQueryHandler>();
             builder.Services.AddScoped<RotateRefreshTokenCommandHandler>();
+            // User administration (IAM-15)
+            builder.Services.AddScoped<CreateUserCommandHandler>();
+            builder.Services.AddScoped<GetUserQueryHandler>();
+            builder.Services.AddScoped<ListUsersQueryHandler>();
+            builder.Services.AddScoped<UpdateUserCommandHandler>();
+            builder.Services.AddScoped<EnableUserCommandHandler>();
+            builder.Services.AddScoped<DisableUserCommandHandler>();
             builder.Services.Configure<BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions>(
                 builder.Configuration.GetSection(BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions.SectionName));
             var jitProvisionOptions = builder.Configuration.GetSection(BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions.SectionName)
