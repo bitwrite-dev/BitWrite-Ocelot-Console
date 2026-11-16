@@ -20,7 +20,11 @@ public class RolePermissionManagementTests
         var catalog = Catalog(new PermissionDefinition("catalog.read", "Catalog Read", null, "Catalog", PermissionStatus.Active, true));
         var repo = new Mock<IRoleRepository>();
         repo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
-        var sut = new AssignPermissionToRoleCommandHandler(repo.Object, catalog, new AlwaysLock());
+        var dispatcher = new Mock<IDomainEventDispatcher>();
+        IEnumerable<DomainEvent>? dispatched = null;
+        dispatcher.Setup(d => d.DispatchAsync(It.IsAny<IEnumerable<DomainEvent>>(), It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<DomainEvent>, CancellationToken>((events, _) => dispatched = events.ToList());
+        var sut = new AssignPermissionToRoleCommandHandler(repo.Object, catalog, new AlwaysLock(), dispatcher.Object);
 
         var result = await sut.HandleAsync(new AssignPermissionToRoleCommand(role.Id, "  CATALOG.READ ", "admin", "c1"));
 
@@ -28,7 +32,9 @@ public class RolePermissionManagementTests
         result.AlreadyAssigned.Should().BeFalse();
         result.PermissionCode.Should().Be("catalog.read");
         role.Permissions.Should().ContainSingle().Which.Should().Be("catalog.read");
-        role.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PermissionAddedToRole>();
+        dispatched.Should().NotBeNull();
+        dispatched!.Should().ContainSingle().Which.Should().BeOfType<PermissionAddedToRole>();
+        role.DomainEvents.Should().BeEmpty();
         repo.Verify(r => r.UpdateAsync(role, It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -41,7 +47,7 @@ public class RolePermissionManagementTests
         var catalog = Catalog(new PermissionDefinition("catalog.read", "Catalog Read", null, "Catalog", PermissionStatus.Active, true));
         var repo = new Mock<IRoleRepository>();
         repo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
-        var sut = new AssignPermissionToRoleCommandHandler(repo.Object, catalog, new AlwaysLock());
+        var sut = new AssignPermissionToRoleCommandHandler(repo.Object, catalog, new AlwaysLock(), Mock.Of<IDomainEventDispatcher>());
 
         var result = await sut.HandleAsync(new AssignPermissionToRoleCommand(role.Id, "catalog.read", "admin", "c1"));
 
@@ -59,7 +65,7 @@ public class RolePermissionManagementTests
         var catalog = Catalog();
         var repo = new Mock<IRoleRepository>();
         repo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
-        var sut = new AssignPermissionToRoleCommandHandler(repo.Object, catalog, new AlwaysLock());
+        var sut = new AssignPermissionToRoleCommandHandler(repo.Object, catalog, new AlwaysLock(), Mock.Of<IDomainEventDispatcher>());
 
         var act = () => sut.HandleAsync(new AssignPermissionToRoleCommand(role.Id, "unknown.perm", "admin"));
 
@@ -75,7 +81,7 @@ public class RolePermissionManagementTests
         var catalog = Catalog(new PermissionDefinition("catalog.read", "Catalog Read", null, "Catalog", PermissionStatus.Retired, true));
         var repo = new Mock<IRoleRepository>();
         repo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
-        var sut = new AssignPermissionToRoleCommandHandler(repo.Object, catalog, new AlwaysLock());
+        var sut = new AssignPermissionToRoleCommandHandler(repo.Object, catalog, new AlwaysLock(), Mock.Of<IDomainEventDispatcher>());
 
         var act = () => sut.HandleAsync(new AssignPermissionToRoleCommand(role.Id, "catalog.read", "admin"));
 
@@ -90,7 +96,7 @@ public class RolePermissionManagementTests
         var catalog = Catalog(new PermissionDefinition("catalog.read", "Catalog Read", null, "Catalog", PermissionStatus.Active, false));
         var repo = new Mock<IRoleRepository>();
         repo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
-        var sut = new AssignPermissionToRoleCommandHandler(repo.Object, catalog, new AlwaysLock());
+        var sut = new AssignPermissionToRoleCommandHandler(repo.Object, catalog, new AlwaysLock(), Mock.Of<IDomainEventDispatcher>());
 
         var act = () => sut.HandleAsync(new AssignPermissionToRoleCommand(role.Id, "catalog.read", "admin"));
 
@@ -103,7 +109,7 @@ public class RolePermissionManagementTests
         var catalog = Catalog(new PermissionDefinition("catalog.read", "Catalog Read", null, "Catalog", PermissionStatus.Active, true));
         var repo = new Mock<IRoleRepository>();
         repo.Setup(r => r.GetByIdAsync(It.IsAny<RoleId>(), It.IsAny<CancellationToken>())).ReturnsAsync((RoleEntity?)null);
-        var sut = new AssignPermissionToRoleCommandHandler(repo.Object, catalog, new AlwaysLock());
+        var sut = new AssignPermissionToRoleCommandHandler(repo.Object, catalog, new AlwaysLock(), Mock.Of<IDomainEventDispatcher>());
 
         var act = () => sut.HandleAsync(new AssignPermissionToRoleCommand(RoleId.New(), "catalog.read", "admin"));
 
@@ -115,7 +121,7 @@ public class RolePermissionManagementTests
     {
         var catalog = Catalog(new PermissionDefinition("catalog.read", "Catalog Read", null, "Catalog", PermissionStatus.Active, true));
         var repo = new Mock<IRoleRepository>(MockBehavior.Strict);
-        var sut = new AssignPermissionToRoleCommandHandler(repo.Object, catalog, new FailingLock());
+        var sut = new AssignPermissionToRoleCommandHandler(repo.Object, catalog, new FailingLock(), Mock.Of<IDomainEventDispatcher>());
 
         var act = () => sut.HandleAsync(new AssignPermissionToRoleCommand(RoleId.New(), "catalog.read", "admin"));
 
@@ -131,13 +137,19 @@ public class RolePermissionManagementTests
         role.ClearDomainEvents();
         var repo = new Mock<IRoleRepository>();
         repo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
-        var sut = new RemovePermissionFromRoleCommandHandler(repo.Object, new AlwaysLock());
+        var dispatcher = new Mock<IDomainEventDispatcher>();
+        IEnumerable<DomainEvent>? dispatched = null;
+        dispatcher.Setup(d => d.DispatchAsync(It.IsAny<IEnumerable<DomainEvent>>(), It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<DomainEvent>, CancellationToken>((events, _) => dispatched = events.ToList());
+        var sut = new RemovePermissionFromRoleCommandHandler(repo.Object, new AlwaysLock(), dispatcher.Object);
 
         var result = await sut.HandleAsync(new RemovePermissionFromRoleCommand(role.Id, " CATALOG.READ ", "admin", "c1"));
 
         result.PermissionCode.Should().Be("catalog.read");
         role.Permissions.Should().BeEmpty();
-        role.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<PermissionRemovedFromRole>();
+        dispatched.Should().NotBeNull();
+        dispatched!.Should().ContainSingle().Which.Should().BeOfType<PermissionRemovedFromRole>();
+        role.DomainEvents.Should().BeEmpty();
         repo.Verify(r => r.UpdateAsync(role, It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -147,7 +159,7 @@ public class RolePermissionManagementTests
         var role = RoleEntity.Create(RoleId.New(), "operator", null, "admin");
         var repo = new Mock<IRoleRepository>();
         repo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
-        var sut = new RemovePermissionFromRoleCommandHandler(repo.Object, new AlwaysLock());
+        var sut = new RemovePermissionFromRoleCommandHandler(repo.Object, new AlwaysLock(), Mock.Of<IDomainEventDispatcher>());
 
         var act = () => sut.HandleAsync(new RemovePermissionFromRoleCommand(role.Id, "catalog.read", "admin"));
 
@@ -164,7 +176,7 @@ public class RolePermissionManagementTests
         repo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
         repo.Setup(r => r.UpdateAsync(role, It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
         var gate = new AsyncGate();
-        var sut = new AssignPermissionToRoleCommandHandler(repo.Object, catalog, new GateLock(gate));
+        var sut = new AssignPermissionToRoleCommandHandler(repo.Object, catalog, new GateLock(gate), Mock.Of<IDomainEventDispatcher>());
 
         var tasks = Enumerable.Range(0, 5)
             .Select(_ => sut.HandleAsync(new AssignPermissionToRoleCommand(role.Id, "catalog.read", "admin")));

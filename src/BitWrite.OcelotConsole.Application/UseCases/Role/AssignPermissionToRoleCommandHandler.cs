@@ -11,15 +11,18 @@ public class AssignPermissionToRoleCommandHandler
     private readonly IRoleRepository _roleRepository;
     private readonly IPermissionCatalog _permissionCatalog;
     private readonly IDistributedLock _distributedLock;
+    private readonly IDomainEventDispatcher _eventDispatcher;
 
     public AssignPermissionToRoleCommandHandler(
         IRoleRepository roleRepository,
         IPermissionCatalog permissionCatalog,
-        IDistributedLock distributedLock)
+        IDistributedLock distributedLock,
+        IDomainEventDispatcher eventDispatcher)
     {
         _roleRepository = roleRepository;
         _permissionCatalog = permissionCatalog;
         _distributedLock = distributedLock;
+        _eventDispatcher = eventDispatcher;
     }
 
     public async Task<AssignPermissionToRoleResponse> HandleAsync(
@@ -63,6 +66,8 @@ public class AssignPermissionToRoleCommandHandler
 
             role.AddPermission(normalizedCode, command.InitiatedBy, command.CorrelationId);
             await _roleRepository.UpdateAsync(role, cancellationToken);
+            await _eventDispatcher.DispatchAsync(role.DomainEvents, cancellationToken);
+            role.ClearDomainEvents();
 
             return new AssignPermissionToRoleResponse(
                 role.Id.Value,

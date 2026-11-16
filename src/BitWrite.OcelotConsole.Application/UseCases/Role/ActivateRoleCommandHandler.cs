@@ -6,10 +6,12 @@ namespace BitWrite.OcelotConsole.Application.UseCases.Role;
 public class ActivateRoleCommandHandler
 {
     private readonly IRoleRepository _roleRepository;
+    private readonly IDomainEventDispatcher _eventDispatcher;
 
-    public ActivateRoleCommandHandler(IRoleRepository roleRepository)
+    public ActivateRoleCommandHandler(IRoleRepository roleRepository, IDomainEventDispatcher eventDispatcher)
     {
         _roleRepository = roleRepository;
+        _eventDispatcher = eventDispatcher;
     }
 
     public async Task<RoleResponse> HandleAsync(ActivateRoleCommand command, CancellationToken cancellationToken = default)
@@ -19,6 +21,8 @@ public class ActivateRoleCommandHandler
 
         role.Activate(command.InitiatedBy, command.CorrelationId);
         await _roleRepository.UpdateAsync(role, cancellationToken);
+        await _eventDispatcher.DispatchAsync(role.DomainEvents, cancellationToken);
+        role.ClearDomainEvents();
         return RoleMapping.ToResponse(role);
     }
 }

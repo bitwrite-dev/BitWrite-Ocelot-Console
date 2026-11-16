@@ -280,6 +280,21 @@ namespace BitWrite.OcelotConsole.Api
             // Domain Event Dispatcher
             builder.Services.AddScoped<AppInterfaces.IDomainEventDispatcher, DomainEventDispatcher>();
 
+            // IAM-12 security-state propagation (session/refresh revocation + invalidation/version signals)
+            builder.Services.AddScoped<AppInterfaces.IAuthorizationStatePropagationService, AuthorizationStatePropagationService>();
+            builder.Services.AddScoped<AppInterfaces.IDomainEventHandler<BitWrite.OcelotConsole.Domain.Events.UserDisabled>, UserDisabledPropagationHandler>();
+            builder.Services.AddScoped<AppInterfaces.IDomainEventHandler<BitWrite.OcelotConsole.Domain.Events.RoleDeactivated>, RoleDeactivatedPropagationHandler>();
+            builder.Services.AddScoped<AppInterfaces.IDomainEventHandler<BitWrite.OcelotConsole.Domain.Events.RoleActivated>, RoleActivatedPropagationHandler>();
+            builder.Services.AddScoped<AppInterfaces.IDomainEventHandler<BitWrite.OcelotConsole.Domain.Events.RoleRenamed>, RoleRenamedPropagationHandler>();
+            builder.Services.AddScoped<AppInterfaces.IDomainEventHandler<BitWrite.OcelotConsole.Domain.Events.RoleUpdated>, RoleUpdatedPropagationHandler>();
+            builder.Services.AddScoped<AppInterfaces.IDomainEventHandler<BitWrite.OcelotConsole.Domain.Events.PermissionAddedToRole>, PermissionAddedToRolePropagationHandler>();
+            builder.Services.AddScoped<AppInterfaces.IDomainEventHandler<BitWrite.OcelotConsole.Domain.Events.PermissionRemovedFromRole>, PermissionRemovedFromRolePropagationHandler>();
+            builder.Services.AddScoped<AppInterfaces.IDomainEventHandler<BitWrite.OcelotConsole.Domain.Events.RoleAssignedToUser>, RoleAssignedToUserPropagationHandler>();
+            builder.Services.AddScoped<AppInterfaces.IDomainEventHandler<BitWrite.OcelotConsole.Domain.Events.RoleRemovedFromUser>, RoleRemovedFromUserPropagationHandler>();
+            builder.Services.AddScoped<AppInterfaces.IDomainEventHandler<BitWrite.OcelotConsole.Domain.Events.LocalCredentialChanged>, LocalCredentialChangedPropagationHandler>();
+            builder.Services.AddScoped<AppInterfaces.IDomainEventHandler<BitWrite.OcelotConsole.Domain.Events.LocalCredentialReset>, LocalCredentialResetPropagationHandler>();
+            builder.Services.AddScoped<AppInterfaces.IDomainEventHandler<BitWrite.OcelotConsole.Domain.Events.LocalCredentialLockedOut>, LocalCredentialLockedOutPropagationHandler>();
+
             // Background Services
             builder.Services.AddHostedService<OutboxPublisher>();
             builder.Services.AddHostedService<GatewayActivationProcessor>();

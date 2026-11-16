@@ -95,16 +95,22 @@ public sealed class LocalCredential
     /// <summary>
     /// Records a failed authentication attempt (§15).
     /// </summary>
-    public void RecordFailedAuthentication(int maxFailedAttempts = 5, int lockoutMinutes = 30)
+    public void RecordFailedAuthentication(int maxFailedAttempts = 5, int lockoutMinutes = 30, string correlationId = "")
     {
         FailedLoginAttempts++;
 
+        var wasLockedOut = IsLockedOut;
         if (FailedLoginAttempts >= maxFailedAttempts)
         {
             LockedOutUntil = DateTimeOffset.UtcNow.AddMinutes(lockoutMinutes);
         }
 
         AddDomainEvent(new LocalCredentialAuthenticationFailed(UserId, FailedLoginAttempts));
+
+        if (!wasLockedOut && IsLockedOut)
+        {
+            AddDomainEvent(new LocalCredentialLockedOut(UserId, LockedOutUntil!.Value, correlationId));
+        }
     }
 
     /// <summary>

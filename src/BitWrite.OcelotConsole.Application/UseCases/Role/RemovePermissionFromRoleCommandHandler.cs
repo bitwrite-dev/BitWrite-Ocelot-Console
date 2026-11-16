@@ -10,13 +10,16 @@ public class RemovePermissionFromRoleCommandHandler
 
     private readonly IRoleRepository _roleRepository;
     private readonly IDistributedLock _distributedLock;
+    private readonly IDomainEventDispatcher _eventDispatcher;
 
     public RemovePermissionFromRoleCommandHandler(
         IRoleRepository roleRepository,
-        IDistributedLock distributedLock)
+        IDistributedLock distributedLock,
+        IDomainEventDispatcher eventDispatcher)
     {
         _roleRepository = roleRepository;
         _distributedLock = distributedLock;
+        _eventDispatcher = eventDispatcher;
     }
 
     public async Task<RemovePermissionFromRoleResponse> HandleAsync(
@@ -41,6 +44,8 @@ public class RemovePermissionFromRoleCommandHandler
             var normalizedCode = PermissionCode.Normalize(command.PermissionCode);
             role.RemovePermission(normalizedCode, command.InitiatedBy, command.CorrelationId);
             await _roleRepository.UpdateAsync(role, cancellationToken);
+            await _eventDispatcher.DispatchAsync(role.DomainEvents, cancellationToken);
+            role.ClearDomainEvents();
 
             return new RemovePermissionFromRoleResponse(
                 role.Id.Value,

@@ -10,13 +10,16 @@ public class AssignRoleCommandHandler
 {
     private readonly IUserRepository _userRepository;
     private readonly IRoleRepository _roleRepository;
+    private readonly IDomainEventDispatcher _eventDispatcher;
 
     public AssignRoleCommandHandler(
         IUserRepository userRepository,
-        IRoleRepository roleRepository)
+        IRoleRepository roleRepository,
+        IDomainEventDispatcher eventDispatcher)
     {
         _userRepository = userRepository;
         _roleRepository = roleRepository;
+        _eventDispatcher = eventDispatcher;
     }
 
     public async Task<RoleAssignmentResponse> HandleAsync(AssignRoleCommand command, CancellationToken cancellationToken = default)
@@ -35,6 +38,8 @@ public class AssignRoleCommandHandler
         user.AssignRole(role.Id, command.CorrelationId);
 
         await _userRepository.UpdateAsync(user, cancellationToken);
+        await _eventDispatcher.DispatchAsync(user.DomainEvents, cancellationToken);
+        user.ClearDomainEvents();
 
         return new RoleAssignmentResponse(
             user.Id.Value,

@@ -10,19 +10,13 @@ namespace BitWrite.OcelotConsole.Application.UseCases.Identity;
 public class DisableUserCommandHandler
 {
     private readonly IUserRepository _userRepository;
-    private readonly ISessionRepository _sessionRepository;
-    private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IDomainEventDispatcher _eventDispatcher;
 
     public DisableUserCommandHandler(
         IUserRepository userRepository,
-        ISessionRepository sessionRepository,
-        IRefreshTokenRepository refreshTokenRepository,
         IDomainEventDispatcher eventDispatcher)
     {
         _userRepository = userRepository;
-        _sessionRepository = sessionRepository;
-        _refreshTokenRepository = refreshTokenRepository;
         _eventDispatcher = eventDispatcher;
     }
 
@@ -36,30 +30,14 @@ public class DisableUserCommandHandler
 
         await _userRepository.UpdateAsync(user, cancellationToken);
 
-        // Revoke all sessions for the disabled user
-        var sessions = await _sessionRepository.GetActiveSessionsAsync(user.Id, cancellationToken);
-        foreach (var session in sessions)
-        {
-            session.Revoke("User disabled", command.InitiatedBy);
-            await _sessionRepository.UpdateAsync(session, cancellationToken);
-        }
-
-        // Revoke all refresh tokens for the disabled user
-        var refreshTokens = await _refreshTokenRepository.GetActiveRefreshTokensAsync(user.Id, cancellationToken);
-        foreach (var refreshToken in refreshTokens)
-        {
-            refreshToken.Revoke("User disabled", command.InitiatedBy);
-            await _refreshTokenRepository.UpdateAsync(refreshToken, cancellationToken);
-        }
-
-        // Dispatch domain events
+        // Propagation (session/refresh revocation and invalidation) is handled by domain-event
+        // consumers (IAM-12) via #647 mechanics; no inline revocation duplication.
         foreach (var domainEvent in user.DomainEvents)
         {
             await _eventDispatcher.DispatchAsync(domainEvent, cancellationToken);
         }
         user.ClearDomainEvents();
 
-        // Dispatch audit event
         var auditEvent = new AuditRecorded(
             command.InitiatedBy,
             "DisableUser",

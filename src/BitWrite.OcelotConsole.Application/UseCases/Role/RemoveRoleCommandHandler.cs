@@ -35,6 +35,8 @@ public class RemoveRoleCommandHandler
         user.RemoveRole(role.Id, command.CorrelationId);
 
         await _userRepository.UpdateAsync(user, cancellationToken);
+        await _eventDispatcher.DispatchAsync(user.DomainEvents, cancellationToken);
+        user.ClearDomainEvents();
 
         return new RoleAssignmentResponse(
             user.Id.Value,

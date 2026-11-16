@@ -141,6 +141,7 @@ public record LocalCredentialCreated(UserId UserId, string CorrelationId) : Doma
 public record LocalCredentialChanged(UserId UserId, string ChangedBy, string CorrelationId) : DomainEvent;
 public record LocalCredentialAuthenticated(UserId UserId) : DomainEvent;
 public record LocalCredentialAuthenticationFailed(UserId UserId, int FailedAttempts) : DomainEvent;
+public record LocalCredentialLockedOut(UserId UserId, DateTimeOffset LockedOutUntil, string CorrelationId) : DomainEvent;
 public record LocalCredentialReset(UserId UserId, string ResetBy, string CorrelationId) : DomainEvent;
 
 // Session events (§8)
