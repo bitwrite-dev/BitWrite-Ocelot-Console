@@ -1,11 +1,13 @@
 using BitWrite.OcelotConsole.Api.DTOs;
 using BitWrite.OcelotConsole.Application.UseCases.Audit;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BitWrite.OcelotConsole.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/audit")]
+[Authorize]
 public class AuditController : BaseApiController
 {
     private readonly GetAuditLogsQueryHandler _getAuditLogsQueryHandler;

@@ -7,6 +7,9 @@ namespace BitWrite.OcelotConsole.Api.Controllers;
 
 /// <summary>
 /// Session and refresh token management endpoints (T-15 / #647).
+/// IAM-09: endpoints require authentication by default; token refresh/rotate are minimal
+/// anonymous exceptions (presenting a refresh token). Endpoint-to-permission mapping/completion
+/// is gated (P-GATE-1/2).
 /// </summary>
 [Authorize]
 public class IdentityController : BaseApiController
@@ -112,7 +115,7 @@ public class IdentityController : BaseApiController
     }
 
     [HttpPost("tokens/revoke")]
-    [Authorize(Policy = "Operator")]
+    [Authorize]
     public async Task<ActionResult<RevokeRefreshTokenResponse>> RevokeRefreshToken([FromBody] RevokeRefreshTokenRequest request, CancellationToken cancellationToken)
     {
         try
