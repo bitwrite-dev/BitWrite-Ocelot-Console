@@ -19,7 +19,7 @@ public class RoleAdministrationUseCaseTests
         repo.Setup(r => r.AddAsync(It.IsAny<RoleEntity>(), It.IsAny<CancellationToken>()))
             .Callback<RoleEntity, CancellationToken>((r, _) => saved = r)
             .Returns(Task.CompletedTask);
-        var sut = new CreateRoleCommandHandler(repo.Object);
+        var sut = new CreateRoleCommandHandler(repo.Object, Mock.Of<IDomainEventDispatcher>());
 
         var result = await sut.HandleAsync(new CreateRoleCommand("  Operator ", " Desc ", "admin", "c1"));
 
@@ -83,7 +83,7 @@ public class RoleAdministrationUseCaseTests
         var role = RoleEntity.Create(RoleId.New(), "operator", "old", "admin");
         var repo = new Mock<IRoleRepository>();
         repo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
-        var sut = new UpdateRoleDescriptionCommandHandler(repo.Object);
+        var sut = new UpdateRoleDescriptionCommandHandler(repo.Object, Mock.Of<IDomainEventDispatcher>());
 
         var result = await sut.HandleAsync(new UpdateRoleDescriptionCommand(role.Id, "  new  ", "editor", "c1"));
 
@@ -98,7 +98,7 @@ public class RoleAdministrationUseCaseTests
         var role = RoleEntity.Create(RoleId.New(), "operator", null, "admin");
         var repo = new Mock<IRoleRepository>();
         repo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
-        var sut = new RenameRoleCommandHandler(repo.Object);
+        var sut = new RenameRoleCommandHandler(repo.Object, Mock.Of<IDomainEventDispatcher>());
 
         var result = await sut.HandleAsync(new RenameRoleCommand(role.Id, "ops", "editor", "c1"));
 
@@ -114,7 +114,7 @@ public class RoleAdministrationUseCaseTests
         role.AddPermission("catalog.read", "admin");
         var repo = new Mock<IRoleRepository>();
         repo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
-        var sut = new RenameRoleCommandHandler(repo.Object);
+        var sut = new RenameRoleCommandHandler(repo.Object, Mock.Of<IDomainEventDispatcher>());
 
         var act = () => sut.HandleAsync(new RenameRoleCommand(role.Id, "ops", "editor"));
 
@@ -130,7 +130,7 @@ public class RoleAdministrationUseCaseTests
         user.AssignRole(role.Id, "c1");
         var repo = new Mock<IRoleRepository>();
         repo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
-        var sut = new DeactivateRoleCommandHandler(repo.Object);
+        var sut = new DeactivateRoleCommandHandler(repo.Object, Mock.Of<IDomainEventDispatcher>());
 
         var result = await sut.HandleAsync(new DeactivateRoleCommand(role.Id, "admin", "c2"));
 
@@ -147,7 +147,7 @@ public class RoleAdministrationUseCaseTests
         role.Deactivate("admin");
         var repo = new Mock<IRoleRepository>();
         repo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
-        var sut = new ActivateRoleCommandHandler(repo.Object);
+        var sut = new ActivateRoleCommandHandler(repo.Object, Mock.Of<IDomainEventDispatcher>());
 
         var result = await sut.HandleAsync(new ActivateRoleCommand(role.Id, "admin", "c1"));
 
@@ -162,7 +162,7 @@ public class RoleAdministrationUseCaseTests
         var role = RoleEntity.Create(RoleId.New(), "operator", null, "admin");
         var repo = new Mock<IRoleRepository>();
         repo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
-        var sut = new ActivateRoleCommandHandler(repo.Object);
+        var sut = new ActivateRoleCommandHandler(repo.Object, Mock.Of<IDomainEventDispatcher>());
 
         var act = () => sut.HandleAsync(new ActivateRoleCommand(role.Id, "admin"));
 
@@ -176,7 +176,7 @@ public class RoleAdministrationUseCaseTests
         role.Deactivate("admin");
         var repo = new Mock<IRoleRepository>();
         repo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
-        var sut = new DeactivateRoleCommandHandler(repo.Object);
+        var sut = new DeactivateRoleCommandHandler(repo.Object, Mock.Of<IDomainEventDispatcher>());
 
         var act = () => sut.HandleAsync(new DeactivateRoleCommand(role.Id, "admin"));
 
@@ -192,7 +192,7 @@ public class RoleAdministrationUseCaseTests
         userRepo.Setup(r => r.GetAsync(user.Id, It.IsAny<CancellationToken>())).ReturnsAsync(user);
         var roleRepo = new Mock<IRoleRepository>();
         roleRepo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
-        var sut = new AssignRoleCommandHandler(userRepo.Object, roleRepo.Object);
+        var sut = new AssignRoleCommandHandler(userRepo.Object, roleRepo.Object, Mock.Of<IDomainEventDispatcher>());
 
         var result = await sut.HandleAsync(new AssignRoleCommand(user.Id, role.Id, "admin", "c1"));
 
@@ -212,7 +212,7 @@ public class RoleAdministrationUseCaseTests
         userRepo.Setup(r => r.GetAsync(user.Id, It.IsAny<CancellationToken>())).ReturnsAsync(user);
         var roleRepo = new Mock<IRoleRepository>();
         roleRepo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
-        var sut = new AssignRoleCommandHandler(userRepo.Object, roleRepo.Object);
+        var sut = new AssignRoleCommandHandler(userRepo.Object, roleRepo.Object, Mock.Of<IDomainEventDispatcher>());
 
         var act = () => sut.HandleAsync(new AssignRoleCommand(user.Id, role.Id, "admin"));
 
@@ -229,7 +229,7 @@ public class RoleAdministrationUseCaseTests
         userRepo.Setup(r => r.GetAsync(user.Id, It.IsAny<CancellationToken>())).ReturnsAsync(user);
         var roleRepo = new Mock<IRoleRepository>();
         roleRepo.Setup(r => r.GetByIdAsync(It.IsAny<RoleId>(), It.IsAny<CancellationToken>())).ReturnsAsync((RoleEntity?)null);
-        var sut = new AssignRoleCommandHandler(userRepo.Object, roleRepo.Object);
+        var sut = new AssignRoleCommandHandler(userRepo.Object, roleRepo.Object, Mock.Of<IDomainEventDispatcher>());
 
         var act = () => sut.HandleAsync(new AssignRoleCommand(user.Id, RoleId.New(), "admin"));
 
