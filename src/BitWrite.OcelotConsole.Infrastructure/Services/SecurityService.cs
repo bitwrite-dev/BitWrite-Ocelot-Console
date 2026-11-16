@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using BitWrite.OcelotConsole.Application.Authorization;
 using BitWrite.OcelotConsole.Application.Interfaces;
 using BitWrite.OcelotConsole.Application.Permissions;
 using BitWrite.OcelotConsole.Domain.Aggregates.User.Session;
@@ -25,6 +26,7 @@ public class SecurityService : ISecurityService
     private readonly IRoleRepository _roleRepository;
     private readonly IPermissionCatalog _permissionCatalog;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly IAtomicOperationService _atomicOperationService;
     private readonly string _signingKey;
     private readonly string _issuer;
     private readonly string _audience;
@@ -39,6 +41,7 @@ public class SecurityService : ISecurityService
         IRoleRepository roleRepository,
         IPermissionCatalog permissionCatalog,
         IPasswordHasher passwordHasher,
+        IAtomicOperationService atomicOperationService,
         IConfiguration configuration)
     {
         _sessionRepository = sessionRepository;
@@ -48,6 +51,7 @@ public class SecurityService : ISecurityService
         _roleRepository = roleRepository;
         _permissionCatalog = permissionCatalog;
         _passwordHasher = passwordHasher;
+        _atomicOperationService = atomicOperationService;
 
         _signingKey = configuration["Security:SigningKey"] ?? throw new InvalidOperationException("Security:SigningKey not configured");
         _issuer = configuration["Security:Issuer"] ?? "BitWrite.OcelotControl";
@@ -59,12 +63,14 @@ public class SecurityService : ISecurityService
     public async Task<string> GenerateAccessTokenAsync(UserId userId, CancellationToken cancellationToken = default)
     {
         var eligibleRoleNames = await ResolveEligibleRoleNamesAsync(userId, cancellationToken);
+        var authzVersion = await GetAuthzVersionAsync(userId, cancellationToken);
 
         var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, userId.Value.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
+            new Claim(AuthzVersioning.AccessTokenVersionClaimType, authzVersion.ToString(), ClaimValueTypes.Integer64),
         };
 
         foreach (var roleName in eligibleRoleNames)
@@ -257,6 +263,13 @@ public class SecurityService : ISecurityService
     public async Task<bool> VerifyPasswordAsync(string password, string hashedPassword, CancellationToken cancellationToken = default)
     {
         return await _passwordHasher.VerifyPasswordAsync(password, hashedPassword, cancellationToken);
+    }
+
+
+    private async Task<long> GetAuthzVersionAsync(UserId userId, CancellationToken cancellationToken)
+    {
+        var raw = await _atomicOperationService.GetAsync(AuthzVersioning.UserVersionKey(userId), cancellationToken);
+        return long.TryParse(raw, out var version) ? version : 0L;
     }
 
     private static string ComputeSha256HashInternal(string input)

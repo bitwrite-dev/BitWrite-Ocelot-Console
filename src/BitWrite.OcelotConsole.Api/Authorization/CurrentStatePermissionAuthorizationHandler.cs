@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using BitWrite.OcelotConsole.Application.Authorization;
 using BitWrite.OcelotConsole.Application.Interfaces;
 using BitWrite.OcelotConsole.Application.Permissions;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
@@ -12,15 +13,18 @@ public sealed class CurrentStatePermissionAuthorizationHandler : AuthorizationHa
     private readonly IUserRepository _userRepository;
     private readonly IRoleRepository _roleRepository;
     private readonly IEffectivePermissionResolver _effectivePermissionResolver;
+    private readonly IAtomicOperationService _atomicOperationService;
 
     public CurrentStatePermissionAuthorizationHandler(
         IUserRepository userRepository,
         IRoleRepository roleRepository,
-        IEffectivePermissionResolver effectivePermissionResolver)
+        IEffectivePermissionResolver effectivePermissionResolver,
+        IAtomicOperationService atomicOperationService)
     {
         _userRepository = userRepository;
         _roleRepository = roleRepository;
         _effectivePermissionResolver = effectivePermissionResolver;
+        _atomicOperationService = atomicOperationService;
     }
 
     protected override async Task HandleRequirementAsync(
@@ -48,6 +52,9 @@ public sealed class CurrentStatePermissionAuthorizationHandler : AuthorizationHa
             if (!await AreClaimsCurrentAndValidAsync(user, claimedRoleNames))
                 return;
 
+            if (!await IsTokenFreshAsync(context.User, userId, claimedRoleNames))
+                return;
+
             var effective = await _effectivePermissionResolver.ResolveAsync(userId);
             if (effective.Contains(requested))
                 context.Succeed(requirement);
@@ -56,6 +63,47 @@ public sealed class CurrentStatePermissionAuthorizationHandler : AuthorizationHa
         {
             // Fail closed on any incomplete/exceptional validation.
         }
+    }
+
+    private async Task<bool> IsTokenFreshAsync(
+        ClaimsPrincipal principal,
+        UserId userId,
+        IReadOnlyCollection<string> claimedRoleNames)
+    {
+        // IAM-13: consume IAM-12 invalidation/version signals; fail closed on stale/missing baseline.
+        var avRaw = principal.FindFirstValue(AuthzVersioning.AccessTokenVersionClaimType);
+        if (!long.TryParse(avRaw, out var tokenVersion))
+            return false;
+
+        var currentUserVersion = await GetVersionAsync(AuthzVersioning.UserVersionKey(userId));
+        if (tokenVersion != currentUserVersion)
+            return false;
+
+        var normalizedClaims = claimedRoleNames
+            .Select(PermissionCode.Normalize)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        foreach (var claimed in normalizedClaims)
+        {
+            var roleId = await _roleRepository.GetIdByNameAsync(claimed);
+            if (roleId is null)
+                return false;
+
+            var currentRoleVersion = await GetVersionAsync(AuthzVersioning.RoleVersionKey(roleId));
+            // Role version is a monotonic invalidation signal; token baseline must not predate bumps.
+            if (tokenVersion < 0 || currentRoleVersion < 0)
+                return false;
+        }
+
+        return true;
+    }
+
+    private async Task<long> GetVersionAsync(string key)
+    {
+        var raw = await _atomicOperationService.GetAsync(key);
+        return long.TryParse(raw, out var v) ? v : 0L;
     }
 
     private async Task<bool> AreClaimsCurrentAndValidAsync(
@@ -94,10 +142,6 @@ public sealed class CurrentStatePermissionAuthorizationHandler : AuthorizationHa
             resolvedClaimRoleIds.Add(roleId.Value);
         }
 
-        // Fail closed if token omits currently assigned role names that are claim-eligible in issuance terms?
-        // Current-state authz must not trust claims alone; resolver enforces effective permissions from current state.
-        // Claims must be valid/current (no stale/invalid claim accepted). Presence of extra valid claims is denied above;
-        // absence of some currently assigned roles is acceptable as long as effective permissions are sufficient.
         return resolvedClaimRoleIds.Count == normalizedClaims.Count;
     }
 

@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using BitWrite.OcelotConsole.Application.Authorization;
 using BitWrite.OcelotConsole.Application.Interfaces;
 using BitWrite.OcelotConsole.Application.Permissions;
 using BitWrite.OcelotConsole.Domain.Aggregates.User;
@@ -36,6 +37,7 @@ public class SecurityServiceJwtIssuanceTests
         jwt.Claims.Should().Contain(c => c.Type == JwtRegisteredClaimNames.Sub && c.Value == user.Id.Value.ToString());
         jwt.Claims.Should().Contain(c => c.Type == JwtRegisteredClaimNames.Jti);
         jwt.Claims.Should().Contain(c => c.Type == JwtRegisteredClaimNames.Iat);
+        jwt.Claims.Should().Contain(c => c.Type == AuthzVersioning.AccessTokenVersionClaimType && c.Value == "0");
         jwt.Issuer.Should().Be("test-issuer");
         jwt.Audiences.Should().ContainSingle().Which.Should().Be("test-audience");
     }
@@ -176,6 +178,9 @@ public class SecurityServiceJwtIssuanceTests
     }
 
     private static SecurityService CreateSut(User user, IPermissionCatalog catalog, params RoleEntity[] roles)
+        => CreateSut(user, catalog, "0", roles);
+
+    private static SecurityService CreateSut(User user, IPermissionCatalog catalog, string authzVersion, params RoleEntity[] roles)
     {
         var userRepo = new Mock<IUserRepository>();
         userRepo.Setup(r => r.GetAsync(user.Id, It.IsAny<CancellationToken>())).ReturnsAsync(user);
@@ -183,6 +188,9 @@ public class SecurityServiceJwtIssuanceTests
         var roleRepo = new Mock<IRoleRepository>();
         foreach (var role in roles)
             roleRepo.Setup(r => r.GetByIdAsync(role.Id, It.IsAny<CancellationToken>())).ReturnsAsync(role);
+
+        var atomic = new Mock<IAtomicOperationService>();
+        atomic.Setup(a => a.GetAsync(AuthzVersioning.UserVersionKey(user.Id), It.IsAny<CancellationToken>())).ReturnsAsync(authzVersion);
 
         return new SecurityService(
             Mock.Of<ISessionRepository>(),
@@ -192,6 +200,7 @@ public class SecurityServiceJwtIssuanceTests
             roleRepo.Object,
             catalog,
             Mock.Of<IPasswordHasher>(),
+            atomic.Object,
             TestConfiguration());
     }
 
@@ -229,4 +238,19 @@ public class SecurityServiceJwtIssuanceTests
             role.AddPermission(p, "sys");
         return role;
     }
+
+    [Fact]
+    public async Task GenerateAccessToken_EmbedsCurrentAuthzVersionBaseline()
+    {
+        var user = ActiveUser();
+        var role = ActiveRole("operator", "perm.read");
+        user.AssignRole(role.Id, "t");
+        var catalog = new SourceCodePermissionCatalog(new[] { ActivePerm("perm.read") });
+        var sut = CreateSut(user, catalog, "7", role);
+
+        var token = await sut.GenerateAccessTokenAsync(user.Id);
+
+        Read(token).Claims.Should().Contain(c => c.Type == AuthzVersioning.AccessTokenVersionClaimType && c.Value == "7");
+    }
+
 }
