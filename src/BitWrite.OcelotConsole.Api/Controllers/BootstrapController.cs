@@ -20,6 +20,8 @@ public class BootstrapController : BaseApiController
 
     /// <summary>
     /// Triggers/completes initial administrator bootstrap using secure deployment configuration.
+    /// Anonymous access is a minimal, justified exception: bootstrap must be callable before any
+    /// administrator/token exists. Endpoint-to-permission mapping and completion are gated (P-GATE-1/2).
     /// </summary>
     [HttpPost("initial-admin")]
     [AllowAnonymous]

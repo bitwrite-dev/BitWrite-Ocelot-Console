@@ -1,8 +1,16 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Claims;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace BitWrite.OcelotConsole.Api.Tests;
@@ -50,6 +58,43 @@ public class FreshInstallWalkthroughTests : IClassFixture<WebApplicationFactory<
 
         client.DefaultRequestHeaders.Add("X-Environment", environment);
         return client;
+    }
+
+    private HttpClient CreateAuthenticatedClient(string environment = "development")
+    {
+        var client = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureTestServices(services =>
+            {
+                services.AddAuthentication(options =>
+                    {
+                        options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
+                        options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
+                    })
+                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
+            });
+        }).CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        client.DefaultRequestHeaders.Add("X-Environment", environment);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthHandler.SchemeName);
+        return client;
+    }
+
+    private sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+    {
+        public const string SchemeName = "Test";
+
+        public TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder)
+            : base(options, logger, encoder) { }
+
+        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+        {
+            var claims = new[] { new Claim(ClaimTypes.Name, "test-user"), new Claim("sub", "test-user") };
+            var identity = new ClaimsIdentity(claims, SchemeName);
+            var principal = new ClaimsPrincipal(identity);
+            var ticket = new AuthenticationTicket(principal, SchemeName);
+            return Task.FromResult(AuthenticateResult.Success(ticket));
+        }
     }
 
     /// <summary>
@@ -225,8 +270,9 @@ public class FreshInstallWalkthroughTests : IClassFixture<WebApplicationFactory<
         // seam — the handlers assert the event was dispatched, the controller
         // asserts it maps the repository's shape — and nothing crossed the two, so
         // the audit log stayed empty while the whole suite passed.
+        using var authed = CreateAuthenticatedClient();
         var before = JsonDocument
-            .Parse(await client.GetStringAsync("/api/v1/audit?page=1&pageSize=1"))
+            .Parse(await authed.GetStringAsync("/api/v1/audit?page=1&pageSize=1"))
             .RootElement.GetProperty("totalCount").GetInt32();
 
         var created = JsonDocument.Parse(await client.PostAsJsonAsync("/api/v1/services",
@@ -241,7 +287,7 @@ public class FreshInstallWalkthroughTests : IClassFixture<WebApplicationFactory<
         created.GetProperty("downstreamTargets")[0].GetProperty("weight").GetInt32()
             .Should().Be(1, "the endpoint request now carries a weight");
 
-        var after = JsonDocument.Parse(await client.GetStringAsync("/api/v1/audit?page=1&pageSize=50"))
+        var after = JsonDocument.Parse(await authed.GetStringAsync("/api/v1/audit?page=1&pageSize=50"))
             .RootElement;
 
         after.GetProperty("totalCount").GetInt32().Should().BeGreaterThan(before);
@@ -265,12 +311,13 @@ public class FreshInstallWalkthroughTests : IClassFixture<WebApplicationFactory<
         using var client = CreateClient();
 
         // The list takes filters, and a filter that returned everything would look
-        // like one that worked.
-        var all = JsonDocument.Parse(await client.GetStringAsync("/api/v1/audit?page=1&pageSize=50"));
+        // like one that worked. Audit endpoints require authentication (IAM-09).
+        using var authed = CreateAuthenticatedClient();
+        var all = JsonDocument.Parse(await authed.GetStringAsync("/api/v1/audit?page=1&pageSize=50"));
         if (all.RootElement.GetProperty("totalCount").GetInt32() == 0) return;
 
         var filtered = JsonDocument.Parse(
-            await client.GetStringAsync("/api/v1/audit?action=CreateService&pageSize=50"));
+            await authed.GetStringAsync("/api/v1/audit?action=CreateService&pageSize=50"));
 
         filtered.RootElement.GetProperty("audits").EnumerateArray()
             .Should().OnlyContain(entry => entry.GetProperty("action").GetString() == "CreateService");
