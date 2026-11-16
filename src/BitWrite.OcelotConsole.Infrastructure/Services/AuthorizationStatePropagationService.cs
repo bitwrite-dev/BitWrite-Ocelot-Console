@@ -1,3 +1,4 @@
+using BitWrite.OcelotConsole.Application.Authorization;
 using BitWrite.OcelotConsole.Application.Interfaces;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using Microsoft.Extensions.Logging;
@@ -80,14 +81,12 @@ public sealed class AuthorizationStatePropagationService : IAuthorizationStatePr
     private Task InvalidateUserAsync(UserId userId, CancellationToken cancellationToken)
     {
         // Monotonic version bump as invalidation signal for freshness enforcement (IAM-13).
-        return _atomicOperationService.IncrementAsync(UserAuthzVersionKey(userId), 1, cancellationToken);
+        return _atomicOperationService.IncrementAsync(AuthzVersioning.UserVersionKey(userId), 1, cancellationToken);
     }
 
     private Task InvalidateRoleAsync(RoleId roleId, CancellationToken cancellationToken)
     {
-        return _atomicOperationService.IncrementAsync(RoleAuthzVersionKey(roleId), 1, cancellationToken);
+        return _atomicOperationService.IncrementAsync(AuthzVersioning.RoleVersionKey(roleId), 1, cancellationToken);
     }
 
-    private static string UserAuthzVersionKey(UserId userId) => $"ocelot:iam:v1:authz:ver:user:{userId.Value}";
-    private static string RoleAuthzVersionKey(RoleId roleId) => $"ocelot:iam:v1:authz:ver:role:{roleId.Value}";
 }
