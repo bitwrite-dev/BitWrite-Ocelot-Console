@@ -1,6 +1,7 @@
 using BitWrite.OcelotConsole.Application.Interfaces;
 using BitWrite.OcelotConsole.Application.UseCases.Role;
 using BitWrite.OcelotConsole.Domain.Aggregates.User;
+using BitWrite.OcelotConsole.Domain.Events;
 using BitWrite.OcelotConsole.Domain.Exceptions;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 
@@ -37,6 +38,7 @@ public class RemoveRoleCommandHandler
         await _userRepository.UpdateAsync(user, cancellationToken);
         await _eventDispatcher.DispatchAsync(user.DomainEvents, cancellationToken);
         user.ClearDomainEvents();
+        await _eventDispatcher.DispatchAsync(new AuditRecorded(command.InitiatedBy, "RemoveRoleFromUser", "User", user.Id.Value.ToString(), "Success").WithCorrelationId(command.CorrelationId), cancellationToken);
 
         return new RoleAssignmentResponse(
             user.Id.Value,

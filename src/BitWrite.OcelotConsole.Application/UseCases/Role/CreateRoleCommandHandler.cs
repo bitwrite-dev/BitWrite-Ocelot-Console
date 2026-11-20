@@ -1,4 +1,5 @@
 using BitWrite.OcelotConsole.Application.Interfaces;
+using BitWrite.OcelotConsole.Domain.Events;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using RoleEntity = BitWrite.OcelotConsole.Domain.Aggregates.Role.Role;
 
@@ -21,6 +22,7 @@ public class CreateRoleCommandHandler
         await _roleRepository.AddAsync(role, cancellationToken);
         await _eventDispatcher.DispatchAsync(role.DomainEvents, cancellationToken);
         role.ClearDomainEvents();
+        await _eventDispatcher.DispatchAsync(new AuditRecorded(command.InitiatedBy, "CreateRole", "Role", role.Id.Value, "Success").WithCorrelationId(command.CorrelationId), cancellationToken);
         return RoleMapping.ToResponse(role);
     }
 }
