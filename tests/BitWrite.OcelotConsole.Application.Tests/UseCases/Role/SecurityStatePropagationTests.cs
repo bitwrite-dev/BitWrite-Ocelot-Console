@@ -74,14 +74,15 @@ public class SecurityStatePropagationTests
         var userId = UserId.New();
         var roleId = RoleId.New();
         var propagation = new Mock<IAuthorizationStatePropagationService>();
+        var dispatcher = Mock.Of<IDomainEventDispatcher>();
 
-        await new UserDisabledPropagationHandler(propagation.Object).HandleAsync(new Domain.Events.UserDisabled(userId, "sys", "c"));
-        await new RoleDeactivatedPropagationHandler(propagation.Object).HandleAsync(new Domain.Events.RoleDeactivated(roleId, "sys", "c"));
-        await new RoleRenamedPropagationHandler(propagation.Object).HandleAsync(new Domain.Events.RoleRenamed(roleId, "old", "new", "sys", "c"));
-        await new PermissionAddedToRolePropagationHandler(propagation.Object).HandleAsync(new Domain.Events.PermissionAddedToRole(roleId, "perm", "sys", "c"));
-        await new RoleAssignedToUserPropagationHandler(propagation.Object).HandleAsync(new Domain.Events.RoleAssignedToUser(userId, roleId.Value, "c"));
-        await new LocalCredentialChangedPropagationHandler(propagation.Object).HandleAsync(new Domain.Events.LocalCredentialChanged(userId, "sys", "c"));
-        await new LocalCredentialLockedOutPropagationHandler(propagation.Object).HandleAsync(new Domain.Events.LocalCredentialLockedOut(userId, DateTimeOffset.UtcNow, "c"));
+        await new UserDisabledPropagationHandler(propagation.Object, dispatcher).HandleAsync(new Domain.Events.UserDisabled(userId, "sys", "c"));
+        await new RoleDeactivatedPropagationHandler(propagation.Object, dispatcher).HandleAsync(new Domain.Events.RoleDeactivated(roleId, "sys", "c"));
+        await new RoleRenamedPropagationHandler(propagation.Object, dispatcher).HandleAsync(new Domain.Events.RoleRenamed(roleId, "old", "new", "sys", "c"));
+        await new PermissionAddedToRolePropagationHandler(propagation.Object, dispatcher).HandleAsync(new Domain.Events.PermissionAddedToRole(roleId, "perm", "sys", "c"));
+        await new RoleAssignedToUserPropagationHandler(propagation.Object, dispatcher).HandleAsync(new Domain.Events.RoleAssignedToUser(userId, roleId.Value, "c"));
+        await new LocalCredentialChangedPropagationHandler(propagation.Object, dispatcher).HandleAsync(new Domain.Events.LocalCredentialChanged(userId, "sys", "c"));
+        await new LocalCredentialLockedOutPropagationHandler(propagation.Object, dispatcher).HandleAsync(new Domain.Events.LocalCredentialLockedOut(userId, DateTimeOffset.UtcNow, "c"));
 
         propagation.Verify(p => p.OnUserDisabledAsync(userId, It.IsAny<CancellationToken>()), Times.Once);
         propagation.Verify(p => p.OnRoleChangedAsync(roleId, "RoleDeactivated", It.IsAny<CancellationToken>()), Times.Once);

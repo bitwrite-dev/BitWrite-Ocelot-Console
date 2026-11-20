@@ -1,5 +1,6 @@
 using BitWrite.OcelotConsole.Application.Interfaces;
 using BitWrite.OcelotConsole.Application.Permissions;
+using BitWrite.OcelotConsole.Domain.Events;
 using BitWrite.OcelotConsole.Domain.Exceptions;
 
 namespace BitWrite.OcelotConsole.Application.UseCases.Role;
@@ -46,6 +47,7 @@ public class RemovePermissionFromRoleCommandHandler
             await _roleRepository.UpdateAsync(role, cancellationToken);
             await _eventDispatcher.DispatchAsync(role.DomainEvents, cancellationToken);
             role.ClearDomainEvents();
+            await _eventDispatcher.DispatchAsync(new AuditRecorded(command.InitiatedBy, "RemovePermissionFromRole", "Role", role.Id.Value, "Success").WithCorrelationId(command.CorrelationId), cancellationToken);
 
             return new RemovePermissionFromRoleResponse(
                 role.Id.Value,
