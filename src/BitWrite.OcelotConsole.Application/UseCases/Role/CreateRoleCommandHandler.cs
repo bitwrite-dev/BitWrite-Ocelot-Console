@@ -1,8 +1,7 @@
 using BitWrite.OcelotConsole.Application.Interfaces;
+using BitWrite.OcelotConsole.Domain.Events;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using RoleEntity = BitWrite.OcelotConsole.Domain.Aggregates.Role.Role;
-
-using BitWrite.OcelotConsole.Domain.Events;
 
 namespace BitWrite.OcelotConsole.Application.UseCases.Role;
 
