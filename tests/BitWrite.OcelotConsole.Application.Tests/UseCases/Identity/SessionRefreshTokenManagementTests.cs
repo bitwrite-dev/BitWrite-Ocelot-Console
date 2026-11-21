@@ -62,7 +62,7 @@ public class SessionRefreshTokenManagementTests
         security.Setup(s => s.ComputeSha256Hash("raw-old")).Returns("old-hash");
         security.Setup(s => s.ValidateRefreshTokenAsync("old-hash", It.IsAny<CancellationToken>())).ReturnsAsync(userId);
         security.Setup(s => s.IssueRefreshTokenAsync(userId, It.IsAny<CancellationToken>())).ReturnsAsync(("raw-new", newToken));
-        security.Setup(s => s.GenerateAccessTokenAsync(userId, It.IsAny<CancellationToken>()))
+        security.Setup(s => s.GenerateAccessTokenAsync(userId, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("access-token");
 
         var refreshRepo = new Mock<IRefreshTokenRepository>();
@@ -83,7 +83,7 @@ public class SessionRefreshTokenManagementTests
         result.RefreshTokenExpiresAt.Should().Be(newToken.ExpiresAt);
         oldToken.IsRevoked.Should().BeTrue();
         session.RefreshTokenId.Should().Be(newToken.Id.Value.ToString());
-        security.Verify(s => s.GenerateAccessTokenAsync(userId, It.IsAny<CancellationToken>()), Times.Once);
+        security.Verify(s => s.GenerateAccessTokenAsync(userId, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
         refreshRepo.Verify(r => r.UpdateAsync(oldToken, It.IsAny<CancellationToken>()), Times.Once);
         sessionRepo.Verify(r => r.UpdateAsync(session, It.IsAny<CancellationToken>()), Times.Once);
         sessionRepo.Verify(r => r.AddAsync(It.IsAny<Session>(), It.IsAny<CancellationToken>()), Times.Never);
