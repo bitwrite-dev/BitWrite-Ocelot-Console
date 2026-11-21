@@ -75,6 +75,7 @@ export function useAuth() {
   if (!provider) {
     return { login: () => {}, logout: () => {}, isAuthenticated: () => false, setUsername: () => {}, getUsername: () => null }
   }
+  const navigate = useNavigate()
 
   const login = (token: string) => provider.setToken(token)
   const logout = () => {
