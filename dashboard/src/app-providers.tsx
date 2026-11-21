@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
 import { createApiClient, type ApiClient } from '@/api'
+import { createMemoryAccessTokenProvider } from '@/api/auth'
 
 /**
  * The API client and query cache are wired once, here, and provided through
@@ -9,6 +10,11 @@ import { createApiClient, type ApiClient } from '@/api'
  *
  * The client is created per QueryClient so tests can build an isolated cache and
  * inject a stub `fetchImpl`.
+ *
+ * Authentication uses an in-memory token provider (UI-09): tokens live in
+ * memory only and are cleared on page reload. Call `api.http` ... actually the
+ * provider is not exposed through the client; components that need to log in or
+ * out import `useAuth` from the auth feature once it exists.
  */
 export function createAppProviders({
   client,
@@ -30,7 +36,9 @@ export function createAppProviders({
     },
   })
 
-  const api = client ?? createApiClient()
+  const api = client ?? createApiClient({
+    tokenProvider: createMemoryAccessTokenProvider(),
+  })
 
   return (
     <QueryClientProvider client={queryClient}>
