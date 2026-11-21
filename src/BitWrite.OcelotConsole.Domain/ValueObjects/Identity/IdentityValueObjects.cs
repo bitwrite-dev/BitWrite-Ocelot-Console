@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Text.Json.Serialization;
 using BitWrite.OcelotConsole.Domain.Exceptions;
 
 namespace BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
@@ -256,6 +257,7 @@ public record UserId : ValueObject
 {
     public Guid Value { get; init; }
 
+    [JsonConstructor]
     private UserId(Guid value)
     {
         Value = value;

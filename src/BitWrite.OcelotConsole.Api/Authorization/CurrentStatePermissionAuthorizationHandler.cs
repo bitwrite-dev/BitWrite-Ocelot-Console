@@ -126,16 +126,15 @@ public sealed class CurrentStatePermissionAuthorizationHandler : AuthorizationHa
         {
             var roleId = await _roleRepository.GetIdByNameAsync(claimed);
             if (roleId is null)
-                return false; // stale, renamed, ambiguous/unresolvable
+                return false;
 
             if (!user.RoleIds.Contains(roleId.Value, StringComparer.Ordinal))
-                return false; // not currently assigned
+                return false;
 
             var role = await _roleRepository.GetByIdAsync(roleId);
             if (role is null || !role.IsActive)
                 return false;
 
-            // Ensure current role name still matches the claimed normalized name.
             if (!string.Equals(PermissionCode.Normalize(role.Name), claimed, StringComparison.Ordinal))
                 return false;
 

@@ -1,4 +1,5 @@
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ApiDtos = BitWrite.OcelotConsole.Api.DTOs;
 using AppService = BitWrite.OcelotConsole.Application.UseCases.Service;
@@ -34,6 +35,7 @@ public class ServicesController : BaseApiController
     }
 
     [HttpGet]
+    [Authorize(Policy = "perm:services.read")]
     public async Task<ActionResult<ApiDtos.ServiceListResponse>> GetServices(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
@@ -59,6 +61,7 @@ public class ServicesController : BaseApiController
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "perm:services.read")]
     public async Task<ActionResult<ApiDtos.ServiceResponse>> GetService(string id)
     {
         try
@@ -140,6 +143,7 @@ public class ServicesController : BaseApiController
     }
 
     [HttpGet("{id}/routes")]
+    [Authorize(Policy = "perm:services.read")]
     public async Task<ActionResult<ApiDtos.ServiceRoutesResponse>> GetServiceRoutes(string id)
     {
         try

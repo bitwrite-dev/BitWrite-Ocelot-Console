@@ -5,6 +5,12 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using BitWrite.OcelotConsole.Api.Controllers;
+using BitWrite.OcelotConsole.Application.Authorization;
+using BitWrite.OcelotConsole.Application.Interfaces;
+using BitWrite.OcelotConsole.Application.Permissions;
+using BitWrite.OcelotConsole.Domain.Aggregates.Role;
+using BitWrite.OcelotConsole.Domain.Aggregates.User;
+using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -13,6 +19,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit;
+using RoleEntity = BitWrite.OcelotConsole.Domain.Aggregates.Role.Role;
+using UserEntity = BitWrite.OcelotConsole.Domain.Aggregates.User.User;
 
 namespace BitWrite.OcelotConsole.IntegrationTests;
 
@@ -40,8 +48,11 @@ public class SecurityRegressionTests : IClassFixture<WebApplicationFactory<BitWr
         return client;
     }
 
-    private HttpClient CreateAuthenticatedClient(string environment = "development")
+    private HttpClient CreateAuthenticatedClient(string userId, string roleName, string environment = "development")
     {
+        _testUserId = userId;
+        _testRoleName = roleName;
+
         var client = _factory.WithWebHostBuilder(builder =>
         {
             builder.ConfigureTestServices(services =>
@@ -50,7 +61,11 @@ public class SecurityRegressionTests : IClassFixture<WebApplicationFactory<BitWr
                 {
                     options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
                     options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
-                }).AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
+                }).AddScheme<TestAuthOptions, TestAuthHandler>(TestAuthHandler.SchemeName, options =>
+                {
+                    options.UserId = _testUserId;
+                    options.RoleName = _testRoleName;
+                });
             });
         }).CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
@@ -59,21 +74,73 @@ public class SecurityRegressionTests : IClassFixture<WebApplicationFactory<BitWr
         return client;
     }
 
-    private sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+    private string? _testUserId;
+    private string? _testRoleName;
+
+    private sealed class TestAuthOptions : AuthenticationSchemeOptions
+    {
+        public string? UserId { get; set; }
+        public string? RoleName { get; set; }
+    }
+
+    private sealed class TestAuthHandler : AuthenticationHandler<TestAuthOptions>
     {
         public const string SchemeName = "Test";
 
-        public TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder)
+        public TestAuthHandler(IOptionsMonitor<TestAuthOptions> options, ILoggerFactory logger, UrlEncoder encoder)
             : base(options, logger, encoder) { }
 
         protected override Task<AuthenticateResult> HandleAuthenticateAsync()
         {
-            var claims = new[] { new Claim(ClaimTypes.Name, "regression-user"), new Claim("sub", "regression-user") };
+            var claims = new List<Claim>
+            {
+                new("sub", Options.UserId ?? "test-user"),
+                new(AuthzVersioning.AccessTokenVersionClaimType, "0")
+            };
+            if (!string.IsNullOrEmpty(Options.RoleName))
+                claims.Add(new Claim("role", Options.RoleName));
             var identity = new ClaimsIdentity(claims, SchemeName);
             var principal = new ClaimsPrincipal(identity);
             var ticket = new AuthenticationTicket(principal, SchemeName);
             return Task.FromResult(AuthenticateResult.Success(ticket));
         }
+    }
+
+    private async Task SeedAuthorizationState(string roleName, params string[] permissions)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var userRepo = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+        var roleRepo = scope.ServiceProvider.GetRequiredService<IRoleRepository>();
+
+        // Tests share Redis; a role seeded by an earlier test may already exist.
+        var existingRole = await roleRepo.GetByNameAsync(roleName);
+        RoleEntity role;
+        if (existingRole is not null)
+        {
+            role = existingRole;
+            // Add any permissions this test needs that the role lacks.
+            foreach (var perm in permissions)
+                if (!role.Permissions.Contains(perm))
+                    role.AddPermission(perm, "admin");
+            await roleRepo.UpdateAsync(role);
+        }
+        else
+        {
+            var roleId = RoleId.New();
+            role = RoleEntity.Create(roleId, roleName, null, "admin");
+            foreach (var perm in permissions)
+                role.AddPermission(perm, "admin");
+            await roleRepo.AddAsync(role);
+        }
+
+        var userId = UserId.New();
+        _testUserId = userId.Value.ToString();
+        _testRoleName = roleName;
+        var user = UserEntity.CreateLocal(userId, "test-user", null, null, "sys");
+        await userRepo.AddAsync(user);
+
+        user.AssignRole(role.Id, "c1");
+        await userRepo.UpdateAsync(user);
     }
 
     private static async Task<JsonElement> ReadJson(HttpResponseMessage response)
@@ -113,7 +180,8 @@ public class SecurityRegressionTests : IClassFixture<WebApplicationFactory<BitWr
     [Fact]
     public async Task ProtectedEndpoints_Authenticated_ReturnsSuccess()
     {
-        using var client = CreateAuthenticatedClient();
+        await SeedAuthorizationState("regression-user", "perm.services.read", "perm.routes.read", "perm.users.read");
+        using var client = CreateAuthenticatedClient(_testUserId!, _testRoleName!);
 
         var services = await client.GetAsync("/api/v1/services");
         services.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -145,7 +213,8 @@ public class SecurityRegressionTests : IClassFixture<WebApplicationFactory<BitWr
         var audit = await client.GetAsync("/api/v1/audit");
         audit.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
 
-        using var authed = CreateAuthenticatedClient();
+        await SeedAuthorizationState("regression-user", "perm.audit.read");
+        using var authed = CreateAuthenticatedClient(_testUserId!, _testRoleName!);
         var auditAuth = await authed.GetAsync("/api/v1/audit");
         auditAuth.StatusCode.Should().Be(HttpStatusCode.OK);
     }

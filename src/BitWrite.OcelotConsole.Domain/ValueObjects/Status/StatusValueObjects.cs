@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Text.Json.Serialization;
 using BitWrite.OcelotConsole.Domain.Exceptions;
 
 namespace BitWrite.OcelotConsole.Domain.ValueObjects.Status;
@@ -274,6 +275,7 @@ public record UserStatus : ValueObject
 {
     public string Value { get; init; }
 
+    [JsonConstructor]
     private UserStatus(string value)
     {
         Value = value;

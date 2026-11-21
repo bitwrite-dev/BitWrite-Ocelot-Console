@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Configuration;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ApiDtos = BitWrite.OcelotConsole.Api.DTOs;
 using AppRuntime = BitWrite.OcelotConsole.Application.UseCases.Runtime;
@@ -44,6 +45,7 @@ public class RuntimeController : BaseApiController
     /// <param name="to">Exclusive end of the range. Defaults to now.</param>
     /// <param name="limit">Most recent attempts to consider, newest first.</param>
     [HttpGet("delivery-metrics")]
+    [Authorize(Policy = "perm:runtime.read")]
     public async Task<ActionResult<ApiDtos.DeliveryMetricsResponse>> GetDeliveryMetrics(
         [FromQuery] DateTimeOffset? from = null,
         [FromQuery] DateTimeOffset? to = null,
@@ -83,6 +85,7 @@ public class RuntimeController : BaseApiController
     }
 
     [HttpGet("status")]
+    [Authorize(Policy = "perm:runtime.read")]
     public async Task<ActionResult<ApiDtos.RuntimeStatusResponse>> GetRuntimeStatus(
         [FromQuery] string gatewayId)
     {
@@ -103,6 +106,7 @@ public class RuntimeController : BaseApiController
     }
 
     [HttpGet("gateways")]
+    [Authorize(Policy = "perm:runtime.read")]
     public async Task<ActionResult<ApiDtos.RuntimeGatewaysResponse>> GetAllGateways()
     {
         try
@@ -123,6 +127,7 @@ public class RuntimeController : BaseApiController
     }
 
     [HttpGet("gateways/{id}")]
+    [Authorize(Policy = "perm:runtime.read")]
     public async Task<ActionResult<ApiDtos.RuntimeStatusResponse>> GetGatewayRuntime(string id)
     {
         try
@@ -142,6 +147,7 @@ public class RuntimeController : BaseApiController
     }
 
     [HttpPost("reconcile")]
+    [Authorize(Policy = "perm:runtime.manage")]
     public async Task<ActionResult<ApiDtos.ReconcileResponse>> Reconcile(ApiDtos.ReconcileRequest request)
     {
         try

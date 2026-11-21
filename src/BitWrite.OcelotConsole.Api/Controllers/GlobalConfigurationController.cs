@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ApiDtos = BitWrite.OcelotConsole.Api.DTOs;
 using AppGlobalConfig = BitWrite.OcelotConsole.Application.UseCases.GlobalConfiguration;
@@ -24,6 +25,7 @@ public class GlobalConfigurationController : BaseApiController
     }
 
     [HttpGet]
+    [Authorize(Policy = "perm:globalconfig.read")]
     public async Task<ActionResult<ApiDtos.GlobalConfigurationResponse>> GetGlobalConfiguration()
     {
         try
@@ -43,6 +45,7 @@ public class GlobalConfigurationController : BaseApiController
     }
 
     [HttpPut]
+    [Authorize(Policy = "perm:globalconfig.manage")]
     public async Task<ActionResult<ApiDtos.GlobalConfigurationResponse>> UpdateGlobalConfiguration(ApiDtos.UpdateGlobalConfigurationRequest request)
     {
         try

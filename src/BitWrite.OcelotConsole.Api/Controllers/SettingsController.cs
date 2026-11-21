@@ -29,6 +29,7 @@ public class SettingsController : BaseApiController
     /// The current settings, and whether first-run setup is still outstanding.
     /// </summary>
     [HttpGet]
+    [Authorize(Policy = "perm:settings.read")]
     [ProducesResponseType(typeof(SystemSettingsResponse), StatusCodes.Status200OK)]
     public async Task<ActionResult<SystemSettingsResponse>> Get(
         [FromQuery] GetSystemSettingsQuery query,
@@ -111,7 +112,7 @@ public class SettingsController : BaseApiController
     /// them, and has no update path.
     /// </summary>
     [HttpPut]
-    [Authorize]
+    [Authorize(Policy = "perm:settings.manage")]
     [ProducesResponseType(typeof(SystemSettingsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<SystemSettingsResponse>> Update(

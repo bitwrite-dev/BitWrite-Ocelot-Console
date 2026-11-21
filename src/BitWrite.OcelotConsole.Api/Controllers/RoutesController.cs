@@ -1,5 +1,6 @@
 using BitWrite.OcelotConsole.Api.Mapping;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using ApiDtos = BitWrite.OcelotConsole.Api.DTOs;
@@ -66,6 +67,7 @@ public class RoutesController : BaseApiController
     }
 
     [HttpGet]
+    [Authorize(Policy = "perm:routes.read")]
     public async Task<ActionResult<ApiDtos.RouteListResponse>> GetRoutes(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
@@ -94,6 +96,7 @@ public class RoutesController : BaseApiController
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "perm:routes.read")]
     public async Task<ActionResult<ApiDtos.RouteResponse>> GetRoute(string id)
     {
         try
@@ -122,6 +125,7 @@ public class RoutesController : BaseApiController
     /// here rather than a client mistake.
     /// </remarks>
     [HttpPost("validate")]
+    [Authorize(Policy = "perm:routes.read")]
     public async Task<ActionResult<ApiDtos.RouteValidationResponse>> ValidateRouteDraft(
         [FromBody] ApiDtos.CreateRouteRequest request)
     {
@@ -142,6 +146,7 @@ public class RoutesController : BaseApiController
     }
 
     [HttpPost]
+    [Authorize(Policy = "perm:routes.manage")]
     public async Task<ActionResult<ApiDtos.RouteResponse>> CreateRoute(ApiDtos.CreateRouteRequest request)
     {
         try
@@ -223,6 +228,7 @@ public class RoutesController : BaseApiController
     /// A body that cannot be mapped is rejected against the field at fault.
     /// </remarks>
     [HttpPut("{id}")]
+    [Authorize(Policy = "perm:routes.manage")]
     public async Task<ActionResult<ApiDtos.RouteResponse>> UpdateRoute(
         string id,
         ApiDtos.UpdateRouteRequest request)
@@ -254,6 +260,7 @@ public class RoutesController : BaseApiController
     }
 
     [HttpPatch("{id}/enable")]
+    [Authorize(Policy = "perm:routes.manage")]
     public async Task<ActionResult<ApiDtos.RouteResponse>> EnableRoute(string id)
     {
         try
@@ -273,6 +280,7 @@ public class RoutesController : BaseApiController
     }
 
     [HttpPatch("{id}/disable")]
+    [Authorize(Policy = "perm:routes.manage")]
     public async Task<ActionResult<ApiDtos.RouteResponse>> DisableRoute(string id)
     {
         try
@@ -292,6 +300,7 @@ public class RoutesController : BaseApiController
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = "perm:routes.manage")]
     public async Task<ActionResult> DeleteRoute(string id)
     {
         try
@@ -311,6 +320,7 @@ public class RoutesController : BaseApiController
     }
 
     [HttpPost("{id}/validate")]
+    [Authorize(Policy = "perm:routes.read")]
     public async Task<ActionResult<ApiDtos.RouteValidationResponse>> ValidateRoute(string id)
     {
         try
@@ -330,6 +340,7 @@ public class RoutesController : BaseApiController
     }
 
     [HttpGet("{id}/preview")]
+    [Authorize(Policy = "perm:routes.read")]
     public async Task<ActionResult<ApiDtos.RoutePreviewResponse>> PreviewRoute(string id)
     {
         try
@@ -345,6 +356,7 @@ public class RoutesController : BaseApiController
     }
 
     [HttpGet("{id}/effective")]
+    [Authorize(Policy = "perm:routes.read")]
     public async Task<ActionResult<ApiDtos.RouteEffectiveResponse>> GetEffectiveRoute(string id)
     {
         try
@@ -360,6 +372,7 @@ public class RoutesController : BaseApiController
     }
 
     [HttpGet("{id}/history")]
+    [Authorize(Policy = "perm:routes.read")]
     public async Task<ActionResult<ApiDtos.RouteHistoryResponse>> GetRouteHistory(string id)
     {
         try

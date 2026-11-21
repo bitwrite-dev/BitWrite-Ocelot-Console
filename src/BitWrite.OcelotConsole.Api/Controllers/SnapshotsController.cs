@@ -1,6 +1,7 @@
 using BitWrite.OcelotConsole.Domain.ValueObjects.Configuration;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Status;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ApiDtos = BitWrite.OcelotConsole.Api.DTOs;
 using AppPublication = BitWrite.OcelotConsole.Application.UseCases.Publication;
@@ -53,6 +54,7 @@ public class SnapshotsController : BaseApiController
     }
 
     [HttpGet]
+    [Authorize(Policy = "perm:snapshots.read")]
     public async Task<ActionResult<ApiDtos.SnapshotListResponse>> GetSnapshots(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
@@ -79,6 +81,7 @@ public class SnapshotsController : BaseApiController
     }
 
     [HttpPost]
+    [Authorize(Policy = "perm:snapshots.manage")]
     public async Task<ActionResult<ApiDtos.SnapshotResponse>> CreateSnapshot(ApiDtos.CreateSnapshotRequest request)
     {
         try
@@ -117,6 +120,7 @@ public class SnapshotsController : BaseApiController
     /// </para>
     /// </remarks>
     [HttpPost("preview")]
+    [Authorize(Policy = "perm:snapshots.read")]
     public async Task<ActionResult<ApiDtos.PreviewSnapshotResponse>> PreviewSnapshot(
         CancellationToken cancellationToken)
     {
@@ -145,6 +149,7 @@ public class SnapshotsController : BaseApiController
     }
 
     [HttpPost("validate")]
+    [Authorize(Policy = "perm:snapshots.read")]
     public async Task<ActionResult<ApiDtos.SnapshotValidationResponse>> ValidateSnapshot([FromBody] string content, [FromQuery] string initiatedBy = "system")
     {
         try
@@ -160,6 +165,7 @@ public class SnapshotsController : BaseApiController
     }
 
     [HttpGet("{version}")]
+    [Authorize(Policy = "perm:snapshots.read")]
     public async Task<ActionResult<ApiDtos.SnapshotResponse>> GetSnapshot(int version)
     {
         try
@@ -179,6 +185,7 @@ public class SnapshotsController : BaseApiController
     }
 
     [HttpGet("{version}/compare")]
+    [Authorize(Policy = "perm:snapshots.read")]
     public async Task<ActionResult<ApiDtos.SnapshotCompareResponse>> CompareSnapshots(int version, [FromQuery] int compareWith)
     {
         try
@@ -194,6 +201,7 @@ public class SnapshotsController : BaseApiController
     }
 
     [HttpPost("{version}/clone")]
+    [Authorize(Policy = "perm:snapshots.manage")]
     public async Task<ActionResult<ApiDtos.SnapshotResponse>> CloneSnapshot(int version, ApiDtos.SnapshotCloneRequest request)
     {
         try
@@ -225,6 +233,7 @@ public class SnapshotsController : BaseApiController
     }
 
     [HttpGet("{version}/export")]
+    [Authorize(Policy = "perm:snapshots.read")]
     public async Task<ActionResult<ApiDtos.SnapshotResponse>> ExportSnapshot(int version)
     {
         try
@@ -261,6 +270,7 @@ public class SnapshotsController : BaseApiController
     }
 
     [HttpPost("{version}/publish")]
+    [Authorize(Policy = "perm:snapshots.manage")]
     public async Task<ActionResult<ApiDtos.SnapshotDeploymentResponse>> PublishSnapshot(int version, ApiDtos.SnapshotPublishRequest request)
     {
         try
@@ -320,6 +330,7 @@ public class SnapshotsController : BaseApiController
     }
 
     [HttpPost("{version}/rollback")]
+    [Authorize(Policy = "perm:snapshots.manage")]
     public async Task<ActionResult<ApiDtos.SnapshotDeploymentResponse>> RollbackSnapshot(int version, ApiDtos.SnapshotRollbackRequest request)
     {
         try
@@ -374,6 +385,7 @@ public class SnapshotsController : BaseApiController
     }
 
     [HttpGet("{version}/deployment")]
+    [Authorize(Policy = "perm:snapshots.read")]
     public async Task<ActionResult<ApiDtos.SnapshotDeploymentResponse>> GetSnapshotDeployment(int version)
     {
         try
