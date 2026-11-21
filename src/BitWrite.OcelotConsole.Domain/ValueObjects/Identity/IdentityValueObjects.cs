@@ -1,5 +1,5 @@
-using System.Text.RegularExpressions;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using BitWrite.OcelotConsole.Domain.Exceptions;
 
 namespace BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
