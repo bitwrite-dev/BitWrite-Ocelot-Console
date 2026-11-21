@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using BitWrite.OcelotConsole.Domain.Events;
 using BitWrite.OcelotConsole.Domain.Exceptions;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
@@ -15,18 +16,18 @@ public sealed class LocalCredential
 {
     private readonly List<DomainEvent> _domainEvents = new();
 
-    public UserId UserId { get; private set; } = null!;
-    public PasswordHash PasswordHash { get; private set; } = null!;
-    public int FailedLoginAttempts { get; private set; }
-    public DateTimeOffset? LockedOutUntil { get; private set; }
+    public UserId UserId { get; set; } = null!;
+    public PasswordHash PasswordHash { get; set; } = null!;
+    public int FailedLoginAttempts { get; set; }
+    public DateTimeOffset? LockedOutUntil { get; set; }
     public DateTimeOffset CreatedAt { get; private set; }
-    public DateTimeOffset? LastChangedAt { get; private set; }
-    public DateTimeOffset? LastAuthenticatedAt { get; private set; }
-    /// <summary>Bootstrap-created credentials may require the administrator to establish a new secure password.</summary>
-    public bool MustChangePassword { get; private set; }
+    public DateTimeOffset? LastChangedAt { get; set; }
+    public DateTimeOffset? LastAuthenticatedAt { get; set; }
+    public bool MustChangePassword { get; set; }
 
     public IReadOnlyList<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
+    [JsonConstructor]
     private LocalCredential() { }
 
     /// <summary>

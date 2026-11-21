@@ -21,14 +21,14 @@ public sealed class User
     private List<string> _roleIds = new();
     private List<Guid> _externalIdentityIds = new();
 
-    public UserId Id { get; private set; } = null!;
-    public string Username { get; private set; } = null!;
-    public string? DisplayName { get; private set; }
-    public string? Email { get; private set; }
-    public UserStatus Status { get; private set; } = UserStatus.Active;
-    public string UserType { get; private set; } = null!; // "Local" or "External"
+    public UserId Id { get; set; } = null!;
+    public string Username { get; set; } = null!;
+    public string? DisplayName { get; set; }
+    public string? Email { get; set; }
+    public UserStatus Status { get; set; } = UserStatus.Active;
+    public string UserType { get; set; } = null!; // "Local" or "External"
     public DateTimeOffset CreatedAt { get; private set; }
-    public string? CreatedBy { get; private set; }
+    public string? CreatedBy { get; set; }
     public DateTimeOffset? UpdatedAt { get; private set; }
     public string? UpdatedBy { get; private set; }
     public DateTimeOffset? LastAuthenticatedAt { get; private set; }
