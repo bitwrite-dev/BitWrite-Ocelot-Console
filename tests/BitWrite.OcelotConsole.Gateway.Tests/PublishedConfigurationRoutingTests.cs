@@ -164,7 +164,7 @@ public class PublishedConfigurationRoutingTests : IAsyncLifetime
                 {
                     File.WriteAllText(
                         Path.Combine(_contentRoot, name),
-                        """{"Routes":[],"GlobalConfiguration":{"BaseUrl":"http://localhost:5000","RequestIdKey":"X-Request-Id"}}""");
+                        """{"Routes":[],"DynamicRoutes":[],"Aggregates":[],"GlobalConfiguration":{"RequestIdKey":"X-Request-Id","ServiceDiscoveryProvider":{"Scheme":null,"Host":null,"Port":0,"Type":null,"Token":null,"ConfigurationKey":null,"PollingInterval":0,"Namespace":null},"RateLimitOptions":{"ClientIdHeader":"ClientId","QuotaExceededMessage":null,"RateLimitCounterPrefix":"ocelot","DisableRateLimitHeaders":false,"HttpStatusCode":429},"QoSOptions":{"ExceptionsAllowedBeforeBreaking":0,"DurationOfBreak":0,"TimeoutValue":0},"BaseUrl":"http://localhost:5000","LoadBalancerOptions":{"Type":null,"Key":null,"Expiry":0},"DownstreamScheme":null,"HttpHandlerOptions":{"AllowAutoRedirect":false,"UseCookieContainer":false,"UseTracing":false,"UseProxy":true,"MaxConnectionsPerServer":2147483647},"DownstreamHttpVersion":null}}""");
                 }
 
                 web.ConfigureAppConfiguration((context, config) =>
