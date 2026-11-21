@@ -1,0 +1,97 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch API",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-api",
+            "program": "${workspaceFolder}/src/BitWrite.OcelotConsole.Api/bin/Debug/net10.0/BitWrite.OcelotConsole.Api.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/BitWrite.OcelotConsole.Api",
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "http://localhost:5039"
+            },
+            "sourceFileMap": {
+                "/views": "${workspaceFolder}/src/BitWrite.OcelotConsole.Api/Views"
+            }
+        },
+        {
+            "name": "Attach to API",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command:pickProcess}"
+        },
+        {
+            "name": "Launch Gateway Node 1",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "${workspaceFolder}/nodes/ocelot.gateway.node-1/bin/Debug/net10.0/ocelot.gateway.node-1.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/nodes/ocelot.gateway.node-1",
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "http://localhost:8080",
+                "Gateway:Environment": "Development",
+                "Gateway:NodeName": "ocelot.gateway.node-1",
+                "Gateway:ControlPlaneUrl": "http://localhost:5039"
+            },
+            "sourceFileMap": {
+                "/views": "${workspaceFolder}/nodes/ocelot.gateway.node-1/Views"
+            }
+        },
+        {
+            "name": "Launch Gateway Node 2",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "${workspaceFolder}/nodes/ocelot.gateway.node-2/bin/Debug/net10.0/ocelot.gateway.node-2.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/nodes/ocelot.gateway.node-2",
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "http://localhost:8082",
+                "Gateway:Environment": "Development",
+                "Gateway:NodeName": "ocelot.gateway.node-2",
+                "Gateway:ControlPlaneUrl": "http://localhost:5039"
+            },
+            "sourceFileMap": {
+                "/views": "${workspaceFolder}/nodes/ocelot.gateway.node-2/Views"
+            }
+        },
+        {
+            "name": "Launch Gateway Node 3",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "${workspaceFolder}/nodes/ocelot.gateway.node-3/bin/Debug/net10.0/ocelot.gateway.node-3.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/nodes/ocelot.gateway.node-3",
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "http://localhost:8083",
+                "Gateway:Environment": "Development",
+                "Gateway:NodeName": "ocelot.gateway.node-3",
+                "Gateway:ControlPlaneUrl": "http://localhost:5039"
+            },
+            "sourceFileMap": {
+                "/views": "${workspaceFolder}/nodes/ocelot.gateway.node-3/Views"
+            }
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Run All (API + Dashboard + Node 1)",
+            "configurations": ["Launch API"],
+            "preLaunchTask": "run-all"
+        },
+        {
+            "name": "Run Fleet (API + Dashboard + 3 Nodes)",
+            "configurations": ["Launch API"],
+            "preLaunchTask": "run-fleet"
+        }
+    ]
+}

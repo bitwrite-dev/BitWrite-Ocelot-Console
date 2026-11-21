@@ -1,0 +1,17 @@
+{
+    "editor.defaultFormatter": "ms-dotnettools.csharp",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+    },
+    "dotnet.defaultSolution": "BitWrite.OcelotConsole.slnx",
+    "dotnet.testExplorer.projectPath": "${workspaceFolder}/BitWrite.OcelotConsole.slnx",
+    "tasks.autodetect": "off",
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "files.watcherExclude": {
+        "**/bin": true,
+        "**/obj": true,
+        "**/.git": true,
+        "**/node_modules": true
+    }
+}

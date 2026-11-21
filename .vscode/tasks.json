@@ -1,0 +1,103 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build-api",
+            "type": "shell",
+            "command": "dotnet build src/BitWrite.OcelotConsole.Api/BitWrite.OcelotConsole.Api.csproj --configuration Debug",
+            "group": "build",
+            "problemMatcher": ["$msCompile"],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "run-api",
+            "type": "shell",
+            "command": "dotnet run --project src/BitWrite.OcelotConsole.Api/BitWrite.OcelotConsole.Api.csproj",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "ASPNETCORE_ENVIRONMENT": "Development",
+                    "ASPNETCORE_URLS": "http://localhost:5039"
+                }
+            },
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "run-dashboard",
+            "type": "shell",
+            "command": "npm run dev",
+            "options": {
+                "cwd": "${workspaceFolder}/dashboard",
+                "env": {}
+            },
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "run-gateway-node-1",
+            "type": "shell",
+            "command": "dotnet run --project nodes/ocelot.gateway.node-1/ocelot.gateway.node-1.csproj",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "ASPNETCORE_ENVIRONMENT": "Development",
+                    "ASPNETCORE_URLS": "http://localhost:8080",
+                    "Gateway:Environment": "Development",
+                    "Gateway:NodeName": "ocelot.gateway.node-1",
+                    "Gateway:ControlPlaneUrl": "http://localhost:5039"
+                }
+            },
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "run-gateway-node-2",
+            "type": "shell",
+            "command": "dotnet run --project nodes/ocelot.gateway.node-2/ocelot.gateway.node-2.csproj",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "ASPNETCORE_ENVIRONMENT": "Development",
+                    "ASPNETCORE_URLS": "http://localhost:8082",
+                    "Gateway:Environment": "Development",
+                    "Gateway:NodeName": "ocelot.gateway.node-2",
+                    "Gateway:ControlPlaneUrl": "http://localhost:5039"
+                }
+            },
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "run-gateway-node-3",
+            "type": "shell",
+            "command": "dotnet run --project nodes/ocelot.gateway.node-3/ocelot.gateway.node-3.csproj",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "ASPNETCORE_ENVIRONMENT": "Development",
+                    "ASPNETCORE_URLS": "http://localhost:8083",
+                    "Gateway:Environment": "Development",
+                    "Gateway:NodeName": "ocelot.gateway.node-3",
+                    "Gateway:ControlPlaneUrl": "http://localhost:5039"
+                }
+            },
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "run-all",
+            "dependsOn": ["run-api", "run-dashboard", "run-gateway-node-1"],
+            "type": "process",
+            "problemMatcher": []
+        },
+        {
+            "label": "run-fleet",
+            "dependsOn": ["run-api", "run-dashboard", "run-gateway-node-1", "run-gateway-node-2", "run-gateway-node-3"],
+            "type": "process",
+            "problemMatcher": []
+        }
+    ]
+}
