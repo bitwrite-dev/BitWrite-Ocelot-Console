@@ -1,5 +1,6 @@
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Status;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ApiDtos = BitWrite.OcelotConsole.Api.DTOs;
 using AppPlugin = BitWrite.OcelotConsole.Application.UseCases.Plugin;
@@ -37,6 +38,7 @@ public class PluginsController : BaseApiController
     }
 
     [HttpGet]
+    [Authorize(Policy = "perm:plugins.read")]
     public async Task<ActionResult<ApiDtos.PluginListResponse>> GetPlugins(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
@@ -62,6 +64,7 @@ public class PluginsController : BaseApiController
     }
 
     [HttpPost]
+    [Authorize(Policy = "perm:plugins.manage")]
     public async Task<ActionResult<ApiDtos.PluginResponse>> InstallPlugin(ApiDtos.InstallPluginRequest request)
     {
         try
@@ -87,6 +90,7 @@ public class PluginsController : BaseApiController
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "perm:plugins.read")]
     public async Task<ActionResult<ApiDtos.PluginResponse>> GetPlugin(string id)
     {
         try
@@ -106,6 +110,7 @@ public class PluginsController : BaseApiController
     }
 
     [HttpPatch("{id}/enable")]
+    [Authorize(Policy = "perm:plugins.manage")]
     public async Task<ActionResult<ApiDtos.PluginResponse>> EnablePlugin(string id)
     {
         try
@@ -125,6 +130,7 @@ public class PluginsController : BaseApiController
     }
 
     [HttpPatch("{id}/disable")]
+    [Authorize(Policy = "perm:plugins.manage")]
     public async Task<ActionResult<ApiDtos.PluginResponse>> DisablePlugin(string id)
     {
         try
@@ -144,6 +150,7 @@ public class PluginsController : BaseApiController
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = "perm:plugins.manage")]
     public async Task<ActionResult> UninstallPlugin(string id)
     {
         try
@@ -163,6 +170,7 @@ public class PluginsController : BaseApiController
     }
 
     [HttpPut("{id}/upgrade")]
+    [Authorize(Policy = "perm:plugins.manage")]
     public async Task<ActionResult<ApiDtos.PluginResponse>> UpgradePlugin(string id, UpgradePluginRequest request)
     {
         try

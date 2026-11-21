@@ -4,6 +4,12 @@ using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using BitWrite.OcelotConsole.Application.Authorization;
+using BitWrite.OcelotConsole.Application.Interfaces;
+using BitWrite.OcelotConsole.Application.Permissions;
+using BitWrite.OcelotConsole.Domain.Aggregates.Role;
+using BitWrite.OcelotConsole.Domain.Aggregates.User;
+using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -12,6 +18,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Xunit;
+using RoleEntity = BitWrite.OcelotConsole.Domain.Aggregates.Role.Role;
+using UserEntity = BitWrite.OcelotConsole.Domain.Aggregates.User.User;
 
 namespace BitWrite.OcelotConsole.Api.Tests;
 
@@ -60,8 +68,11 @@ public class FreshInstallWalkthroughTests : IClassFixture<WebApplicationFactory<
         return client;
     }
 
-    private HttpClient CreateAuthenticatedClient(string environment = "development")
+    private HttpClient CreateAuthenticatedClient(string userId, string roleName, string environment = "development", bool includeEnvironmentHeader = true)
     {
+        _testUserId = userId;
+        _testRoleName = roleName;
+
         var client = _factory.WithWebHostBuilder(builder =>
         {
             builder.ConfigureTestServices(services =>
@@ -71,30 +82,94 @@ public class FreshInstallWalkthroughTests : IClassFixture<WebApplicationFactory<
                         options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
                         options.DefaultChallengeScheme = TestAuthHandler.SchemeName;
                     })
-                    .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });
+                    .AddScheme<TestAuthOptions, TestAuthHandler>(TestAuthHandler.SchemeName, options =>
+                    {
+                        options.UserId = _testUserId;
+                        options.RoleName = _testRoleName;
+                    });
             });
         }).CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-        client.DefaultRequestHeaders.Add("X-Environment", environment);
+        if (includeEnvironmentHeader)
+            client.DefaultRequestHeaders.Add("X-Environment", environment);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(TestAuthHandler.SchemeName);
         return client;
     }
 
-    private sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+    private string? _testUserId;
+    private string? _testRoleName;
+
+    private sealed class TestAuthOptions : AuthenticationSchemeOptions
+    {
+        public string? UserId { get; set; }
+        public string? RoleName { get; set; }
+    }
+
+    private sealed class TestAuthHandler : AuthenticationHandler<TestAuthOptions>
     {
         public const string SchemeName = "Test";
 
-        public TestAuthHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder)
+        public TestAuthHandler(IOptionsMonitor<TestAuthOptions> options, ILoggerFactory logger, UrlEncoder encoder)
             : base(options, logger, encoder) { }
 
         protected override Task<AuthenticateResult> HandleAuthenticateAsync()
         {
-            var claims = new[] { new Claim(ClaimTypes.Name, "test-user"), new Claim("sub", "test-user") };
+            var claims = new List<Claim>
+            {
+                new("sub", Options.UserId ?? "test-user"),
+                new(AuthzVersioning.AccessTokenVersionClaimType, "0")
+            };
+            if (!string.IsNullOrEmpty(Options.RoleName))
+                claims.Add(new Claim("role", Options.RoleName));
             var identity = new ClaimsIdentity(claims, SchemeName);
             var principal = new ClaimsPrincipal(identity);
             var ticket = new AuthenticationTicket(principal, SchemeName);
             return Task.FromResult(AuthenticateResult.Success(ticket));
         }
+    }
+
+    private async Task SeedAuthorizationState(string roleName, params string[] permissions)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var userRepo = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+        var roleRepo = scope.ServiceProvider.GetRequiredService<IRoleRepository>();
+
+        // Tests share Redis; a role seeded by an earlier test may already exist.
+        var existingRole = await roleRepo.GetByNameAsync(roleName);
+        RoleEntity role;
+        if (existingRole is not null)
+        {
+            role = existingRole;
+            foreach (var perm in permissions)
+                if (!role.Permissions.Contains(perm))
+                    role.AddPermission(perm, "admin");
+            await roleRepo.UpdateAsync(role);
+        }
+        else
+        {
+            var roleId = RoleId.New();
+            role = RoleEntity.Create(roleId, roleName, null, "admin");
+            foreach (var perm in permissions)
+                role.AddPermission(perm, "admin");
+            await roleRepo.AddAsync(role);
+        }
+
+        var userId = UserId.New();
+        _testUserId = userId.Value.ToString();
+        _testRoleName = roleName;
+        var user = UserEntity.CreateLocal(userId, "test-user", null, null, "sys");
+        await userRepo.AddAsync(user);
+
+        user.AssignRole(role.Id, "c1");
+        await userRepo.UpdateAsync(user);
+    }
+
+    private async Task<HttpClient> SetupWithAuth(string roleName, params string[] permissions)
+    {
+        await SeedAuthorizationState(roleName, permissions);
+        var client = CreateAuthenticatedClient(_testUserId!, _testRoleName!);
+        await CompleteSetup(client);
+        return client;
     }
 
     /// <summary>
@@ -113,8 +188,7 @@ public class FreshInstallWalkthroughTests : IClassFixture<WebApplicationFactory<
     [Fact]
     public async Task AnUnconfiguredInstallCanChooseItsVersionAndThenBuildASnapshot()
     {
-        using var client = CreateClient();
-        await CompleteSetup(client);
+        using var client = await SetupWithAuth("walkthrough-user", "perm.settings.read", "perm.snapshots.read");
 
         // 1. Setup completed, and the install says so.
         var chosen = await ReadJson(client, HttpMethod.Get, "/api/v1/settings");
@@ -133,8 +207,7 @@ public class FreshInstallWalkthroughTests : IClassFixture<WebApplicationFactory<
     [Fact]
     public async Task SetupRecordsWhoChoseTheVersion()
     {
-        using var client = CreateClient();
-        await CompleteSetup(client);
+        using var client = await SetupWithAuth("walkthrough-user", "perm.settings.read");
 
         // The choice is permanent, so the audit trail has to be able to say who
         // made it — and with no session there is nothing else to read.
@@ -148,8 +221,7 @@ public class FreshInstallWalkthroughTests : IClassFixture<WebApplicationFactory<
     [Fact]
     public async Task SetupRefusesAVersionTheProductCannotEmit()
     {
-        using var client = CreateClient();
-        await CompleteSetup(client);
+        using var client = await SetupWithAuth("walkthrough-user", "perm.settings.read");
 
         // Offering 20.0 in the setup screen would promise a configuration the
         // builder refuses to generate: setup would complete and then every
@@ -163,8 +235,7 @@ public class FreshInstallWalkthroughTests : IClassFixture<WebApplicationFactory<
     [Fact]
     public async Task SetupRefusesAVersionItDoesNotRecognise()
     {
-        using var client = CreateClient();
-        await CompleteSetup(client);
+        using var client = await SetupWithAuth("walkthrough-user", "perm.settings.read");
 
         var response = await client.PostAsJsonAsync("/api/v1/settings/first-run",
             new { ocelotVersion = "17.0.0", initiatedBy = "operator" });
@@ -186,7 +257,9 @@ public class FreshInstallWalkthroughTests : IClassFixture<WebApplicationFactory<
     [Fact]
     public async Task TheSettingsScreenIsToldWhichVersionsItCanOffer()
     {
-        using var client = CreateClient();
+        await SetupWithAuth("walkthrough-user", "perm.settings.read");
+
+        using var client = CreateAuthenticatedClient(_testUserId!, _testRoleName!);
 
         // The setup screen offers exactly this list, so it has to come from the
         // product rather than being typed into the page.
@@ -208,9 +281,9 @@ public class FreshInstallWalkthroughTests : IClassFixture<WebApplicationFactory<
         // that names none has no key to address. Answering it with some default's
         // configuration would read as a short or empty list rather than as a mistake,
         // and an operator would go looking for routes that were never deleted.
-        using var client = _factory.CreateClient();
+        await SetupWithAuth("walkthrough-user", "perm.snapshots.read");
 
-        await CompleteSetup(CreateClient());
+        using var client = CreateAuthenticatedClient(_testUserId!, _testRoleName!, includeEnvironmentHeader: false);
 
         var response = await client.PostAsync("/api/v1/snapshots/preview", content: null);
         var body = await response.Content.ReadAsStringAsync();
@@ -225,15 +298,18 @@ public class FreshInstallWalkthroughTests : IClassFixture<WebApplicationFactory<
         // The property the whole change exists for, across the API rather than a
         // repository: a snapshot sealed in development is not answerable from
         // production, and neither request reports the other's absence as an error.
-        using var development = CreateClient("development");
-        using var production = CreateClient("PRODUCTION");
-        await CompleteSetup(development);
+        using var development = await SetupWithAuth("walkthrough-dev", "perm.settings.read", "perm.snapshots.read", "perm.snapshots.manage");
+        using var production = CreateAuthenticatedClient(_testUserId!, _testRoleName!, "PRODUCTION");
 
         await development.PostAsJsonAsync("/api/v1/snapshots", new { createdBy = "test" });
 
-        var inProduction = await ReadJson(production, HttpMethod.Get, "/api/v1/snapshots?page=1&pageSize=50");
-
-        inProduction.GetProperty("totalCount").GetInt32().Should().Be(0);
+        // A client aimed at a different environment can still authenticate (user
+        // and role repositories are not environment-scoped), but sees no snapshots
+        // because the snapshot repository is environment-scoped.
+        var inProduction = await production.GetAsync("/api/v1/snapshots?page=1&pageSize=50");
+        inProduction.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = JsonDocument.Parse(await inProduction.Content.ReadAsStringAsync()).RootElement;
+        body.GetProperty("totalCount").GetInt32().Should().Be(0);
     }
 
     private static async Task<JsonElement> ReadJson(
@@ -263,16 +339,14 @@ public class FreshInstallWalkthroughTests : IClassFixture<WebApplicationFactory<
     [Fact]
     public async Task PerformingAnActionLeavesARecordOfIt()
     {
-        using var client = CreateClient();
-        await CompleteSetup(client);
+        using var client = await SetupWithAuth("walkthrough-user", "perm.settings.read", "perm.services.manage", "perm.audit.read");
 
         // This is the test that would have caught #514. Every layer tested its own
         // seam — the handlers assert the event was dispatched, the controller
         // asserts it maps the repository's shape — and nothing crossed the two, so
         // the audit log stayed empty while the whole suite passed.
-        using var authed = CreateAuthenticatedClient();
         var before = JsonDocument
-            .Parse(await authed.GetStringAsync("/api/v1/audit?page=1&pageSize=1"))
+            .Parse(await client.GetStringAsync("/api/v1/audit?page=1&pageSize=1"))
             .RootElement.GetProperty("totalCount").GetInt32();
 
         var created = JsonDocument.Parse(await client.PostAsJsonAsync("/api/v1/services",
@@ -287,7 +361,7 @@ public class FreshInstallWalkthroughTests : IClassFixture<WebApplicationFactory<
         created.GetProperty("downstreamTargets")[0].GetProperty("weight").GetInt32()
             .Should().Be(1, "the endpoint request now carries a weight");
 
-        var after = JsonDocument.Parse(await authed.GetStringAsync("/api/v1/audit?page=1&pageSize=50"))
+        var after = JsonDocument.Parse(await client.GetStringAsync("/api/v1/audit?page=1&pageSize=50"))
             .RootElement;
 
         after.GetProperty("totalCount").GetInt32().Should().BeGreaterThan(before);
@@ -308,11 +382,10 @@ public class FreshInstallWalkthroughTests : IClassFixture<WebApplicationFactory<
     [Fact]
     public async Task FiltersTheLogByWhatItIsAskedFor()
     {
-        using var client = CreateClient();
-
         // The list takes filters, and a filter that returned everything would look
         // like one that worked. Audit endpoints require authentication (IAM-09).
-        using var authed = CreateAuthenticatedClient();
+        await SetupWithAuth("walkthrough-user", "perm.audit.read");
+        using var authed = CreateAuthenticatedClient(_testUserId!, _testRoleName!);
         var all = JsonDocument.Parse(await authed.GetStringAsync("/api/v1/audit?page=1&pageSize=50"));
         if (all.RootElement.GetProperty("totalCount").GetInt32() == 0) return;
 

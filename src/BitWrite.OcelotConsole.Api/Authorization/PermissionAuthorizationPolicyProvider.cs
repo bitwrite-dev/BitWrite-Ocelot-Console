@@ -21,6 +21,10 @@ public sealed class PermissionAuthorizationPolicyProvider : IAuthorizationPolicy
         if (policyName.StartsWith(AuthorizationPolicyExtensions.PermissionPolicyPrefix, StringComparison.Ordinal))
         {
             var permission = policyName[AuthorizationPolicyExtensions.PermissionPolicyPrefix.Length..];
+            // Permission codes carry the "perm." prefix (e.g. perm.settings.read). Policy names
+            // may omit it (e.g. "perm:settings.read"); normalise so both forms resolve.
+            if (!permission.StartsWith("perm.", StringComparison.OrdinalIgnoreCase))
+                permission = "perm." + permission;
             var policy = new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
                 .AddRequirements(new PermissionRequirement(permission))

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using BitWrite.OcelotConsole.Domain.Events;
 using BitWrite.OcelotConsole.Domain.Exceptions;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
@@ -17,7 +18,7 @@ namespace BitWrite.OcelotConsole.Domain.Aggregates.Role;
 public sealed class Role
 {
     private readonly List<DomainEvent> _domainEvents = new();
-    private readonly List<string> _permissions = new();
+    private List<string> _permissions = new();
 
     public RoleId Id { get; private set; } = null!;
     public string Name { get; private set; } = null!;
@@ -28,10 +29,15 @@ public sealed class Role
     public DateTimeOffset? UpdatedAt { get; private set; }
     public string? UpdatedBy { get; private set; }
 
-    public IReadOnlyList<string> Permissions => _permissions.AsReadOnly();
+    public IReadOnlyList<string> Permissions
+    {
+        get => _permissions.AsReadOnly();
+        private set => _permissions = new List<string>(value);
+    }
     public IReadOnlyList<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();
     public bool IsActive => Status.IsActive;
 
+    [JsonConstructor]
     private Role() { }
 
     public static Role Create(

@@ -21,12 +21,12 @@ public class ListUsersQueryHandler
     private static UserResponse MapToResponse(User user)
     {
         return new UserResponse(
-            user.Id.Value,
-            user.Username,
+            user.Id?.Value ?? Guid.Empty,
+            user.Username ?? string.Empty,
             user.DisplayName,
             user.Email,
-            user.Status.Value,
-            user.UserType,
+            user.Status?.Value ?? string.Empty,
+            user.UserType ?? string.Empty,
             user.CreatedAt,
             user.UpdatedAt,
             user.LastAuthenticatedAt,

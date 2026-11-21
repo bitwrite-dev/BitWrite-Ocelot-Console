@@ -1,4 +1,5 @@
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ApiDtos = BitWrite.OcelotConsole.Api.DTOs;
 using AppLicense = BitWrite.OcelotConsole.Application.UseCases.License;
@@ -36,6 +37,7 @@ public class LicensesController : BaseApiController
     }
 
     [HttpGet]
+    [Authorize(Policy = "perm:licenses.read")]
     public async Task<ActionResult<ApiDtos.LicenseListResponse>> GetLicenses(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
@@ -61,6 +63,7 @@ public class LicensesController : BaseApiController
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "perm:licenses.read")]
     public async Task<ActionResult<ApiDtos.LicenseResponse>> GetLicense(string id)
     {
         try
@@ -80,6 +83,7 @@ public class LicensesController : BaseApiController
     }
 
     [HttpPost]
+    [Authorize(Policy = "perm:licenses.manage")]
     public async Task<ActionResult<ApiDtos.LicenseResponse>> CreateLicense(ApiDtos.CreateLicenseRequest request)
     {
         try
@@ -101,6 +105,7 @@ public class LicensesController : BaseApiController
     }
 
     [HttpPost("activate")]
+    [Authorize(Policy = "perm:licenses.manage")]
     public async Task<ActionResult<ApiDtos.LicenseResponse>> ActivateLicense(ApiDtos.ActivateLicenseRequest request)
     {
         try
@@ -136,6 +141,7 @@ public class LicensesController : BaseApiController
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = "perm:licenses.manage")]
     public async Task<ActionResult<ApiDtos.LicenseResponse>> UpdateLicense(string id, ApiDtos.UpdateLicenseRequest request)
     {
         try
@@ -156,6 +162,7 @@ public class LicensesController : BaseApiController
     }
 
     [HttpPut("{id}/renew")]
+    [Authorize(Policy = "perm:licenses.manage")]
     public async Task<ActionResult<ApiDtos.LicenseResponse>> RenewLicense(string id, ApiDtos.RenewLicenseRequest request)
     {
         try
@@ -175,6 +182,7 @@ public class LicensesController : BaseApiController
     }
 
     [HttpDelete("{id}/revoke")]
+    [Authorize(Policy = "perm:licenses.manage")]
     public async Task<ActionResult<ApiDtos.LicenseResponse>> RevokeLicense(string id, ApiDtos.RevokeLicenseRequest request)
     {
         try

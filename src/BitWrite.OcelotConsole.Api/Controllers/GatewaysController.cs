@@ -1,6 +1,7 @@
 using BitWrite.OcelotConsole.Application.Interfaces;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Status;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ApiDtos = BitWrite.OcelotConsole.Api.DTOs;
 using AppGateway = BitWrite.OcelotConsole.Application.UseCases.Gateway;
@@ -41,6 +42,7 @@ public class GatewaysController : BaseApiController
     }
 
     [HttpGet]
+    [Authorize(Policy = "perm:gateways.read")]
     public async Task<ActionResult<ApiDtos.GatewayListResponse>> GetGateways(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
@@ -66,6 +68,7 @@ public class GatewaysController : BaseApiController
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "perm:gateways.read")]
     public async Task<ActionResult<ApiDtos.GatewayResponse>> GetGateway(string id)
     {
         try
@@ -85,6 +88,7 @@ public class GatewaysController : BaseApiController
     }
 
     [HttpPost]
+    [Authorize(Policy = "perm:gateways.manage")]
     public async Task<ActionResult<ApiDtos.GatewayResponse>> CreateGateway(ApiDtos.CreateGatewayRequest request)
     {
         try
@@ -105,6 +109,7 @@ public class GatewaysController : BaseApiController
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = "perm:gateways.manage")]
     public async Task<ActionResult<ApiDtos.GatewayResponse>> UpdateGateway(string id, ApiDtos.UpdateGatewayRequest request)
     {
         try
@@ -134,6 +139,7 @@ public class GatewaysController : BaseApiController
     /// is simply history, and history is not deletable.
     /// </remarks>
     [HttpDelete("{id}")]
+    [Authorize(Policy = "perm:gateways.manage")]
     public async Task<ActionResult> DeleteGateway(string id)
     {
         try
@@ -165,6 +171,7 @@ public class GatewaysController : BaseApiController
     /// confirming a deletion, rather than by the refusal afterwards.
     /// </remarks>
     [HttpGet("{id}/deletion-eligibility")]
+    [Authorize(Policy = "perm:gateways.read")]
     [ProducesResponseType(typeof(AppGateway.GatewayDeletionEligibilityResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AppGateway.GatewayDeletionEligibilityResponse>> GetDeletionEligibility(string id)
@@ -183,6 +190,7 @@ public class GatewaysController : BaseApiController
     }
 
     [HttpPatch("{id}/status")]
+    [Authorize(Policy = "perm:gateways.manage")]
     public async Task<ActionResult<ApiDtos.GatewayResponse>> UpdateGatewayStatus(string id, ApiDtos.UpdateGatewayStatusRequest request)
     {
         try

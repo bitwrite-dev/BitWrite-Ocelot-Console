@@ -49,21 +49,22 @@ public class SettingsControllerContractTests
     [Fact]
     public void UpdatingRequiresAuthentication()
     {
-        // Legacy role policies were removed in IAM-08; endpoint-to-permission mapping
-        // is gated and applied in later rollout issues. Updates still require an
-        // authenticated caller.
+        // Endpoint-to-permission mapping is applied in IAM-09/10. Updates require
+        // the manage permission on settings.
         Endpoint("Update").GetCustomAttributes<AuthorizeAttribute>()
             .Should().ContainSingle()
-            .Which.Policy.Should().BeNull();
+            .Which.Policy.Should().Be("perm:settings.manage");
     }
 
     [Fact]
     public void ReadingIsOpenLikeEveryOtherEndpoint()
     {
-        // A first-run screen has to be able to ask whether setup is outstanding
-        // before anyone has credentials. Every existing endpoint is open too, so
-        // protecting this one alone would be inconsistent and not more secure.
-        Endpoint("Get").GetCustomAttributes<AuthorizeAttribute>().Should().BeEmpty();
+        // Reading settings is protected by the read permission, like every other
+        // read endpoint. A first-run screen can still ask whether setup is
+        // outstanding via the anonymous first-run endpoint.
+        Endpoint("Get").GetCustomAttributes<AuthorizeAttribute>()
+            .Should().ContainSingle()
+            .Which.Policy.Should().Be("perm:settings.read");
     }
 
     [Fact]

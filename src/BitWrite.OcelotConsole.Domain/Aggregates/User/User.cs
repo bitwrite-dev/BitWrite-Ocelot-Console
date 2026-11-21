@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using BitWrite.OcelotConsole.Domain.Events;
 using BitWrite.OcelotConsole.Domain.Exceptions;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
@@ -17,8 +18,8 @@ namespace BitWrite.OcelotConsole.Domain.Aggregates.User;
 public sealed class User
 {
     private readonly List<DomainEvent> _domainEvents = new();
-    private readonly List<string> _roleIds = new();
-    private readonly List<Guid> _externalIdentityIds = new();
+    private List<string> _roleIds = new();
+    private List<Guid> _externalIdentityIds = new();
 
     public UserId Id { get; private set; } = null!;
     public string Username { get; private set; } = null!;
@@ -32,10 +33,12 @@ public sealed class User
     public string? UpdatedBy { get; private set; }
     public DateTimeOffset? LastAuthenticatedAt { get; private set; }
 
-    public IReadOnlyList<string> RoleIds => _roleIds.AsReadOnly();
-    public IReadOnlyList<Guid> ExternalIdentityIds => _externalIdentityIds.AsReadOnly();
+    public List<string> RoleIds { get; set; } = new();
+    public List<Guid> ExternalIdentityIds { get; set; } = new();
+    [JsonIgnore]
     public IReadOnlyList<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
+    [JsonConstructor]
     private User() { }
 
     /// <summary>
@@ -157,10 +160,10 @@ public sealed class User
             throw new DomainException("Cannot assign role to disabled user", "USER_DISABLED");
 
         var roleIdValue = roleId.Value;
-        if (_roleIds.Contains(roleIdValue))
+        if (RoleIds.Contains(roleIdValue))
             throw new DomainException($"Role {roleIdValue} is already assigned to user", "ROLE_ALREADY_ASSIGNED");
 
-        _roleIds.Add(roleIdValue);
+        RoleIds.Add(roleIdValue);
         AddDomainEvent(new RoleAssignedToUser(Id, roleIdValue, correlationId));
     }
 
@@ -170,10 +173,10 @@ public sealed class User
     public void RemoveRole(RoleId roleId, string correlationId = "")
     {
         var roleIdValue = roleId.Value;
-        if (!_roleIds.Contains(roleIdValue))
+        if (!RoleIds.Contains(roleIdValue))
             throw new DomainException($"Role {roleIdValue} is not assigned to user", "ROLE_NOT_ASSIGNED");
 
-        _roleIds.Remove(roleIdValue);
+        RoleIds.Remove(roleIdValue);
         AddDomainEvent(new RoleRemovedFromUser(Id, roleIdValue, correlationId));
     }
 
@@ -182,10 +185,10 @@ public sealed class User
     /// </summary>
     public void LinkExternalIdentity(Guid externalIdentityId, string correlationId = "")
     {
-        if (_externalIdentityIds.Contains(externalIdentityId))
+        if (ExternalIdentityIds.Contains(externalIdentityId))
             throw new DomainException($"External identity {externalIdentityId} is already linked", "EXTERNAL_IDENTITY_ALREADY_LINKED");
 
-        _externalIdentityIds.Add(externalIdentityId);
+        ExternalIdentityIds.Add(externalIdentityId);
         AddDomainEvent(new ExternalIdentityLinked(Id, externalIdentityId, correlationId));
     }
 
@@ -194,10 +197,10 @@ public sealed class User
     /// </summary>
     public void UnlinkExternalIdentity(Guid externalIdentityId, string correlationId = "")
     {
-        if (!_externalIdentityIds.Contains(externalIdentityId))
+        if (!ExternalIdentityIds.Contains(externalIdentityId))
             throw new DomainException($"External identity {externalIdentityId} is not linked", "EXTERNAL_IDENTITY_NOT_LINKED");
 
-        _externalIdentityIds.Remove(externalIdentityId);
+        ExternalIdentityIds.Remove(externalIdentityId);
         AddDomainEvent(new ExternalIdentityUnlinked(Id, externalIdentityId, correlationId));
     }
 

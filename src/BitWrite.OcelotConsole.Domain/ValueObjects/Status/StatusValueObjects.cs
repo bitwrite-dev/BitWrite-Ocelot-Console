@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using BitWrite.OcelotConsole.Domain.Exceptions;
 
@@ -274,6 +275,7 @@ public record UserStatus : ValueObject
 {
     public string Value { get; init; }
 
+    [JsonConstructor]
     private UserStatus(string value)
     {
         Value = value;

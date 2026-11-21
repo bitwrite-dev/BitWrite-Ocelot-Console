@@ -1,5 +1,6 @@
 using BitWrite.OcelotConsole.Domain.ValueObjects.Configuration;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ApiDtos = BitWrite.OcelotConsole.Api.DTOs;
 using AppPublication = BitWrite.OcelotConsole.Application.UseCases.Publication;
@@ -45,6 +46,7 @@ public class PublicationsController : BaseApiController
     }
 
     [HttpGet]
+    [Authorize(Policy = "perm:publications.read")]
     public async Task<ActionResult<ApiDtos.PublicationListResponse>> GetPublications(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
@@ -70,6 +72,7 @@ public class PublicationsController : BaseApiController
     }
 
     [HttpGet("current")]
+    [Authorize(Policy = "perm:publications.read")]
     public async Task<ActionResult<ApiDtos.CurrentPublicationResponse>> GetCurrentPublication()
     {
         try
@@ -91,6 +94,7 @@ public class PublicationsController : BaseApiController
     }
 
     [HttpGet("history")]
+    [Authorize(Policy = "perm:publications.read")]
     public async Task<ActionResult<ApiDtos.PublicationListResponse>> GetPublicationHistory(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
@@ -116,6 +120,7 @@ public class PublicationsController : BaseApiController
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = "perm:publications.read")]
     public async Task<ActionResult<ApiDtos.PublicationResponse>> GetPublicationDetail(string id)
     {
         try
@@ -135,6 +140,7 @@ public class PublicationsController : BaseApiController
     }
 
     [HttpPost("create")]
+    [Authorize(Policy = "perm:publications.manage")]
     public async Task<ActionResult<ApiDtos.CreatePublicationResponse>> CreatePublication(
         [FromBody] ApiDtos.CreatePublicationRequest request)
     {
@@ -164,6 +170,7 @@ public class PublicationsController : BaseApiController
     }
 
     [HttpPost("{id}/execute")]
+    [Authorize(Policy = "perm:publications.manage")]
     public async Task<ActionResult<ApiDtos.ExecutePublicationResponse>> ExecutePublication(
         string id,
         [FromBody] ApiDtos.ExecutePublicationRequest request)
@@ -189,6 +196,7 @@ public class PublicationsController : BaseApiController
     }
 
     [HttpPost("{id}/cancel")]
+    [Authorize(Policy = "perm:publications.manage")]
     public async Task<ActionResult> CancelPublication(
         string id,
         [FromBody] ApiDtos.CancelPublicationRequest request)
@@ -210,6 +218,7 @@ public class PublicationsController : BaseApiController
         }
     }
     [HttpGet("{id}/progress")]
+    [Authorize(Policy = "perm:publications.read")]
     public async Task<ActionResult<ApiDtos.PublicationProgressResponse>> GetPublicationProgress(string id)
     {
         try
@@ -239,6 +248,7 @@ public class PublicationsController : BaseApiController
     }
 
     [HttpGet("diff")]
+    [Authorize(Policy = "perm:publications.read")]
     public async Task<ActionResult<ApiDtos.PublicationDiffResponse>> GetPublicationDiff(
         [FromQuery] string targetSnapshotVersion,
         [FromQuery] string? currentSnapshotVersion = null,

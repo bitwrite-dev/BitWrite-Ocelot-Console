@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using BitWrite.OcelotConsole.Domain.Exceptions;
 
@@ -256,6 +257,7 @@ public record UserId : ValueObject
 {
     public Guid Value { get; init; }
 
+    [JsonConstructor]
     private UserId(Guid value)
     {
         Value = value;
