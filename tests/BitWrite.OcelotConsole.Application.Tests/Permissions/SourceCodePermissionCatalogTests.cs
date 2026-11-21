@@ -121,13 +121,36 @@ public class SourceCodePermissionCatalogTests
     }
 
     [Fact]
-    public void DefaultDefinitionsRegistry_IsSourceCodeBackedAndEmptyWithoutInventedCodes()
+    public void DefaultDefinitionsRegistry_IsSourceCodeBackedWithApprovedCodes()
     {
-        Assert.NotNull(BitWritePermissionCatalogDefinitions.All);
-        Assert.Empty(BitWritePermissionCatalogDefinitions.All);
+        var all = BitWritePermissionCatalogDefinitions.All;
 
-        var catalog = new SourceCodePermissionCatalog(BitWritePermissionCatalogDefinitions.All);
-        Assert.Empty(catalog.GetAll());
+        Assert.NotNull(all);
+        Assert.NotEmpty(all);
+
+        // Core IAM permissions present
+        Assert.Contains(all, d => d.Code == "perm.users.read");
+        Assert.Contains(all, d => d.Code == "perm.users.manage");
+        Assert.Contains(all, d => d.Code == "perm.roles.read");
+        Assert.Contains(all, d => d.Code == "perm.roles.manage");
+        Assert.Contains(all, d => d.Code == "perm.permissions.read");
+        Assert.Contains(all, d => d.Code == "perm.permissions.manage");
+        Assert.Contains(all, d => d.Code == "perm.sessions.read");
+        Assert.Contains(all, d => d.Code == "perm.sessions.manage");
+        Assert.Contains(all, d => d.Code == "perm.tokens.manage");
+        Assert.Contains(all, d => d.Code == "perm.audit.read");
+        Assert.Contains(all, d => d.Code == "perm.bootstrap.admin");
+
+        // All codes are Active and Assignable
+        Assert.All(all, d =>
+        {
+            Assert.Equal(PermissionStatus.Active, d.Status);
+            Assert.True(d.Assignable);
+        });
+
+        var catalog = new SourceCodePermissionCatalog(all);
+        Assert.Equal(all.Count, catalog.GetAll().Count());
+        Assert.True(catalog.Lookup("perm.users.read").IsActive);
         Assert.True(catalog.Lookup("any.permission").IsUnknown);
     }
 

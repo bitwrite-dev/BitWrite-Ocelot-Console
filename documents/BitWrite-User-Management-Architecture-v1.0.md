@@ -472,25 +472,33 @@ TOTP MFA is anticipated by the broader IAM architecture but is not implemented a
 | Future persistence replacement | Supported through Infrastructure implementation and migration |
 | TOTP MFA | Deferred; architecture readiness handled in IAM |
 
-## 17. Open Design Items
+## 17. Open Design Items — Resolution Status
 
-The following details must be finalized before or during implementation:
+The following items were open during architecture drafting and are resolved below based on the implemented IAM v1 backlog (IAM-01 through IAM-17) and associated architectural decisions.
 
-1. Required and optional User profile fields.
-2. Username normalization and uniqueness rules.
-3. User ID format.
-4. Local account invitation and initial-password workflow.
-5. Password policy and reset workflow.
-6. Whether account lockout is required in v1 and its exact behavior.
-7. Exact restricted default Role and how it is configured.
-8. Behavior when the configured default Role is unavailable.
-9. External identity unlinking rules.
-10. Whether multiple external identities may be linked to one internal User in v1.
-11. Exact permission identifiers for User Management operations.
-12. Redis serialization, atomicity, backup, and recovery design.
-13. Session invalidation strategy for disabled users.
+| # | Design Item | Resolution | Implemented In |
+|---|-------------|------------|----------------|
+| 1 | Required and optional User profile fields | Resolved — `Username` (required), `DisplayName` (optional), `Email` (optional), `UserType` (required). Additional profile fields deferred to v2. | IAM-15 (User Administration) |
+| 2 | Username normalization and uniqueness rules | Resolved — User username validation constrained to 3–64 chars; uniqueness enforced at application layer. Role `RoleName` normalized/case-insensitive unique (atomic Redis index). | IAM-02 |
+| 3 | User ID format | Resolved — `UserId` is a `Guid`-based value object (`BitWrite.OcelotConsole.Domain.ValueObjects.Identity.UserId`). | IAM-02 |
+| 4 | Local account invitation and initial-password workflow | Deferred — not implemented in v1; excluded from IAM v1 scope. | — |
+| 5 | Password policy and reset workflow | Deferred — not implemented in v1; excluded from IAM v1 scope. | — |
+| 6 | Account lockout requirement and behavior | Resolved — `LocalCredential` tracks `FailedLoginAttempts` and `LockedOutUntil`; lockout applied on threshold breach; emits `LocalCredentialLockedOut` domain event. | IAM-01 (domain), IAM-12 (propagation) |
+| 7 | Exact restricted default Role and how it is configured | Resolved — `JitProvisionOptions.DefaultRoleId` configured via `Identity:JitProvisioning`; role must be Active and exist. | IAM-11 |
+| 8 | Behavior when the configured default Role is unavailable | Resolved — JIT provisioning fails safe with `JIT_DEFAULT_ROLE_NOT_CONFIGURED/INVALID/NOT_FOUND/INACTIVE`; preserves issuer/subject linking; no privilege escalation. | IAM-11 |
+| 9 | External identity unlinking rules | Deferred — not implemented in v1; excluded from IAM v1 scope. | — |
+| 10 | Whether multiple external identities may be linked to one internal User in v1 | Resolved — `ExternalIdentity` aggregate supports multiple external identity links per internal `User` (one row per Issuer+Subject). | IAM-01 / IAM-11 |
+| 11 | Exact permission identifiers for User Management | Resolved — Official source-code Permission Catalog defined in `BitWritePermissionCatalogDefinitions.All` with codes across Users/Roles/Permissions/Sessions/Tokens/Services/Routes/GlobalConfiguration/Snapshots/Publications/Gateways/Runtime/Plugins/Licenses/Settings/Audit/Bootstrap. | IAM-03 |
+| 12 | Redis serialization, atomicity, backup, and recovery design | Resolved — JSON serialization via `RedisRoleRepository`/`RedisUserRepository`; atomic uniqueness via Lua scripts (`RedisKeyHelper` `ocelot:iam:v1:*` keys); concurrency via per-role distributed locks. Backup/recovery remains ops concern. | IAM-02 / IAM-04 |
+| 13 | Session invalidation strategy for disabled users | Resolved — `UserDisabled` event propagates via `IAuthorizationStatePropagationService` → `ISecurityService.RevokeAllUserSessionsAsync` (#647 mechanics) + monotonic authz version invalidation signals for IAM-13 freshness enforcement. | IAM-12 / IAM-13 |
 
-These open items do not change the architectural decisions already stated in this document.
+These resolved items do not change the architectural decisions already stated in this document.
+
+**Unresolved gates (block full security-release completion, not v1 implementation progress):**
+- **P-GATE-2:** Endpoint/use-case → Permission mappings not approved.
+- **U-01:** Historical RoleName reuse mitigation not approved/implemented.
+- **U-03:** Authz freshness mechanism / max stale-state window / cache-consistency / failure behavior not approved (IAM-13 incomplete).
+
 
 ---
 
