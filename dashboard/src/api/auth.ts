@@ -26,12 +26,63 @@ export interface AccessTokenProvider {
 }
 
 /**
+ * In-memory token store for UI-09. Keeps the bearer token in memory only — it is
+ * cleared on page reload and is never written to `localStorage`.
+ *
+ * Consumers call `setToken` after a successful login and `clearToken` on logout.
+ * The optional `onTokenChange` callback fires whenever the token changes, so
+ * React components can react (e.g. redirect to `/login` on logout).
+ */
+export interface MemoryAccessTokenProvider extends AccessTokenProvider {
+  /** Replaces the stored token with `token`, or clears it when `null`. */
+  setToken(token: string | null): void
+  /** Clears the stored token. Alias for `setToken(null)`. */
+  clearToken(): void
+  /** True when a token is currently stored. */
+  isAuthenticated(): boolean
+  /** Subscribe to token changes. Returns an unsubscribe function. */
+  onTokenChange(callback: (token: string | null) => void): () => void
+}
+
+/**
  * Default provider: sends no Authorization header.
  *
  * Fine while the API allows anonymous access, which is the case in development
- * today. It is NOT a credential store — a real implementation should keep the
- * token in memory and avoid persisting it to `localStorage`.
+ * today.
  */
 export const anonymousTokenProvider: AccessTokenProvider = {
   getAccessToken: () => null,
+}
+
+/**
+ * Creates an in-memory access token provider.
+ *
+ * Tokens live in memory only and vanish on page reload — by design, since the
+ * auth strategy (#433) has not been selected and no persistent credential store
+ * exists yet.
+ */
+export function createMemoryAccessTokenProvider(): MemoryAccessTokenProvider {
+  let token: string | null = null
+  const listeners = new Set<(token: string | null) => void>()
+
+  function notify() {
+    for (const cb of listeners) cb(token)
+  }
+
+  return {
+    getAccessToken: () => token,
+    setToken: (next) => {
+      token = next
+      notify()
+    },
+    clearToken: () => {
+      token = null
+      notify()
+    },
+    isAuthenticated: () => token !== null,
+    onTokenChange: (cb) => {
+      listeners.add(cb)
+      return () => listeners.delete(cb)
+    },
+  }
 }

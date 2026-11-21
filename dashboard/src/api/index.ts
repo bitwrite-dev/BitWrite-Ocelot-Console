@@ -39,7 +39,12 @@ export function createApiClient(options: CreateApiClientOptions = {}): ApiClient
 }
 
 export { ApiError, type FieldErrors, type NormalizedApiError } from './errors'
-export { anonymousTokenProvider, type AccessTokenProvider } from './auth'
+export {
+  anonymousTokenProvider,
+  createMemoryAccessTokenProvider,
+  type AccessTokenProvider,
+  type MemoryAccessTokenProvider,
+} from './auth'
 export { getApiBaseUrl } from './config'
 export { createHttpClient, type HttpClient, type RequestOptions, type QueryParams } from './http'
 export {
