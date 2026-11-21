@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
 import { createApiClient, type ApiClient } from '@/api'
-import { createMemoryAccessTokenProvider } from '@/api/auth'
+import { createMemoryAccessTokenProvider, type MemoryAccessTokenProvider } from '@/api/auth'
 
 /**
  * The API client and query cache are wired once, here, and provided through
@@ -12,9 +12,7 @@ import { createMemoryAccessTokenProvider } from '@/api/auth'
  * inject a stub `fetchImpl`.
  *
  * Authentication uses an in-memory token provider (UI-09): tokens live in
- * memory only and are cleared on page reload. Call `api.http` ... actually the
- * provider is not exposed through the client; components that need to log in or
- * out import `useAuth` from the auth feature once it exists.
+ * memory only and are cleared on page reload.
  */
 export function createAppProviders({
   client,
@@ -36,18 +34,20 @@ export function createAppProviders({
     },
   })
 
-  const api = client ?? createApiClient({
-    tokenProvider: createMemoryAccessTokenProvider(),
-  })
+  const tokenProvider = createMemoryAccessTokenProvider()
+  const api = client ?? createApiClient({ tokenProvider })
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ApiClientContext.Provider value={api}>{children}</ApiClientContext.Provider>
+      <ApiClientContext.Provider value={api}>
+        <AuthProviderContext.Provider value={tokenProvider}>{children}</AuthProviderContext.Provider>
+      </ApiClientContext.Provider>
     </QueryClientProvider>
   )
 }
 
-import { createContext, useContext } from 'react'
+import React, { createContext, useContext, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 /**
  * Exported so tests can inject a client with a stubbed `fetchImpl`. Application
@@ -62,4 +62,43 @@ export function useApi(): ApiClient {
     throw new Error('useApi must be used within createAppProviders')
   }
   return api
+}
+
+/**
+ * Auth context: exposes the in-memory token provider so the login page can
+ * call setToken/clearToken and components can react to login/logout via
+ * onTokenChange.
+ */
+export const AuthProviderContext = createContext<MemoryAccessTokenProvider | null>(null)
+
+export function useAuth() {
+  const provider = useContext(AuthProviderContext)
+  if (!provider) {
+    throw new Error('useAuth must be used within createAppProviders')
+  }
+
+  const login = (token: string) => provider.setToken(token)
+  const logout = () => provider.clearToken()
+  const isAuthenticated = () => provider.isAuthenticated()
+
+  return { login, logout, isAuthenticated }
+}
+
+/**
+ * Auth guard: redirects to /login when no bearer token is present.
+ * Wraps shell routes so unauthenticated users never see the dashboard.
+ */
+export function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      navigate('/login', { replace: true })
+    }
+  }, [isAuthenticated, navigate])
+
+  if (!isAuthenticated()) return null
+
+  return <>{children}</>
 }

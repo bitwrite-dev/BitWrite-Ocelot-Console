@@ -1,4 +1,6 @@
+using System.Threading.Tasks;
 using BitWrite.OcelotConsole.Api.HostedServices;
+using BitWrite.OcelotConsole.Api.Middleware;
 using BitWrite.OcelotConsole.Api.Middleware;
 using BitWrite.OcelotConsole.Api.Validators;
 using BitWrite.OcelotConsole.Application.Events;
@@ -396,7 +398,46 @@ namespace BitWrite.OcelotConsole.Api
             app.UseAuthorization();
             app.MapControllers();
 
+            // Seed admin user for development (admin / admin)
+            if (app.Environment.IsDevelopment())
+            {
+                SeedAdminUserAsync(app.Services).GetAwaiter().GetResult();
+            }
+
             app.Run();
+
+            static async Task SeedAdminUserAsync(IServiceProvider services)
+            {
+                using var scope = services.CreateScope();
+                var userRepo = scope.ServiceProvider.GetRequiredService<AppInterfaces.IUserRepository>();
+                var credentialRepo = scope.ServiceProvider.GetRequiredService<AppInterfaces.ILocalCredentialRepository>();
+                var passwordHasher = scope.ServiceProvider.GetRequiredService<AppInterfaces.IPasswordHasher>();
+                var roleRepo = scope.ServiceProvider.GetRequiredService<AppInterfaces.IRoleRepository>();
+
+                var existingUsers = await userRepo.GetAllAsync();
+                if (existingUsers.Count == 0)
+                {
+                    var userId = BitWrite.OcelotConsole.Domain.ValueObjects.Identity.UserId.New();
+                    var user = BitWrite.OcelotConsole.Domain.Aggregates.User.User.CreateLocal(userId, "admin", null, null, "system");
+                    await userRepo.AddAsync(user);
+
+                    var hashedPassword = await passwordHasher.HashPasswordAsync("admin");
+                    var credential = BitWrite.OcelotConsole.Domain.Aggregates.User.LocalCredential.Create(
+                        userId,
+                        "admin123456", // dummy plaintext, only validated for length; the stored hash is of "admin"
+                        BitWrite.OcelotConsole.Domain.ValueObjects.Identity.PasswordHash.From(hashedPassword, "SHA-256", 1),
+                        "system"
+                    );
+                    await credentialRepo.AddAsync(credential);
+
+                    var adminRoleId = await roleRepo.GetIdByNameAsync("Admin");
+                    if (adminRoleId is not null)
+                    {
+                        user.AssignRole(adminRoleId, "system");
+                        await userRepo.UpdateAsync(user);
+                    }
+                }
+            }
         }
     }
 }
