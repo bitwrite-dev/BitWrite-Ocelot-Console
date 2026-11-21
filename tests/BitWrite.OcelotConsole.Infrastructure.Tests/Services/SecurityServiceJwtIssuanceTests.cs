@@ -253,4 +253,36 @@ public class SecurityServiceJwtIssuanceTests
         Read(token).Claims.Should().Contain(c => c.Type == AuthzVersioning.AccessTokenVersionClaimType && c.Value == "7");
     }
 
+    [Fact]
+    public async Task GenerateAccessToken_WithSessionIdAndAuthMethod_EmitsSidAndAuthMethodClaims()
+    {
+        var user = ActiveUser();
+        var role = ActiveRole("operator", "perm.read");
+        user.AssignRole(role.Id, "t");
+        var catalog = new SourceCodePermissionCatalog(new[] { ActivePerm("perm.read") });
+        var sut = CreateSut(user, catalog, role);
+
+        var token = await sut.GenerateAccessTokenAsync(user.Id, "session-123", "password");
+
+        var jwt = Read(token);
+        jwt.Claims.Should().Contain(c => c.Type == JwtRegisteredClaimNames.Sid && c.Value == "session-123");
+        jwt.Claims.Should().Contain(c => c.Type == "auth_method" && c.Value == "password");
+    }
+
+    [Fact]
+    public async Task GenerateAccessToken_WithoutSessionIdAndAuthMethod_DoesNotEmitSidOrAuthMethod()
+    {
+        var user = ActiveUser();
+        var role = ActiveRole("operator", "perm.read");
+        user.AssignRole(role.Id, "t");
+        var catalog = new SourceCodePermissionCatalog(new[] { ActivePerm("perm.read") });
+        var sut = CreateSut(user, catalog, role);
+
+        var token = await sut.GenerateAccessTokenAsync(user.Id);
+
+        var jwt = Read(token);
+        jwt.Claims.Should().NotContain(c => c.Type == JwtRegisteredClaimNames.Sid);
+        jwt.Claims.Should().NotContain(c => c.Type == "auth_method");
+    }
+
 }

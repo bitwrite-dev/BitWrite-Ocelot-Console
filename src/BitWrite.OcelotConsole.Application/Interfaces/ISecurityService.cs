@@ -16,7 +16,10 @@ public interface ISecurityService
     /// Generates a JWT access token for the specified user (§7.1).
     /// Role claims are emitted based on current eligible role state.
     /// </summary>
-    Task<string> GenerateAccessTokenAsync(UserId userId, CancellationToken cancellationToken = default);
+    /// <param name="userId">The internal BitWrite User ID.</param>
+    /// <param name="sessionId">Optional session ID to embed as the `sid` claim.</param>
+    /// <param name="authMethod">Optional authentication method to embed as the `auth_method` claim.</param>
+    Task<string> GenerateAccessTokenAsync(UserId userId, string? sessionId = null, string? authMethod = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Generates a refresh token (§8).

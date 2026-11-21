@@ -54,7 +54,7 @@ public class RefreshAccessTokenCommandHandler
         session.RecordAuthentication(newRefreshTokenEntity.Id.Value.ToString(), newRefreshTokenEntity.ExpiresAt);
         await _sessionRepository.UpdateAsync(session, cancellationToken);
 
-        var accessToken = await _securityService.GenerateAccessTokenAsync(userId, cancellationToken);
+        var accessToken = await _securityService.GenerateAccessTokenAsync(userId, session.Id.Value.ToString(), "refresh", cancellationToken);
         var accessTokenExpiresAt = DateTimeOffset.UtcNow.AddMinutes(15);
 
         return new RefreshAccessTokenResponse(

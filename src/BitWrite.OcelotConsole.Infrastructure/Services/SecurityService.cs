@@ -60,7 +60,7 @@ public class SecurityService : ISecurityService
         _refreshTokenExpirationDays = int.Parse(configuration["Security:RefreshTokenExpirationDays"] ?? "7");
     }
 
-    public async Task<string> GenerateAccessTokenAsync(UserId userId, CancellationToken cancellationToken = default)
+    public async Task<string> GenerateAccessTokenAsync(UserId userId, string? sessionId = null, string? authMethod = null, CancellationToken cancellationToken = default)
     {
         var eligibleRoleNames = await ResolveEligibleRoleNamesAsync(userId, cancellationToken);
         var authzVersion = await GetAuthzVersionAsync(userId, cancellationToken);
@@ -70,8 +70,15 @@ public class SecurityService : ISecurityService
             new Claim(JwtRegisteredClaimNames.Sub, userId.Value.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
+            new Claim(JwtRegisteredClaimNames.Nbf, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
             new Claim(AuthzVersioning.AccessTokenVersionClaimType, authzVersion.ToString(), ClaimValueTypes.Integer64),
         };
+
+        if (!string.IsNullOrWhiteSpace(sessionId))
+            claims.Add(new Claim(JwtRegisteredClaimNames.Sid, sessionId));
+
+        if (!string.IsNullOrWhiteSpace(authMethod))
+            claims.Add(new Claim("auth_method", authMethod));
 
         foreach (var roleName in eligibleRoleNames)
         {
