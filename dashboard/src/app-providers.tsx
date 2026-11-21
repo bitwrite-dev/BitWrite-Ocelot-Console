@@ -76,12 +76,18 @@ export function useAuth() {
   if (!provider) {
     throw new Error('useAuth must be used within createAppProviders')
   }
+  const navigate = useNavigate()
 
   const login = (token: string) => provider.setToken(token)
-  const logout = () => provider.clearToken()
+  const logout = () => {
+    provider.clearToken()
+    navigate('/login', { replace: true })
+  }
   const isAuthenticated = () => provider.isAuthenticated()
+  const setUsername = (username: string | null) => provider.setUsername(username)
+  const getUsername = () => provider.getUsername()
 
-  return { login, logout, isAuthenticated }
+  return { login, logout, isAuthenticated, setUsername, getUsername }
 }
 
 /**

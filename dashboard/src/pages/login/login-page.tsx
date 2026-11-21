@@ -16,7 +16,7 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
 
   const { http } = useApi()
-  const { login } = useAuth()
+  const { login, setUsername: setAuthUsername } = useAuth()
   const navigate = useNavigate()
 
   async function handleSubmit(event: React.FormEvent) {
@@ -36,6 +36,7 @@ export function LoginPage() {
       }>('/api/v1/auth/login', { username, password })
 
       login(response.accessToken)
+      setAuthUsername(response.username)
 
       // Persist token so a page reload keeps the user signed in (UI-09).
       try {
