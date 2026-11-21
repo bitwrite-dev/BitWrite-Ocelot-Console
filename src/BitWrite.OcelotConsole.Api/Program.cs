@@ -1,7 +1,6 @@
 using System.Threading.Tasks;
 using BitWrite.OcelotConsole.Api.HostedServices;
 using BitWrite.OcelotConsole.Api.Middleware;
-using BitWrite.OcelotConsole.Api.Middleware;
 using BitWrite.OcelotConsole.Api.Validators;
 using BitWrite.OcelotConsole.Application.Events;
 using BitWrite.OcelotConsole.Application.UseCases.Audit;
@@ -32,11 +31,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
 using AppInterfaces = BitWrite.OcelotConsole.Application.Interfaces;
+using AppRole = BitWrite.OcelotConsole.Domain.Aggregates.Role.Role;
 using DomainServices = BitWrite.OcelotConsole.Domain.Services;
 using Infra = BitWrite.OcelotConsole.Infrastructure;
 using InfraAdapters = BitWrite.OcelotConsole.Infrastructure.Adapters;
 using RuntimeAdapters = BitWrite.OcelotConsole.Runtime.Adapters;
-using RoleEntity = BitWrite.OcelotConsole.Domain.Aggregates.Role.Role;
 
 namespace BitWrite.OcelotConsole.Api
 {
@@ -422,10 +421,10 @@ namespace BitWrite.OcelotConsole.Api
                 {
                     // Ensure Admin role exists
                     var adminRoleId = await roleRepo.GetIdByNameAsync("Admin");
-                    RoleEntity adminRole;
+                    AppRole adminRole;
                     if (adminRoleId is null)
                     {
-                        adminRole = RoleEntity.Create(BitWrite.OcelotConsole.Domain.ValueObjects.Identity.RoleId.New(), "Admin", "Full system access", "system");
+                        adminRole = AppRole.Create(BitWrite.OcelotConsole.Domain.ValueObjects.Identity.RoleId.New(), "Admin", "Full system access", "system");
                         await roleRepo.AddAsync(adminRole);
                         adminRoleId = adminRole.Id;
                     }
