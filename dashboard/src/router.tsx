@@ -1,9 +1,10 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
-import { createAppProviders } from '@/app-providers'
+import { createAppProviders, AuthGuard } from '@/app-providers'
 import { AppLayout } from '@/components/app-layout'
 import { usePendingDraftsByType } from '@/features/overview/queries'
 import { NotFoundPage, PlaceholderPage } from '@/pages/placeholders'
+import { LoginPage } from '@/pages/login/login-page'
 import { OverviewPage } from '@/features/overview/overview-page'
 import { RouteDetailsPage } from '@/features/routes/route-details-page'
 import { ServicesPage } from '@/features/services/services-page'
@@ -37,7 +38,7 @@ const dynamicPlaceholderPaths: readonly string[] = DYNAMIC_PATHS
 const routes = [
   {
     path: '/',
-    element: <AppLayoutWithDraftCounts />,
+    element: <AuthGuard><AppLayoutWithDraftCounts /></AuthGuard>,
     children: [
       // The real pages; the rest are still placeholders.
       { index: true, element: <OverviewPage /> },
@@ -68,6 +69,8 @@ const routes = [
       { path: '*', element: <NotFoundPage /> },
     ],
   },
+  // Login lives outside the shell: no sidebar, no navbar, no setup guard.
+  { path: '/login', element: <LoginPage /> },
 ]
 
 // Fail fast at module load if the sidebar and the route table disagree, or if a

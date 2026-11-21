@@ -292,10 +292,11 @@ public record UserId : ValueObject
 
 public record PasswordHash : ValueObject
 {
-    public string Value { get; init; }
-    public string Algorithm { get; init; }
-    public int WorkFactor { get; init; }
+    public string Value { get; set; }
+    public string Algorithm { get; set; }
+    public int WorkFactor { get; set; }
 
+    [JsonConstructor]
     private PasswordHash(string value, string algorithm, int workFactor)
     {
         Value = value;

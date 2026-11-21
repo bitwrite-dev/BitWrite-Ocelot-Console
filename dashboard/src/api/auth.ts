@@ -65,6 +65,15 @@ export function createMemoryAccessTokenProvider(): MemoryAccessTokenProvider {
   let token: string | null = null
   const listeners = new Set<(token: string | null) => void>()
 
+  // Load persisted token from localStorage on construction (UI-09), so a page
+  // reload keeps the user signed in. localStorage may refuse in some privacy
+  // configurations; that reads as "no token" and is handled gracefully.
+  try {
+    token = window.localStorage.getItem('dashboard:token') ?? null
+  } catch {
+    token = null
+  }
+
   function notify() {
     for (const cb of listeners) cb(token)
   }
@@ -73,10 +82,21 @@ export function createMemoryAccessTokenProvider(): MemoryAccessTokenProvider {
     getAccessToken: () => token,
     setToken: (next) => {
       token = next
+      try {
+        if (next) window.localStorage.setItem('dashboard:token', next)
+        else window.localStorage.removeItem('dashboard:token')
+      } catch {
+        // Ignore localStorage failures; memory token still works.
+      }
       notify()
     },
     clearToken: () => {
       token = null
+      try {
+        window.localStorage.removeItem('dashboard:token')
+      } catch {
+        // Ignore localStorage failures.
+      }
       notify()
     },
     isAuthenticated: () => token !== null,
