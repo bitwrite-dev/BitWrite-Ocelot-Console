@@ -1,0 +1,114 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build-api",
+            "type": "dotnet",
+            "command": "build",
+            "project": "${workspaceFolder}/src/BitWrite.OcelotConsole.Api/BitWrite.OcelotConsole.Api.csproj",
+            "args": [
+                "--configuration",
+                "Debug"
+            ],
+            "group": "build",
+            "problemMatcher": ["$msCompile"],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "label": "run-api",
+            "type": "dotnet",
+            "command": "run",
+            "project": "${workspaceFolder}/src/BitWrite.OcelotConsole.Api/BitWrite.OcelotConsole.Api.csproj",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/src/BitWrite.OcelotConsole.Api",
+                "env": {
+                    "ASPNETCORE_ENVIRONMENT": "Development",
+                    "ASPNETCORE_URLS": "http://localhost:5039"
+                }
+            },
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "run-dashboard",
+            "type": "npm",
+            "script": "dev",
+            "path": "${workspaceFolder}/dashboard",
+            "isBackground": true,
+            "problemMatcher": [],
+            "group": "none"
+        },
+        {
+            "label": "run-gateway-node-1",
+            "type": "dotnet",
+            "command": "run",
+            "project": "${workspaceFolder}/nodes/ocelot.gateway.node-1/ocelot.gateway.node-1.csproj",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/nodes/ocelot.gateway.node-1",
+                "env": {
+                    "ASPNETCORE_ENVIRONMENT": "Development",
+                    "ASPNETCORE_URLS": "http://localhost:8080",
+                    "Gateway:Environment": "Development",
+                    "Gateway:NodeName": "ocelot.gateway.node-1",
+                    "Gateway:ControlPlaneUrl": "http://localhost:5039"
+                }
+            },
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "run-gateway-node-2",
+            "type": "dotnet",
+            "command": "run",
+            "project": "${workspaceFolder}/nodes/ocelot.gateway.node-2/ocelot.gateway.node-2.csproj",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/nodes/ocelot.gateway.node-2",
+                "env": {
+                    "ASPNETCORE_ENVIRONMENT": "Development",
+                    "ASPNETCORE_URLS": "http://localhost:8082",
+                    "Gateway:Environment": "Development",
+                    "Gateway:NodeName": "ocelot.gateway.node-2",
+                    "Gateway:ControlPlaneUrl": "http://localhost:5039"
+                }
+            },
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "run-gateway-node-3",
+            "type": "dotnet",
+            "command": "run",
+            "project": "${workspaceFolder}/nodes/ocelot.gateway.node-3/ocelot.gateway.node-3.csproj",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/nodes/ocelot.gateway.node-3",
+                "env": {
+                    "ASPNETCORE_ENVIRONMENT": "Development",
+                    "ASPNETCORE_URLS": "http://localhost:8083",
+                    "Gateway:Environment": "Development",
+                    "Gateway:NodeName": "ocelot.gateway.node-3",
+                    "Gateway:ControlPlaneUrl": "http://localhost:5039"
+                }
+            },
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "run-all",
+            "dependsOn": ["run-api", "run-dashboard", "run-gateway-node-1"],
+            "type": "process",
+            "problemMatcher": []
+        },
+        {
+            "label": "run-fleet",
+            "dependsOn": ["run-api", "run-dashboard", "run-gateway-node-1", "run-gateway-node-2", "run-gateway-node-3"],
+            "type": "process",
+            "problemMatcher": []
+        }
+    ]
+}
