@@ -13,7 +13,7 @@
 |-------|-------|--------|-------|
 | IAM-01 | Role Domain Core | ✅ Complete | Role lifecycle/Active-Inactive/rename invariant; no hard-delete; dispatch of role domain events |
 | IAM-02 | RoleId Consistency & RoleName Uniqueness | ✅ Complete | RoleId-only assignments; normalized atomic RoleName index; migration/legacy handling |
-| IAM-03 | Permission Catalog Infrastructure | ✅ Complete | Source-code SoT; `SourceCodePermissionCatalog`; empty `BitWritePermissionCatalogDefinitions`; code definitions gated by P-GATE-1 |
+| IAM-03 | Permission Catalog Infrastructure | ✅ Complete | Source-code SoT; `SourceCodePermissionCatalog`; `BitWritePermissionCatalogDefinitions.All` populated with approved codes |
 | IAM-04 | Role-Permission Management & Idempotent Assignment | ✅ Complete | Catalog-validated assign/remove; idempotent reassignment no-op; per-role distributed lock; domain invariants preserved |
 | IAM-05 | Role & User-Role Administration Use Cases | ✅ Complete | Create/get/list/update/rename/activate/deactivate role; reject inactive role assign; dispatch/clear domain events |
 | IAM-06 | Effective Permission Resolver | ✅ Complete | Current-state resolver; side-effect-free; active user/roles; catalog-active only; deduped |
@@ -33,7 +33,7 @@
 
 | Gate | Type | Status | Blocks |
 |------|------|--------|--------|
-| P-GATE-1 | Product decision | Unresolved | Official source-code Permission Catalog codes/definitions (IAM-03 infra complete, content not approved) |
+| P-GATE-1 | Product decision | ✅ Resolved | Permission Catalog codes/definitions approved and in code (`BitWritePermissionCatalogDefinitions.All`) |
 | P-GATE-2 | Product decision | Unresolved | Endpoint/use-case → Permission mappings (IAM-09 infra complete; IAM-10a–d completion blocked) |
 | U-01 | Architectural approval + Security release gate | Unresolved | Historical RoleName reuse mitigation (tombstone/alternative); full IAM v1 security release blocked |
 | U-02b | Product decision | Unresolved | Explicit admin removal of stored Retired permission references (retention/non-grant unchanged) |
@@ -146,12 +146,13 @@
 
 | Item | Type | Status | Notes |
 |------|------|--------|-------|
-| Official permission code set & endpoint-to-permission mapping | Catalog/product decision | ⏸ Unresolved (P-GATE-1/2) | Catalog infra complete; codes/mappings not approved — none invented or presented as official |
+| Official permission code set | Catalog/product decision | ✅ Resolved | Codes defined in `BitWritePermissionCatalogDefinitions.All` |
+| endpoint-to-permission mapping | Catalog/product decision | ⏸ Unresolved (P-GATE-2) | Mappings not approved — none invented |
 | Throttling effectiveness/coverage | Security verification | ⏸ Independent | #628 — outside IAM v1 backlog scope; middleware/service present |
 
 
 ## Executive Summary
 
 - **Current state:** All IAM v1 implementation issues IAM-01 through IAM-16 are complete on `develop` (merged). Foundational domain/identity/catalog contracts are implemented and tested: Role lifecycle (Active/Inactive, rename invariant), RoleId-only assignments, source-code Permission Catalog infra, catalog-validated role-permission management with idempotent reassignment, effective-permission resolver, RoleName-only JWT issuance with 4-condition eligibility, current-state authorization with default-deny/fail-closed, security-triggered revocation & state-change propagation (IAM-12 matrix via #647), user administration use cases (Disable mandatory P1 complete), IAM/security-sensitive API authorization protection, audit event coverage for state changes, and an E2E/security regression suite.
-- **Implementation gates unresolved (block full security-release completion but not task progress):** P-GATE-1 (official Permission Catalog codes/definitions), P-GATE-2 (endpoint→permission mappings), U-01 (Historical RoleName reuse mitigation), U-02b (explicit admin removal of stored Retired references), U-03 (authz freshness mechanism/max stale-state window/cache-consistency/failure behavior). No permission codes or endpoint mappings invented or presented as approved.
+- **Implementation gates unresolved (block full security-release completion but not task progress):** P-GATE-2 (endpoint→permission mappings), U-01 (Historical RoleName reuse mitigation), U-02b (explicit admin removal of stored Retired references), U-03 (authz freshness mechanism/max stale-state window/cache-consistency/failure behavior). No endpoint→permission mappings invented or presented as approved.
 - **Security release prerequisites:** U-01 and U-03 must be resolved, implemented, and tested before IAM-13 can be Complete and before full IAM v1 security release approval. Short JWT expiry alone is never sufficient.
