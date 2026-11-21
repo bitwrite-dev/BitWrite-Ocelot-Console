@@ -18,6 +18,7 @@ using BitWrite.OcelotConsole.Application.UseCases.Snapshot;
 using BitWrite.OcelotConsole.Application.UseCases.SystemSettings;
 using BitWrite.OcelotConsole.Domain.Aggregates.Role;
 using BitWrite.OcelotConsole.Domain.Events;
+using BitWrite.OcelotConsole.Domain.Exceptions;
 using BitWrite.OcelotConsole.Infrastructure.Adapters;
 using BitWrite.OcelotConsole.Infrastructure.EventHandlers;
 using BitWrite.OcelotConsole.Infrastructure.Outbox;
@@ -424,9 +425,20 @@ namespace BitWrite.OcelotConsole.Api
                     AppRole adminRole;
                     if (adminRoleId is null)
                     {
-                        adminRole = AppRole.Create(BitWrite.OcelotConsole.Domain.ValueObjects.Identity.RoleId.New(), "Admin", "Full system access", "system");
-                        await roleRepo.AddAsync(adminRole);
-                        adminRoleId = adminRole.Id;
+                        try
+                        {
+                            adminRole = AppRole.Create(BitWrite.OcelotConsole.Domain.ValueObjects.Identity.RoleId.New(), "Admin", "Full system access", "system");
+                            await roleRepo.AddAsync(adminRole);
+                            adminRoleId = adminRole.Id;
+                        }
+                        catch (DomainException)
+                        {
+                            // Role may exist with different case (e.g. "admin" vs "Admin")
+                            adminRoleId = await roleRepo.GetIdByNameAsync("admin");
+                            if (adminRoleId is null)
+                                throw;
+                            adminRole = await roleRepo.GetByIdAsync(adminRoleId);
+                        }
                     }
                     else
                     {
