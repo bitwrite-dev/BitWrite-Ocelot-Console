@@ -46,8 +46,7 @@ export function createAppProviders({
   )
 }
 
-import React, { createContext, useContext, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { createContext, useContext } from 'react'
 
 /**
  * Exported so tests can inject a client with a stubbed `fetchImpl`. Application
@@ -74,9 +73,8 @@ export const AuthProviderContext = createContext<MemoryAccessTokenProvider | nul
 export function useAuth() {
   const provider = useContext(AuthProviderContext)
   if (!provider) {
-    throw new Error('useAuth must be used within createAppProviders')
+    return { login: () => {}, logout: () => {}, isAuthenticated: () => false, setUsername: () => {}, getUsername: () => null }
   }
-  const navigate = useNavigate()
 
   const login = (token: string) => provider.setToken(token)
   const logout = () => {
