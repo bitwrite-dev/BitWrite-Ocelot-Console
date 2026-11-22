@@ -46,7 +46,8 @@ export function createAppProviders({
   )
 }
 
-import React, { createContext, useContext } from 'react'
+import React, { createContext, useContext, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 /**
  * Exported so tests can inject a client with a stubbed `fetchImpl`. Application
@@ -72,6 +73,7 @@ export const AuthProviderContext = createContext<MemoryAccessTokenProvider | nul
 
 export function useAuth() {
   const provider = useContext(AuthProviderContext)
+  const navigate = useNavigate()
   if (!provider) {
     return { login: () => {}, logout: () => {}, isAuthenticated: () => false, setUsername: () => {}, getUsername: () => null }
   }
