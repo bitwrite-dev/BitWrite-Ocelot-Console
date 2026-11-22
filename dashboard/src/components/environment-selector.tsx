@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 import { getApiEnvironment } from '@/api/config'
@@ -24,6 +24,16 @@ export function EnvironmentSelector() {
   const [environment, setEnvironment] = useState(
     () => readSelectedEnvironment() || getApiEnvironment() || 'development',
   )
+
+  // Persist the initial choice on mount so the first request already carries
+  // the X-Environment header instead of waiting for the operator to touch the
+  // selector. Without this the selector shows 'development' but localStorage
+  // stays empty and every request is sent without the header.
+  useEffect(() => {
+    if (!readSelectedEnvironment()) {
+      storeSelectedEnvironment(environment)
+    }
+  }, [environment])
 
   const handleChange = (value: string) => {
     storeSelectedEnvironment(value)
