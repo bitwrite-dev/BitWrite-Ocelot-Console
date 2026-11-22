@@ -41,7 +41,7 @@ public class UsersController : BaseApiController
     {
         try
         {
-            var command = new CreateUserCommand(request.Username, request.DisplayName, request.Email, InitiatedBy, CorrelationId);
+            var command = new CreateUserCommand(request.Username, request.DisplayName, request.Email, request.Password, InitiatedBy, CorrelationId);
             return HandleResult(await _createUser.HandleAsync(command, cancellationToken));
         }
         catch (Exception ex) { return HandleError(ex); }
@@ -109,5 +109,5 @@ public class UsersController : BaseApiController
         ?? "unattributed";
 }
 
-public record CreateUserRequest(string Username, string? DisplayName, string? Email);
+public record CreateUserRequest(string Username, string? DisplayName, string? Email, string? Password);
 public record UpdateUserRequest(string? DisplayName, string? Email);

@@ -843,6 +843,7 @@ export interface CreateUserRequest {
   username: string
   displayName?: string | null
   email?: string | null
+  password?: string | null
 }
 
 /**

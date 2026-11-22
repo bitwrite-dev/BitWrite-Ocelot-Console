@@ -9,6 +9,7 @@ public record CreateUserCommand(
     string Username,
     string? DisplayName,
     string? Email,
+    string? Password,
     string InitiatedBy,
     string CorrelationId = ""
 );
