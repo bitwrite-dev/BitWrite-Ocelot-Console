@@ -809,3 +809,46 @@ export interface ValidationErrorResponse {
   type: string
   details: Record<string, string>
 }
+
+/**
+ * A user, as returned by the user administration endpoints.
+ */
+export interface UserResponse {
+  id: string
+  username: string
+  displayName: string | null
+  email: string | null
+  status: string
+  userType: string
+  createdAt: string
+  updatedAt: string | null
+  lastAuthenticatedAt: string | null
+  roleIds: string[]
+}
+
+/**
+ * The paged list of users returned by GET /api/v1/users.
+ */
+export interface ListUsersResponse {
+  users: UserResponse[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+/**
+ * The request body for creating a user (POST /api/v1/users).
+ */
+export interface CreateUserRequest {
+  username: string
+  displayName?: string | null
+  email?: string | null
+}
+
+/**
+ * The request body for updating a user (PUT /api/v1/users/{id}).
+ */
+export interface UpdateUserRequest {
+  displayName?: string | null
+  email?: string | null
+}

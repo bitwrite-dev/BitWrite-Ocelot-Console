@@ -12,6 +12,7 @@ import {
   Server,
   Settings,
   SlidersHorizontal,
+  User,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -89,6 +90,7 @@ export const NAV_SECTIONS: NavSection[] = [
     id: 'system',
     label: 'System',
     items: [
+      { path: '/users', label: 'Users', icon: User, roles: ['Admin'] },
       { path: '/audit', label: 'Audit Log', icon: ScrollText, roles: ['Admin'] },
       { path: '/settings', label: 'Settings', icon: Settings, roles: ['Admin'] },
     ],

@@ -18,6 +18,7 @@ import { AuditLogPage } from '@/features/audit/audit-log-page'
 import { MonitoringPage } from '@/features/monitoring/monitoring-page'
 import { RuntimePage } from '@/features/runtime/RuntimePage'
 import { RoutesPage } from '@/features/routes/routes-page'
+import { UsersPage } from '@/features/users/users-page'
 import {
   CreateRouteWizardPage,
   EditRouteWizardPage,
@@ -45,6 +46,7 @@ const routes = [
       { path: 'routes', element: <RoutesPage /> },
       { path: 'services', element: <ServicesPage /> },
       { path: 'settings', element: <SettingsPage /> },
+      { path: 'users', element: <UsersPage /> },
       { path: 'gateways', element: <GatewaysPage /> },
       { path: 'global-configuration', element: <GlobalConfigurationPage /> },
       { path: 'snapshots', element: <SnapshotsPage /> },
