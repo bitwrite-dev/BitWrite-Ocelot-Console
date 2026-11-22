@@ -42,6 +42,10 @@ export interface MemoryAccessTokenProvider extends AccessTokenProvider {
   isAuthenticated(): boolean
   /** Subscribe to token changes. Returns an unsubscribe function. */
   onTokenChange(callback: (token: string | null) => void): () => void
+  /** Stores the logged-in username for display in the UI. */
+  setUsername(username: string | null): void
+  /** Returns the stored username, or null when unauthenticated. */
+  getUsername(): string | null
 }
 
 /**
@@ -63,15 +67,18 @@ export const anonymousTokenProvider: AccessTokenProvider = {
  */
 export function createMemoryAccessTokenProvider(): MemoryAccessTokenProvider {
   let token: string | null = null
+  let username: string | null = null
   const listeners = new Set<(token: string | null) => void>()
 
-  // Load persisted token from localStorage on construction (UI-09), so a page
-  // reload keeps the user signed in. localStorage may refuse in some privacy
-  // configurations; that reads as "no token" and is handled gracefully.
+  // Load persisted token and username from localStorage on construction (UI-09),
+  // so a page reload keeps the user signed in. localStorage may refuse in some
+  // privacy configurations; that reads as "no token" and is handled gracefully.
   try {
     token = window.localStorage.getItem('dashboard:token') ?? null
+    username = window.localStorage.getItem('dashboard:username') ?? null
   } catch {
     token = null
+    username = null
   }
 
   function notify() {
@@ -92,8 +99,10 @@ export function createMemoryAccessTokenProvider(): MemoryAccessTokenProvider {
     },
     clearToken: () => {
       token = null
+      username = null
       try {
         window.localStorage.removeItem('dashboard:token')
+        window.localStorage.removeItem('dashboard:username')
       } catch {
         // Ignore localStorage failures.
       }
@@ -104,5 +113,15 @@ export function createMemoryAccessTokenProvider(): MemoryAccessTokenProvider {
       listeners.add(cb)
       return () => listeners.delete(cb)
     },
+    setUsername: (next) => {
+      username = next
+      try {
+        if (next) window.localStorage.setItem('dashboard:username', next)
+        else window.localStorage.removeItem('dashboard:username')
+      } catch {
+        // Ignore localStorage failures; memory username still works.
+      }
+    },
+    getUsername: () => username,
   }
 }
