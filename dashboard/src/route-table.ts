@@ -39,6 +39,7 @@ export const IMPLEMENTED_PATHS = [
   '/routes/:id/edit',
   '/services',
   '/settings',
+  '/users',
   '/gateways',
   '/global-configuration',
   '/snapshots',
