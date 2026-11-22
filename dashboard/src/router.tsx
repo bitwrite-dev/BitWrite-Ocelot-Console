@@ -19,6 +19,8 @@ import { MonitoringPage } from '@/features/monitoring/monitoring-page'
 import { RuntimePage } from '@/features/runtime/RuntimePage'
 import { RoutesPage } from '@/features/routes/routes-page'
 import { UsersPage } from '@/features/users/users-page'
+import { UsersCreatePage } from '@/features/users/users-create-page'
+import { UsersEditPage } from '@/features/users/users-edit-page'
 import {
   CreateRouteWizardPage,
   EditRouteWizardPage,
@@ -47,6 +49,8 @@ const routes = [
       { path: 'services', element: <ServicesPage /> },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'users', element: <UsersPage /> },
+      { path: 'users/new', element: <UsersCreatePage /> },
+      { path: 'users/:id/edit', element: <UsersEditPage /> },
       { path: 'gateways', element: <GatewaysPage /> },
       { path: 'global-configuration', element: <GlobalConfigurationPage /> },
       { path: 'snapshots', element: <SnapshotsPage /> },

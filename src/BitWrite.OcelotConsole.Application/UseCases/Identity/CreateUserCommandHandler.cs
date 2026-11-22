@@ -10,13 +10,19 @@ namespace BitWrite.OcelotConsole.Application.UseCases.Identity;
 public class CreateUserCommandHandler
 {
     private readonly IUserRepository _userRepository;
+    private readonly ILocalCredentialRepository _credentialRepository;
+    private readonly IPasswordHasher _passwordHasher;
     private readonly IDomainEventDispatcher _eventDispatcher;
 
     public CreateUserCommandHandler(
         IUserRepository userRepository,
+        ILocalCredentialRepository credentialRepository,
+        IPasswordHasher passwordHasher,
         IDomainEventDispatcher eventDispatcher)
     {
         _userRepository = userRepository;
+        _credentialRepository = credentialRepository;
+        _passwordHasher = passwordHasher;
         _eventDispatcher = eventDispatcher;
     }
 
@@ -38,6 +44,18 @@ public class CreateUserCommandHandler
             command.CorrelationId);
 
         await _userRepository.AddAsync(user, cancellationToken);
+
+        // Create local credential with hashed password if one was provided
+        if (!string.IsNullOrWhiteSpace(command.Password))
+        {
+            var passwordHash = await _passwordHasher.HashPasswordAsync(command.Password, cancellationToken);
+            var credential = LocalCredential.Create(
+                userId,
+                command.Password,
+                PasswordHash.From(passwordHash, "BCrypt", 1),
+                command.CorrelationId);
+            await _credentialRepository.AddAsync(credential, cancellationToken);
+        }
 
         // Dispatch domain events
         foreach (var domainEvent in user.DomainEvents)

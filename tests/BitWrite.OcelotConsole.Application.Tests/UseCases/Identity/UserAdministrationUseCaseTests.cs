@@ -18,9 +18,11 @@ public class UserAdministrationUseCaseTests
         var repo = new Mock<IUserRepository>();
         repo.Setup(r => r.GetByUsernameAsync("alice", It.IsAny<CancellationToken>())).ReturnsAsync((User?)null);
         var dispatcher = new Mock<IDomainEventDispatcher>();
-        var sut = new CreateUserCommandHandler(repo.Object, dispatcher.Object);
+        var credentialRepo = new Mock<ILocalCredentialRepository>();
+        var passwordHasher = new Mock<IPasswordHasher>();
+        var sut = new CreateUserCommandHandler(repo.Object, credentialRepo.Object, passwordHasher.Object, dispatcher.Object);
 
-        var result = await sut.HandleAsync(new CreateUserCommand("alice", "Alice", "alice@example.com", "admin", "c1"));
+        var result = await sut.HandleAsync(new CreateUserCommand("alice", "Alice", "alice@example.com", null, "admin", "c1"));
 
         result.Username.Should().Be("alice");
         result.Status.Should().Be("Active");
@@ -34,9 +36,12 @@ public class UserAdministrationUseCaseTests
         var existing = User.CreateLocal(UserId.New(), "alice", "Alice", null, "sys");
         var repo = new Mock<IUserRepository>();
         repo.Setup(r => r.GetByUsernameAsync("alice", It.IsAny<CancellationToken>())).ReturnsAsync(existing);
-        var sut = new CreateUserCommandHandler(repo.Object, Mock.Of<IDomainEventDispatcher>());
+        var dispatcher = new Mock<IDomainEventDispatcher>();
+        var credentialRepo = new Mock<ILocalCredentialRepository>();
+        var passwordHasher = new Mock<IPasswordHasher>();
+        var sut = new CreateUserCommandHandler(repo.Object, credentialRepo.Object, passwordHasher.Object, dispatcher.Object);
 
-        var act = () => sut.HandleAsync(new CreateUserCommand("alice", null, null, "admin", "c1"));
+        var act = () => sut.HandleAsync(new CreateUserCommand("alice", null, null, null, "admin", "c1"));
 
         await act.Should().ThrowAsync<DomainException>().Where(e => e.ErrorCode == "USERNAME_ALREADY_TAKEN");
     }
