@@ -350,18 +350,25 @@ namespace BitWrite.OcelotConsole.Api
                 });
             });
 
-            // Add JWT Authentication
+            // Add JWT Authentication — symmetric key validation against the same
+            // signing key used by SecurityService to issue tokens (§16).
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
-                    options.Authority = builder.Configuration["Authentication:Authority"];
-                    options.Audience = builder.Configuration["Authentication:Audience"];
-                    options.RequireHttpsMetadata = false; // For development
-                    options.MapInboundClaims = false;
                     options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
                     {
-                        RoleClaimType = BitWrite.OcelotConsole.Infrastructure.Services.SecurityService.RoleClaimType
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidIssuer = builder.Configuration["Security:Issuer"],
+                        ValidAudience = builder.Configuration["Security:Audience"],
+                        IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+                            System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Security:SigningKey"])),
+                        ClockSkew = TimeSpan.Zero,
+                        RoleClaimType = BitWrite.OcelotConsole.Infrastructure.Services.SecurityService.RoleClaimType,
                     };
+                    options.MapInboundClaims = false;
                 });
 
             builder.Services.AddAuthorization(options =>
