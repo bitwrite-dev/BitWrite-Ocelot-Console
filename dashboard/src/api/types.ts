@@ -853,3 +853,28 @@ export interface UpdateUserRequest {
   displayName?: string | null
   email?: string | null
 }
+
+/**
+ * A user session, as returned by GET /api/v1/users/{userId}/sessions.
+ */
+export interface SessionInfo {
+  sessionId: string
+  createdAt: string
+  expiresAt: string
+  lastAccessedAt: string | null
+  isRevoked: boolean
+}
+
+/**
+ * The response body for GET /api/v1/users/{userId}/sessions.
+ */
+export interface GetUserSessionsResponse {
+  sessions: SessionInfo[]
+}
+
+/**
+ * The response body for POST /api/v1/sessions/{sessionId}/revoke.
+ */
+export interface RevokeSessionResponse {
+  sessionId: string
+}

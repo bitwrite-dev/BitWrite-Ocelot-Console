@@ -2,7 +2,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { useApi } from '@/app-providers'
 import { ApiError } from '@/api'
-import type { CreateUserRequest, ListUsersResponse, UpdateUserRequest, UserResponse } from '@/api'
+import type {
+  CreateUserRequest,
+  GetUserSessionsResponse,
+  ListUsersResponse,
+  RevokeSessionResponse,
+  SessionInfo,
+  UpdateUserRequest,
+  UserResponse,
+} from '@/api'
 
 /**
  * Query hooks for the Users page.
@@ -14,6 +22,7 @@ import type { CreateUserRequest, ListUsersResponse, UpdateUserRequest, UserRespo
 export const userKeys = {
   list: (page: number, pageSize: number) => ['users', 'list', page, pageSize] as const,
   detail: (id: string) => ['users', 'detail', id] as const,
+  sessions: (userId: string) => ['users', 'sessions', userId] as const,
 }
 
 export function useUsers(page: number, pageSize: number) {
@@ -24,6 +33,20 @@ export function useUsers(page: number, pageSize: number) {
     queryFn: ({ signal }) =>
       api.resources.users.list({ page, pageSize, signal }) as Promise<ListUsersResponse>,
     placeholderData: (previous) => previous,
+  })
+}
+
+/**
+ * Fetch all active sessions for a given user.
+ */
+export function useUserSessions(userId: string) {
+  const api = useApi()
+
+  return useQuery({
+    queryKey: userKeys.sessions(userId),
+    queryFn: ({ signal }) =>
+      api.resources.sessions.list(userId, { signal }) as Promise<GetUserSessionsResponse>,
+    enabled: !!userId,
   })
 }
 
@@ -55,6 +78,12 @@ export function useUserMutations() {
     disable: useMutation({
       mutationFn: (id: string) => api.resources.users.disable(id),
       onSuccess: invalidate,
+    }),
+    revokeSession: useMutation({
+      mutationFn: (sessionId: string) => api.resources.sessions.revoke(sessionId),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['users', 'sessions'] })
+      },
     }),
   }
 }

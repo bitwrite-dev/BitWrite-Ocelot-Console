@@ -42,6 +42,7 @@ export const IMPLEMENTED_PATHS = [
   '/users',
   '/users/new',
   '/users/:id/edit',
+  '/users/:id',
   '/gateways',
   '/global-configuration',
   '/snapshots',
