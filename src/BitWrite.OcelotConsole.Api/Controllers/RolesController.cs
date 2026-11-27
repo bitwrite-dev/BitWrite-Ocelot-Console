@@ -1,3 +1,4 @@
+using BitWrite.OcelotConsole.Application.Permissions;
 using BitWrite.OcelotConsole.Application.UseCases.Role;
 using BitWrite.OcelotConsole.Domain.ValueObjects.Identity;
 using Microsoft.AspNetCore.Authorization;
@@ -22,6 +23,7 @@ public class RolesController : BaseApiController
     private readonly DeactivateRoleCommandHandler _deactivateRole;
     private readonly AssignPermissionToRoleCommandHandler _assignPermission;
     private readonly RemovePermissionFromRoleCommandHandler _removePermission;
+    private readonly IPermissionCatalog _permissionCatalog;
 
     public RolesController(
         CreateRoleCommandHandler createRole,
@@ -32,7 +34,8 @@ public class RolesController : BaseApiController
         ActivateRoleCommandHandler activateRole,
         DeactivateRoleCommandHandler deactivateRole,
         AssignPermissionToRoleCommandHandler assignPermission,
-        RemovePermissionFromRoleCommandHandler removePermission)
+        RemovePermissionFromRoleCommandHandler removePermission,
+        IPermissionCatalog permissionCatalog)
     {
         _createRole = createRole;
         _getRole = getRole;
@@ -43,6 +46,7 @@ public class RolesController : BaseApiController
         _deactivateRole = deactivateRole;
         _assignPermission = assignPermission;
         _removePermission = removePermission;
+        _permissionCatalog = permissionCatalog;
     }
 
     [HttpGet]
@@ -133,6 +137,21 @@ public class RolesController : BaseApiController
         catch (Exception ex) { return HandleError(ex); }
     }
 
+    [HttpGet("permissions/catalog")]
+    [Authorize(Policy = "perm:roles.read")]
+    public ActionResult<List<PermissionDefinitionResponse>> Catalog()
+    {
+        try
+        {
+            var permissions = _permissionCatalog
+                .GetAll()
+                .Select(p => new PermissionDefinitionResponse(p.Code, p.Name, p.Description, p.Category, p.Status.ToString(), p.Assignable))
+                .ToList();
+            return HandleResult(permissions);
+        }
+        catch (Exception ex) { return HandleError(ex); }
+    }
+
     [HttpPost("{id}/permissions")]
     [Authorize(Policy = "perm:roles.manage")]
     public async Task<ActionResult<AssignPermissionToRoleResponse>> AssignPermission(string id, [FromBody] RolePermissionRequest request, CancellationToken cancellationToken)
@@ -167,3 +186,4 @@ public class RolesController : BaseApiController
 public record CreateRoleRequest(string Name, string? Description);
 public record UpdateRoleRequest(string? Name, string? Description);
 public record RolePermissionRequest(string PermissionCode);
+public record PermissionDefinitionResponse(string Code, string Name, string? Description, string? Category, string Status, bool Assignable);

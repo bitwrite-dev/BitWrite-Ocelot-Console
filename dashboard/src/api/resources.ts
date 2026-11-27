@@ -24,6 +24,7 @@ import type {
   LicenseListResponse,
   LicenseResponse,
   ListUsersResponse,
+  PermissionDefinitionResponse,
   PluginListResponse,
   PluginResponse,
   PublicationListResponse,
@@ -176,6 +177,8 @@ export function createResources(http: HttpClient) {
   const roles = {
     list: ({ signal }: { signal?: AbortSignal } = {}) =>
       http.get<RoleResponse[]>('/api/v1/roles', { signal }),
+    catalog: ({ signal }: { signal?: AbortSignal } = {}) =>
+      http.get<PermissionDefinitionResponse[]>('/api/v1/roles/permissions/catalog', { signal }),
     get: (id: string, o?: Options) => http.get<RoleResponse>(`/api/v1/roles/${id}`, o),
     create: (body: CreateRoleRequest, o?: Options) =>
       http.post<RoleResponse>('/api/v1/roles', body, o),

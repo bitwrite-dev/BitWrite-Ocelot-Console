@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 import { PageHeader } from '@/components/app-layout'
 import { DataTable, type Column } from '@/components/data-table'
@@ -10,6 +11,7 @@ import { useRoleMutations, useRoles } from './queries'
 export function RolesPage() {
   const roles = useRoles()
   const mutations = useRoleMutations()
+  const navigate = useNavigate()
   const [pendingId, setPendingId] = useState<string | null>(null)
 
   const rows = roles.data ?? []
@@ -76,6 +78,9 @@ export function RolesPage() {
       className: 'text-right',
       cell: (row) => (
         <div className="flex justify-end gap-2" onClick={(event) => event.stopPropagation()}>
+          <Button variant="outline" size="sm" disabled={anyPending} onClick={() => navigate(`/roles/${row.id}/edit`)}>
+            Edit
+          </Button>
           {row.status.toLowerCase() === 'active' ? (
             <Button
               variant="outline"
@@ -105,6 +110,7 @@ export function RolesPage() {
       <PageHeader
         title="Roles"
         description="Manage roles and permission assignments."
+        actions={<Button onClick={() => navigate('/roles/new')} disabled={anyPending}>New role</Button>}
       />
 
       {roles.isError ? (
@@ -118,6 +124,7 @@ export function RolesPage() {
         <EmptyState
           title="No roles yet"
           description="Roles will appear here once they are created."
+          action={<Button onClick={() => navigate('/roles/new')}>New role</Button>}
         />
       ) : (
         <DataTable
