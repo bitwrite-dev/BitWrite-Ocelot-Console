@@ -100,7 +100,7 @@ export function UsersPage() {
       cell: (row) => (
         <span
           className={`font-mono text-xs ${
-            row.status === 'active' ? 'text-green-600' : 'text-red-600'
+            row.status.toLowerCase() === 'active' ? 'text-green-600' : 'text-red-600'
           }`}
         >
           {row.status}
@@ -131,7 +131,7 @@ export function UsersPage() {
           <Button variant="outline" size="sm" disabled={anyPending} onClick={() => startEdit(row)}>
             Edit
           </Button>
-          {row.status === 'active' ? (
+          {row.status.toLowerCase() === 'active' ? (
             <Button
               variant="outline"
               size="sm"

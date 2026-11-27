@@ -83,7 +83,7 @@ export function UsersDetailPage() {
           <div className="col-span-2">
             <dt className="font-semibold text-muted-foreground">Status</dt>
             <dd className={`font-medium ${
-              user.status === 'active' ? 'text-green-600' : 'text-red-600'
+              user.status.toLowerCase() === 'active' ? 'text-green-600' : 'text-red-600'
             }`}>
               {user.status}
             </dd>
