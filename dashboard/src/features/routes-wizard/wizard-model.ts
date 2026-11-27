@@ -708,6 +708,8 @@ export interface CreateRouteRequestBody {
   }
   delegatingHandlers?: string[]
   httpClientOptions?: Record<string, unknown>
+  /** Excludes the route being edited from conflict detection. */
+  routeId?: string | null
   [key: string]: unknown
 }
 
