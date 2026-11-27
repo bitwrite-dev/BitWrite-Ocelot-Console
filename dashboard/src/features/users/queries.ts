@@ -79,6 +79,16 @@ export function useUserMutations() {
       mutationFn: (id: string) => api.resources.users.disable(id),
       onSuccess: invalidate,
     }),
+    assignRole: useMutation({
+      mutationFn: ({ id, roleId }: { id: string; roleId: string }) =>
+        api.resources.users.assignRole(id, { roleId }),
+      onSuccess: invalidate,
+    }),
+    removeRole: useMutation({
+      mutationFn: ({ id, roleId }: { id: string; roleId: string }) =>
+        api.resources.users.removeRole(id, roleId),
+      onSuccess: invalidate,
+    }),
     revokeSession: useMutation({
       mutationFn: (sessionId: string) => api.resources.sessions.revoke(sessionId),
       onSuccess: () => {

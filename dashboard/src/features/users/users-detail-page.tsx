@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -5,7 +6,7 @@ import { PageHeader } from '@/components/app-layout'
 import { useApi } from '@/app-providers'
 import { Button } from '@/components/ui/button'
 import { QueryErrorState } from '@/components/query-error-state'
-import type { SessionInfo } from '@/api'
+import { useRoles } from '@/features/roles/queries'
 import { useUserSessions, useUserMutations } from './queries'
 
 /** Formats an ISO date string, returning '—' for zero/empty dates. */
@@ -19,8 +20,10 @@ function formatDate(value: string | null | undefined): string {
 export function UsersDetailPage() {
   const { id } = useParams<{ id: string }>()
   const api = useApi()
-  const { revokeSession } = useUserMutations()
+  const mutations = useUserMutations()
   const navigate = useNavigate()
+  const rolesQuery = useRoles()
+  const [roleToAdd, setRoleToAdd] = useState('')
 
   const { data: user, isPending: userPending, error: userError } = useQuery({
     queryKey: ['users', 'detail', id],
@@ -28,22 +31,28 @@ export function UsersDetailPage() {
     enabled: !!id,
   })
 
-  const { data: sessions, isPending: sessionsPending, error: sessionsError } =
-    useUserSessions(id ?? '')
+  const { data: sessions, isPending: sessionsPending } = useUserSessions(id ?? '')
+
+  const roleNameById = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const role of rolesQuery.data ?? []) map.set(role.id, role.name)
+    return map
+  }, [rolesQuery.data])
 
   if (userPending || sessionsPending) {
     return null
   }
 
-  if (userError) {
-    return <QueryErrorState error={userError} title="User not found" />
+  if (userError || !user) {
+    return <QueryErrorState error={userError ?? new Error('User not found')} title="User not found" />
   }
 
-  // A 404 on sessions means the user simply has no active sessions — not an error.
   const sessionRows = sessions?.sessions ?? []
+  const assignedRoles = user.roleIds ?? []
+  const availableRoles = (rolesQuery.data ?? []).filter((r) => !assignedRoles.includes(r.id) && r.status.toLowerCase() === 'active')
 
   const handleRevoke = (sessionId: string) => {
-    revokeSession.mutate(sessionId)
+    mutations.revokeSession.mutate(sessionId)
   }
 
   return (
@@ -99,13 +108,47 @@ export function UsersDetailPage() {
           </div>
           <div className="col-span-2">
             <dt className="font-semibold text-muted-foreground">Roles</dt>
-            <dd className="font-mono text-muted-foreground truncate">
-              {user.roleIds.join(', ') || '—'}
+            <dd className="space-y-2">
+              <div className="flex flex-wrap gap-2">
+                {assignedRoles.length === 0 ? <span className="text-muted-foreground">—</span> : null}
+                {assignedRoles.map((roleId) => (
+                  <span key={roleId} className="inline-flex items-center gap-2 rounded-md border px-2 py-1 text-xs">
+                    <span className="font-medium">{roleNameById.get(roleId) ?? roleId}</span>
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-foreground"
+                      disabled={mutations.removeRole.isPending}
+                      onClick={() => mutations.removeRole.mutate({ id: user.id, roleId })}
+                    >
+                      Remove
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <select
+                  className="h-9 rounded-md border bg-background px-2 text-sm"
+                  value={roleToAdd}
+                  onChange={(e) => setRoleToAdd(e.target.value)}
+                >
+                  <option value="">Select role…</option>
+                  {availableRoles.map((role) => (
+                    <option key={role.id} value={role.id}>{role.name}</option>
+                  ))}
+                </select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!roleToAdd || mutations.assignRole.isPending}
+                  onClick={() => {
+                    if (!roleToAdd) return
+                    mutations.assignRole.mutate({ id: user.id, roleId: roleToAdd }, { onSuccess: () => setRoleToAdd('') })
+                  }}
+                >
+                  Assign
+                </Button>
+              </div>
             </dd>
-            <p className="text-xs text-muted-foreground mt-1">
-              Role IDs shown. Role names will appear once role management UI is
-              built (UI-05).
-            </p>
           </div>
           <div className="col-span-2">
             <dt className="font-semibold text-muted-foreground">Last authenticated</dt>

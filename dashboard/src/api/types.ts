@@ -872,6 +872,18 @@ export interface GetUserSessionsResponse {
   sessions: SessionInfo[]
 }
 
+export interface AssignUserRoleRequest {
+  roleId: string
+}
+
+export interface RoleAssignmentResponse {
+  userId: string
+  roleId: string
+  roleName: string
+  assignedBy: string
+  assignedAt: string
+}
+
 /**
  * The response body for POST /api/v1/sessions/{sessionId}/revoke.
  */

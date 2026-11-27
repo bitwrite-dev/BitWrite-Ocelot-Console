@@ -278,6 +278,8 @@ namespace BitWrite.OcelotConsole.Api
             builder.Services.AddScoped<BitWrite.OcelotConsole.Application.UseCases.Role.DeactivateRoleCommandHandler>();
             builder.Services.AddScoped<BitWrite.OcelotConsole.Application.UseCases.Role.AssignPermissionToRoleCommandHandler>();
             builder.Services.AddScoped<BitWrite.OcelotConsole.Application.UseCases.Role.RemovePermissionFromRoleCommandHandler>();
+            builder.Services.AddScoped<BitWrite.OcelotConsole.Application.UseCases.Role.AssignRoleCommandHandler>();
+            builder.Services.AddScoped<BitWrite.OcelotConsole.Application.UseCases.Role.RemoveRoleCommandHandler>();
             builder.Services.Configure<BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions>(
                 builder.Configuration.GetSection(BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions.SectionName));
             var jitProvisionOptions = builder.Configuration.GetSection(BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions.SectionName)
