@@ -268,6 +268,16 @@ namespace BitWrite.OcelotConsole.Api
             builder.Services.AddScoped<UpdateUserCommandHandler>();
             builder.Services.AddScoped<EnableUserCommandHandler>();
             builder.Services.AddScoped<DisableUserCommandHandler>();
+            // Role management (IAM-05)
+            builder.Services.AddScoped<BitWrite.OcelotConsole.Application.UseCases.Role.CreateRoleCommandHandler>();
+            builder.Services.AddScoped<BitWrite.OcelotConsole.Application.UseCases.Role.GetRoleQueryHandler>();
+            builder.Services.AddScoped<BitWrite.OcelotConsole.Application.UseCases.Role.GetRolesQueryHandler>();
+            builder.Services.AddScoped<BitWrite.OcelotConsole.Application.UseCases.Role.UpdateRoleDescriptionCommandHandler>();
+            builder.Services.AddScoped<BitWrite.OcelotConsole.Application.UseCases.Role.RenameRoleCommandHandler>();
+            builder.Services.AddScoped<BitWrite.OcelotConsole.Application.UseCases.Role.ActivateRoleCommandHandler>();
+            builder.Services.AddScoped<BitWrite.OcelotConsole.Application.UseCases.Role.DeactivateRoleCommandHandler>();
+            builder.Services.AddScoped<BitWrite.OcelotConsole.Application.UseCases.Role.AssignPermissionToRoleCommandHandler>();
+            builder.Services.AddScoped<BitWrite.OcelotConsole.Application.UseCases.Role.RemovePermissionFromRoleCommandHandler>();
             builder.Services.Configure<BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions>(
                 builder.Configuration.GetSection(BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions.SectionName));
             var jitProvisionOptions = builder.Configuration.GetSection(BitWrite.OcelotConsole.Application.UseCases.Identity.JitProvisionOptions.SectionName)
