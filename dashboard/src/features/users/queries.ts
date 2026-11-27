@@ -59,7 +59,7 @@ export function useUserMutations() {
   const queryClient = useQueryClient()
 
   const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: ['users'] }).then(() => undefined)
+    queryClient.refetchQueries({ queryKey: ['users'], exact: false })
 
   return {
     create: useMutation({
