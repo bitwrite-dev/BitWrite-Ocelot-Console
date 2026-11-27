@@ -1,8 +1,7 @@
-import { Badge } from '@/components/ui/badge'
 import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 
-import { Sidebar, MobileSidebar } from '@/components/sidebar'
+import { Sidebar } from '@/components/sidebar'
 import { Navbar } from '@/components/navbar'
 import { LoadingState } from '@/components/page-state'
 import { SetupGuard } from '@/components/setup-guard'

@@ -17,6 +17,7 @@ import { NAV_PATHS } from '@/navigation'
  * no way to tell which is right.
  */
 export const PLACEHOLDER_PATHS = [
+  '/roles',
   '/plugins',
   '/licenses',
 ] as const

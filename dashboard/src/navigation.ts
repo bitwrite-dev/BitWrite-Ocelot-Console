@@ -11,6 +11,7 @@ import {
   Send,
   Server,
   Settings,
+  Shield,
   SlidersHorizontal,
   User,
   type LucideIcon,
@@ -20,7 +21,8 @@ import {
  * Navigation model for the dashboard.
  *
  * Section grouping follows spec §53: MANAGEMENT, CONFIGURATION, OPERATIONS,
- * SYSTEM.
+ * SYSTEM. Identity & Access is split out from System to keep user/role
+ * administration discoverable as IAM UI grows.
  *
  * There is deliberately **no Consumers section** — see ADR-020. Consumers are
  * not exposed by the control plane.
@@ -28,10 +30,11 @@ import {
  * `roles` mirrors the authorization policies configured on the API
  * (`Admin`, `GatewayManager`, `RouteManager`, `SnapshotManager`). The shell
  * hides items the current user cannot reach; it is a usability affordance, not
- * a security boundary — the API enforces access.
+ * a security boundary — the API enforces access. Permission-based visibility
+ * replaces this once P-GATE-2/IAM-08 lands.
  */
 
-export type SectionId = 'management' | 'configuration' | 'operations' | 'system'
+export type SectionId = 'management' | 'configuration' | 'operations' | 'identity' | 'system'
 
 export type Role = 'Admin' | 'GatewayManager' | 'RouteManager' | 'SnapshotManager'
 
@@ -87,10 +90,17 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    id: 'identity',
+    label: 'Identity & Access',
+    items: [
+      { path: '/users', label: 'Users', icon: User, roles: ['Admin'] },
+      { path: '/roles', label: 'Roles', icon: Shield, roles: ['Admin'] },
+    ],
+  },
+  {
     id: 'system',
     label: 'System',
     items: [
-      { path: '/users', label: 'Users', icon: User, roles: ['Admin'] },
       { path: '/audit', label: 'Audit Log', icon: ScrollText, roles: ['Admin'] },
       { path: '/settings', label: 'Settings', icon: Settings, roles: ['Admin'] },
     ],
