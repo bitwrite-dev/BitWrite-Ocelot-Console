@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
 import { createApiClient, type ApiClient } from '@/api'
+import { ApiError } from '@/api/errors'
 import { createMemoryAccessTokenProvider, type MemoryAccessTokenProvider } from '@/api/auth'
 
 /**
@@ -28,14 +29,28 @@ export function createAppProviders({
         // order of seconds once gateways report in, so a short stale window keeps
         // the dashboard feeling live without hammering Redis.
         staleTime: 10_000,
-        retry: 1,
+        retry: (failureCount, error) => {
+          if (error instanceof ApiError && (error.status === 401 || error.status === 403)) return false
+          return failureCount < 1
+        },
         refetchOnWindowFocus: true,
       },
     },
   })
 
   const tokenProvider = createMemoryAccessTokenProvider()
-  const api = client ?? createApiClient({ tokenProvider })
+  const api =
+    client ??
+    createApiClient({
+      tokenProvider,
+      onUnauthorized: () => {
+        const path = `${window.location.pathname}${window.location.search}${window.location.hash}`
+        tokenProvider.clearToken()
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.assign(`/login?returnUrl=${encodeURIComponent(path)}`)
+        }
+      },
+    })
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -47,7 +62,7 @@ export function createAppProviders({
 }
 
 import React, { createContext, useContext, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 /**
  * Exported so tests can inject a client with a stubbed `fetchImpl`. Application
@@ -79,9 +94,13 @@ export function useAuth() {
   }
 
   const login = (token: string) => provider.setToken(token)
-  const logout = () => {
+  const logout = (returnTo?: string) => {
     provider.clearToken()
-    navigate('/login', { replace: true })
+    const target =
+      returnTo && returnTo.startsWith('/') && !returnTo.startsWith('/login')
+        ? `/login?returnUrl=${encodeURIComponent(returnTo)}`
+        : '/login'
+    navigate(target, { replace: true })
   }
   const isAuthenticated = () => provider.isAuthenticated()
   const setUsername = (username: string | null) => provider.setUsername(username)
@@ -97,12 +116,14 @@ export function useAuth() {
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     if (!isAuthenticated()) {
-      navigate('/login', { replace: true })
+      const returnUrl = `${location.pathname}${location.search}${location.hash}`
+      navigate(`/login?returnUrl=${encodeURIComponent(returnUrl)}`, { replace: true })
     }
-  }, [isAuthenticated, navigate])
+  }, [isAuthenticated, location.hash, location.pathname, location.search, navigate])
 
   if (!isAuthenticated()) return null
 

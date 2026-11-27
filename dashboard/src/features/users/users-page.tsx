@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { PageHeader } from '@/components/app-layout'
 import { DataTable, type Column } from '@/components/data-table'
-import { EmptyState, ErrorState } from '@/components/page-state'
+import { EmptyState } from '@/components/page-state'
+import { QueryErrorState } from '@/components/query-error-state'
 import { Button } from '@/components/ui/button'
 import type { UserResponse } from '@/api'
 import { useUserMutations, useUsers } from './queries'
@@ -167,14 +168,7 @@ export function UsersPage() {
         }
       />
 
-      {users.isError ? (
-        <ErrorState
-          title="Could not load users"
-          message={
-            users.error instanceof Error ? users.error.message : String(users.error)
-          }
-        />
-      ) : null}
+      {users.isError ? <QueryErrorState error={users.error} title="Could not load users" /> : null}
 
       {rows.length === 0 && !users.isPending && !users.isError ? (
         <EmptyState
@@ -205,24 +199,14 @@ export function UsersPage() {
       {mutations.create.isError || mutations.update.isError || mutations.enable.isError ||
       mutations.disable.isError ? (
         <div className="mt-4">
-          <ErrorState
-            title="Operation failed"
-            message={
-              (mutations.create.error ??
-                mutations.update.error ??
-                mutations.enable.error ??
-                mutations.disable.error) instanceof Error
-                ? (mutations.create.error ??
-                    mutations.update.error ??
-                    mutations.enable.error ??
-                    mutations.disable.error).message
-                : String(
-                    mutations.create.error ??
-                      mutations.update.error ??
-                      mutations.enable.error ??
-                      mutations.disable.error,
-                  )
+          <QueryErrorState
+            error={
+              mutations.create.error ??
+              mutations.update.error ??
+              mutations.enable.error ??
+              mutations.disable.error
             }
+            title="Operation failed"
           />
         </div>
       ) : null}
