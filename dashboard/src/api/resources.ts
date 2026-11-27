@@ -60,6 +60,8 @@ import type {
   UpdateSystemSettingsRequest,
   UserResponse,
   ValidationErrorResponse,
+  GetUserSessionsResponse,
+  RevokeSessionResponse,
 } from './types'
 
 /** Shared paging parameters accepted by the list endpoints. */
@@ -156,6 +158,13 @@ export function createResources(http: HttpClient) {
       http.post<UserResponse>(`/api/v1/users/${id}/enable`, {}, o),
     disable: (id: string, o?: Options) =>
       http.post<UserResponse>(`/api/v1/users/${id}/disable`, {}, o),
+  }
+
+  const sessions = {
+    list: (userId: string, o?: Options) =>
+      http.get<GetUserSessionsResponse>(`/api/v1/auth/users/${userId}/sessions`, o),
+    revoke: (sessionId: string, o?: Options) =>
+      http.post<RevokeSessionResponse>(`/api/v1/auth/sessions/${sessionId}/revoke`, {}, o),
   }
 
   const gateways = {
@@ -314,6 +323,7 @@ export function createResources(http: HttpClient) {
     runtime,
     globalConfiguration,
     users,
+    sessions,
     settings,
   }
 }

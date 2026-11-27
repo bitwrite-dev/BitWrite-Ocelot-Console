@@ -25,6 +25,8 @@ export function UsersPage() {
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [disabling, setDisabling] = useState<string | null>(null)
+  const [enableError, setEnableError] = useState<string | null>(null)
+  const [disableError, setDisableError] = useState<string | null>(null)
 
   const updateParams = (patch: Record<string, string | number>) => {
     const next = new URLSearchParams(searchParams)
@@ -43,11 +45,27 @@ export function UsersPage() {
   }
 
   const handleEnable = (user: UserResponse) => {
-    mutations.enable.mutate(user.id, { onSuccess: () => setDisabling(null) })
+    setDisabling(user.id)
+    setEnableError(null)
+    mutations.enable.mutate(user.id, {
+      onSuccess: () => setDisabling(null),
+      onError: (err) => {
+        setDisabling(null)
+        setEnableError(err instanceof Error ? err.message : String(err))
+      },
+    })
   }
 
   const handleDisable = (user: UserResponse) => {
-    mutations.disable.mutate(user.id, { onSuccess: () => setDisabling(null) })
+    setDisabling(user.id)
+    setDisableError(null)
+    mutations.disable.mutate(user.id, {
+      onSuccess: () => setDisabling(null),
+      onError: (err) => {
+        setDisabling(null)
+        setDisableError(err instanceof Error ? err.message : String(err))
+      },
+    })
   }
 
   const columns: Column<UserResponse>[] = [
@@ -82,7 +100,7 @@ export function UsersPage() {
       cell: (row) => (
         <span
           className={`font-mono text-xs ${
-            row.status === 'active' ? 'text-green-600' : 'text-red-600'
+            row.status.toLowerCase() === 'active' ? 'text-green-600' : 'text-red-600'
           }`}
         >
           {row.status}
@@ -113,7 +131,7 @@ export function UsersPage() {
           <Button variant="outline" size="sm" disabled={anyPending} onClick={() => startEdit(row)}>
             Edit
           </Button>
-          {row.status === 'active' ? (
+          {row.status.toLowerCase() === 'active' ? (
             <Button
               variant="outline"
               size="sm"

@@ -21,6 +21,7 @@ import { RoutesPage } from '@/features/routes/routes-page'
 import { UsersPage } from '@/features/users/users-page'
 import { UsersCreatePage } from '@/features/users/users-create-page'
 import { UsersEditPage } from '@/features/users/users-edit-page'
+import { UsersDetailPage } from '@/features/users/users-detail-page'
 import {
   CreateRouteWizardPage,
   EditRouteWizardPage,
@@ -51,6 +52,7 @@ const routes = [
       { path: 'users', element: <UsersPage /> },
       { path: 'users/new', element: <UsersCreatePage /> },
       { path: 'users/:id/edit', element: <UsersEditPage /> },
+      { path: 'users/:id', element: <UsersDetailPage /> },
       { path: 'gateways', element: <GatewaysPage /> },
       { path: 'global-configuration', element: <GlobalConfigurationPage /> },
       { path: 'snapshots', element: <SnapshotsPage /> },
