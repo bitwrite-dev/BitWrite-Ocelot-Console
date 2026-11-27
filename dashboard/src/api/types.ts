@@ -923,3 +923,12 @@ export interface RemovePermissionFromRoleResponse {
   initiatedBy: string
   occurredAt: string
 }
+
+export interface PermissionDefinitionResponse {
+  code: string
+  name: string
+  description: string | null
+  category: string | null
+  status: string
+  assignable: boolean
+}

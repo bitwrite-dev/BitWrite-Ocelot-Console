@@ -18,6 +18,7 @@ public class RolesControllerAuthorizationContractTests
     [Theory]
     [InlineData(nameof(RolesController.List), "perm:roles.read")]
     [InlineData(nameof(RolesController.Get), "perm:roles.read")]
+    [InlineData(nameof(RolesController.Catalog), "perm:roles.read")]
     [InlineData(nameof(RolesController.Create), "perm:roles.manage")]
     [InlineData(nameof(RolesController.Update), "perm:roles.manage")]
     [InlineData(nameof(RolesController.Activate), "perm:roles.manage")]
