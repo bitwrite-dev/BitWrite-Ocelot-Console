@@ -129,6 +129,18 @@ export function RoleForm({
             ))}
           </div>
         </div>
+
+        {error ? (
+          <Alert variant="destructive" role="alert" className="mt-4">
+            <AlertTitle>Operation failed</AlertTitle>
+            <AlertDescription>{error instanceof Error ? error.message : String(error)}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        <div className="mt-4 flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>Cancel</Button>
+          <Button type="submit" disabled={pending}>{pending ? 'Saving…' : submitLabel}</Button>
+        </div>
       </section>
 
       <section className="space-y-3 rounded-md border p-4">
@@ -186,18 +198,6 @@ export function RoleForm({
           </div>
         )}
       </section>
-
-      {error ? (
-        <Alert variant="destructive" role="alert">
-          <AlertTitle>Operation failed</AlertTitle>
-          <AlertDescription>{error instanceof Error ? error.message : String(error)}</AlertDescription>
-        </Alert>
-      ) : null}
-
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>Cancel</Button>
-        <Button type="submit" disabled={pending}>{pending ? 'Saving…' : submitLabel}</Button>
-      </div>
     </form>
   )
 }
