@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { useApi } from '@/app-providers'
 import { Button } from '@/components/ui/button'
@@ -18,6 +18,8 @@ export function LoginPage() {
   const { http } = useApi()
   const { login, setUsername: setAuthUsername } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const returnUrl = searchParams.get('returnUrl')
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -45,7 +47,9 @@ export function LoginPage() {
         // localStorage refuses in some privacy configs; memory token still works.
       }
 
-      navigate('/', { replace: true })
+      navigate(returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('/login') ? returnUrl : '/', {
+        replace: true,
+      })
     } catch (err: unknown) {
       setIsLoading(false)
 

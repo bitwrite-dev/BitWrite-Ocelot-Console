@@ -70,11 +70,12 @@ export function ErrorState({
 }
 
 /** Shown when the current user is not allowed to see a page at all. */
-export function ForbiddenState() {
-  return (
-    <EmptyState
-      title="You do not have access to this page"
-      description="Ask an administrator for the required role."
-    />
-  )
+export function ForbiddenState({
+  title = 'You do not have access to this page',
+  description = 'Ask an administrator for the required permission.',
+}: {
+  title?: string
+  description?: string
+}) {
+  return <EmptyState title={title} description={description} />
 }

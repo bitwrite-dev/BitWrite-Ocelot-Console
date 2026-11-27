@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 
 import { PageHeader } from '@/components/app-layout'
 import { DataTable, type Column } from '@/components/data-table'
-import { EmptyState, ErrorState } from '@/components/page-state'
+import { EmptyState } from '@/components/page-state'
+import { QueryErrorState } from '@/components/query-error-state'
 import { Button } from '@/components/ui/button'
 import type { RoleResponse } from '@/api'
 import { useRoleMutations, useRoles } from './queries'
@@ -113,12 +114,7 @@ export function RolesPage() {
         actions={<Button onClick={() => navigate('/roles/new')} disabled={anyPending}>New role</Button>}
       />
 
-      {roles.isError ? (
-        <ErrorState
-          title="Could not load roles"
-          message={roles.error instanceof Error ? roles.error.message : String(roles.error)}
-        />
-      ) : null}
+      {roles.isError ? <QueryErrorState error={roles.error} title="Could not load roles" /> : null}
 
       {rows.length === 0 && !roles.isPending && !roles.isError ? (
         <EmptyState
@@ -143,13 +139,9 @@ export function RolesPage() {
 
       {mutations.activate.isError || mutations.deactivate.isError ? (
         <div className="mt-4">
-          <ErrorState
+          <QueryErrorState
+            error={mutations.activate.error ?? mutations.deactivate.error}
             title="Operation failed"
-            message={
-              (mutations.activate.error ?? mutations.deactivate.error) instanceof Error
-                ? (mutations.activate.error ?? mutations.deactivate.error).message
-                : String(mutations.activate.error ?? mutations.deactivate.error)
-            }
           />
         </div>
       ) : null}

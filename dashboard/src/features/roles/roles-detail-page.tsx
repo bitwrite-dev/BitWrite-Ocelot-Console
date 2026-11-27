@@ -2,7 +2,8 @@ import { useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import { PageHeader } from '@/components/app-layout'
-import { ErrorState, LoadingState } from '@/components/page-state'
+import { LoadingState } from '@/components/page-state'
+import { QueryErrorState } from '@/components/query-error-state'
 import { Button } from '@/components/ui/button'
 import { usePermissionCatalog, useRole, useRoleMutations } from './queries'
 
@@ -34,12 +35,7 @@ export function RolesDetailPage() {
 
   if (roleQuery.isPending) return <LoadingState />
   if (roleQuery.isError || !roleQuery.data) {
-    return (
-      <ErrorState
-        title="Could not load role"
-        message={roleQuery.error instanceof Error ? roleQuery.error.message : String(roleQuery.error ?? 'Role not found')}
-      />
-    )
+    return <QueryErrorState error={roleQuery.error ?? new Error('Role not found')} title="Could not load role" />
   }
 
   const role = roleQuery.data
@@ -94,13 +90,9 @@ export function RolesDetailPage() {
       </section>
 
       {mutations.activate.isError || mutations.deactivate.isError ? (
-        <ErrorState
+        <QueryErrorState
+          error={mutations.activate.error ?? mutations.deactivate.error}
           title="Operation failed"
-          message={
-            (mutations.activate.error ?? mutations.deactivate.error) instanceof Error
-              ? (mutations.activate.error ?? mutations.deactivate.error).message
-              : String(mutations.activate.error ?? mutations.deactivate.error)
-          }
         />
       ) : null}
     </section>

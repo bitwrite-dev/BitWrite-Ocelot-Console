@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { PageHeader } from '@/components/app-layout'
 import { useApi } from '@/app-providers'
 import { Button } from '@/components/ui/button'
-import { ErrorState } from '@/components/page-state'
+import { QueryErrorState } from '@/components/query-error-state'
 import type { SessionInfo } from '@/api'
 import { useUserSessions, useUserMutations } from './queries'
 
@@ -36,14 +36,7 @@ export function UsersDetailPage() {
   }
 
   if (userError) {
-    return (
-      <ErrorState
-        title="User not found"
-        message={
-          userError instanceof Error ? userError.message : String(userError)
-        }
-      />
-    )
+    return <QueryErrorState error={userError} title="User not found" />
   }
 
   // A 404 on sessions means the user simply has no active sessions — not an error.
