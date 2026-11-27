@@ -98,8 +98,8 @@ export function RoleForm({
         onSubmit({ ...draft, name: draft.name.trim() })
       }}
     >
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
-        <div className="space-y-5 rounded-md border p-4">
+      <section className="rounded-md border p-4">
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="role-name">Name</Label>
             <Input
@@ -128,75 +128,75 @@ export function RoleForm({
               <p key={message} className="text-xs text-destructive">{message}</p>
             ))}
           </div>
-
-          {error ? (
-            <Alert variant="destructive" role="alert">
-              <AlertTitle>Operation failed</AlertTitle>
-              <AlertDescription>{error instanceof Error ? error.message : String(error)}</AlertDescription>
-            </Alert>
-          ) : null}
-
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>Cancel</Button>
-            <Button type="submit" disabled={pending}>{pending ? 'Saving…' : submitLabel}</Button>
-          </div>
         </div>
+      </section>
 
-        <div className="space-y-3 rounded-md border p-4">
-          <div className="flex items-center justify-between gap-3">
-            <Label>Permissions</Label>
-            <span className="text-xs text-muted-foreground">{draft.permissions.length} selected</span>
-          </div>
-          {permissionsError ? (
-            <ErrorState
-              title="Could not load permission catalog"
-              message={permissionsError instanceof Error ? permissionsError.message : String(permissionsError)}
-            />
-          ) : null}
-          {permissionsPending ? (
-            <p className="text-sm text-muted-foreground">Loading permissions…</p>
-          ) : (
-            <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
-              {grouped.map(([category, items]) => (
-                <section key={category} className="rounded-md border bg-muted/10 p-3">
-                  <div className="mb-3 flex items-center justify-between gap-3 border-b pb-2">
-                    <h3 className="text-sm font-semibold">{category}</h3>
-                    <span className="text-xs text-muted-foreground">{items.length}</span>
-                  </div>
-                  <div className="space-y-2">
-                    {items.map((permission) => {
-                      const checked = draft.permissions.includes(permission.code)
-                      const assignable = permission.assignable && normalizeStatus(permission.status) === 'active'
-                      return (
-                        <label key={permission.code} className="flex items-start gap-3 rounded-sm px-1 py-1 hover:bg-muted/40">
-                          <input
-                            type="checkbox"
-                            className="mt-1"
-                            checked={checked}
-                            disabled={!assignable && !checked}
-                            onChange={() => togglePermission(permission.code)}
-                            aria-label={permission.name}
-                          />
-                          <span className="min-w-0">
-                            <span className="block text-sm font-medium leading-5">{permission.name}</span>
-                            {permission.description ? (
-                              <span className="block text-xs text-muted-foreground">{permission.description}</span>
-                            ) : null}
-                            {!assignable ? (
-                              <span className="block text-xs text-muted-foreground">
-                                {permission.status}{permission.assignable ? '' : ', not assignable'}
-                              </span>
-                            ) : null}
-                          </span>
-                        </label>
-                      )
-                    })}
-                  </div>
-                </section>
-              ))}
-            </div>
-          )}
+      <section className="space-y-3 rounded-md border p-4">
+        <div className="flex items-center justify-between gap-3">
+          <Label>Permissions</Label>
+          <span className="text-xs text-muted-foreground">{draft.permissions.length} selected</span>
         </div>
+        {permissionsError ? (
+          <ErrorState
+            title="Could not load permission catalog"
+            message={permissionsError instanceof Error ? permissionsError.message : String(permissionsError)}
+          />
+        ) : null}
+        {permissionsPending ? (
+          <p className="text-sm text-muted-foreground">Loading permissions…</p>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+            {grouped.map(([category, items]) => (
+              <section key={category} className="rounded-md border bg-muted/10 p-3">
+                <div className="mb-3 flex items-center justify-between gap-3 border-b pb-2">
+                  <h3 className="text-sm font-semibold">{category}</h3>
+                  <span className="text-xs text-muted-foreground">{items.length}</span>
+                </div>
+                <div className="space-y-2">
+                  {items.map((permission) => {
+                    const checked = draft.permissions.includes(permission.code)
+                    const assignable = permission.assignable && normalizeStatus(permission.status) === 'active'
+                    return (
+                      <label key={permission.code} className="flex items-start gap-3 rounded-sm px-1 py-1 hover:bg-muted/40">
+                        <input
+                          type="checkbox"
+                          className="mt-1"
+                          checked={checked}
+                          disabled={!assignable && !checked}
+                          onChange={() => togglePermission(permission.code)}
+                          aria-label={permission.name}
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-medium leading-5">{permission.name}</span>
+                          {permission.description ? (
+                            <span className="block text-xs text-muted-foreground">{permission.description}</span>
+                          ) : null}
+                          {!assignable ? (
+                            <span className="block text-xs text-muted-foreground">
+                              {permission.status}{permission.assignable ? '' : ', not assignable'}
+                            </span>
+                          ) : null}
+                        </span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {error ? (
+        <Alert variant="destructive" role="alert">
+          <AlertTitle>Operation failed</AlertTitle>
+          <AlertDescription>{error instanceof Error ? error.message : String(error)}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>Cancel</Button>
+        <Button type="submit" disabled={pending}>{pending ? 'Saving…' : submitLabel}</Button>
       </div>
     </form>
   )
