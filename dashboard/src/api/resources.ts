@@ -6,6 +6,7 @@ import type {
   CacheOptionsResponse,
   CreatePublicationRequest,
   CreatePublicationResponse,
+  CreateRoleRequest,
   CreateSnapshotRequest,
   CreateServiceRequest,
   CreateUserRequest,
@@ -35,6 +36,10 @@ import type {
   RateLimitConfigResponse,
   RateLimitOptionsResponse,
   ReconcileResponse,
+  RemovePermissionFromRoleResponse,
+  AssignPermissionToRoleResponse,
+  RolePermissionRequest,
+  RoleResponse,
   RouteEffectiveResponse,
   RouteHistoryResponse,
   RouteListResponse,
@@ -56,6 +61,7 @@ import type {
   SnapshotValidationResponse,
   TransformEntryResponse,
   TransformationsResponse,
+  UpdateRoleRequest,
   UpdateServiceRequest,
   UpdateSystemSettingsRequest,
   UserResponse,
@@ -165,6 +171,27 @@ export function createResources(http: HttpClient) {
       http.get<GetUserSessionsResponse>(`/api/v1/auth/users/${userId}/sessions`, o),
     revoke: (sessionId: string, o?: Options) =>
       http.post<RevokeSessionResponse>(`/api/v1/auth/sessions/${sessionId}/revoke`, {}, o),
+  }
+
+  const roles = {
+    list: ({ signal }: { signal?: AbortSignal } = {}) =>
+      http.get<RoleResponse[]>('/api/v1/roles', { signal }),
+    get: (id: string, o?: Options) => http.get<RoleResponse>(`/api/v1/roles/${id}`, o),
+    create: (body: CreateRoleRequest, o?: Options) =>
+      http.post<RoleResponse>('/api/v1/roles', body, o),
+    update: (id: string, body: UpdateRoleRequest, o?: Options) =>
+      http.put<RoleResponse>(`/api/v1/roles/${id}`, body, o),
+    activate: (id: string, o?: Options) =>
+      http.post<RoleResponse>(`/api/v1/roles/${id}/activate`, {}, o),
+    deactivate: (id: string, o?: Options) =>
+      http.post<RoleResponse>(`/api/v1/roles/${id}/deactivate`, {}, o),
+    assignPermission: (id: string, body: RolePermissionRequest, o?: Options) =>
+      http.post<AssignPermissionToRoleResponse>(`/api/v1/roles/${id}/permissions`, body, o),
+    removePermission: (id: string, permissionCode: string, o?: Options) =>
+      http.delete<RemovePermissionFromRoleResponse>(
+        `/api/v1/roles/${id}/permissions/${encodeURIComponent(permissionCode)}`,
+        o,
+      ),
   }
 
   const gateways = {
@@ -324,6 +351,7 @@ export function createResources(http: HttpClient) {
     globalConfiguration,
     users,
     sessions,
+    roles,
     settings,
   }
 }

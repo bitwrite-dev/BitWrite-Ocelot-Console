@@ -17,7 +17,6 @@ import { NAV_PATHS } from '@/navigation'
  * no way to tell which is right.
  */
 export const PLACEHOLDER_PATHS = [
-  '/roles',
   '/plugins',
   '/licenses',
 ] as const
@@ -44,6 +43,7 @@ export const IMPLEMENTED_PATHS = [
   '/users/new',
   '/users/:id/edit',
   '/users/:id',
+  '/roles',
   '/gateways',
   '/global-configuration',
   '/snapshots',
