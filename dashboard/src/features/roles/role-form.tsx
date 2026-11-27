@@ -31,6 +31,11 @@ function normalizeStatus(status: string): string {
   return status.toLowerCase()
 }
 
+function formatCategory(category: string): string {
+  if (category === 'GlobalConfiguration') return 'Global Configuration'
+  return category.replace(/([a-z])([A-Z])/g, '$1 $2')
+}
+
 export function RoleForm({
   initial,
   submitLabel,
@@ -62,7 +67,8 @@ export function RoleForm({
   const grouped = useMemo(() => {
     const map = new Map<string, PermissionDefinitionResponse[]>()
     for (const permission of permissions) {
-      const category = permission.category ?? 'Uncategorized'
+      if (permission.code === 'perm.bootstrap.admin') continue
+      const category = formatCategory(permission.category ?? 'Uncategorized')
       const list = map.get(category) ?? []
       list.push(permission)
       map.set(category, list)
@@ -132,37 +138,43 @@ export function RoleForm({
         {permissionsPending ? (
           <p className="text-sm text-muted-foreground">Loading permissions…</p>
         ) : (
-          <div className="max-h-96 space-y-4 overflow-y-auto rounded-md border p-3">
+          <div className="max-h-[32rem] space-y-3 overflow-y-auto pr-1">
             {grouped.map(([category, items]) => (
-              <div key={category}>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{category}</p>
+              <section key={category} className="rounded-md border bg-muted/10 p-3">
+                <div className="mb-3 flex items-center justify-between gap-3 border-b pb-2">
+                  <h3 className="text-sm font-semibold">{category}</h3>
+                  <span className="text-xs text-muted-foreground">{items.length}</span>
+                </div>
                 <div className="space-y-2">
                   {items.map((permission) => {
                     const checked = draft.permissions.includes(permission.code)
                     const assignable = permission.assignable && normalizeStatus(permission.status) === 'active'
                     return (
-                      <label key={permission.code} className="flex items-start gap-2 text-sm">
+                      <label key={permission.code} className="flex items-start gap-3 rounded-sm px-1 py-1 hover:bg-muted/40">
                         <input
                           type="checkbox"
-                          className="mt-0.5"
+                          className="mt-1"
                           checked={checked}
                           disabled={!assignable && !checked}
                           onChange={() => togglePermission(permission.code)}
+                          aria-label={permission.name}
                         />
                         <span className="min-w-0">
-                          <span className="font-mono text-xs">{permission.code}</span>
-                          {!assignable ? (
-                            <span className="ml-2 text-xs text-muted-foreground">({permission.status}{permission.assignable ? '' : ', not assignable'})</span>
-                          ) : null}
+                          <span className="block text-sm font-medium leading-5">{permission.name}</span>
                           {permission.description ? (
                             <span className="block text-xs text-muted-foreground">{permission.description}</span>
+                          ) : null}
+                          {!assignable ? (
+                            <span className="block text-xs text-muted-foreground">
+                              {permission.status}{permission.assignable ? '' : ', not assignable'}
+                            </span>
                           ) : null}
                         </span>
                       </label>
                     )
                   })}
                 </div>
-              </div>
+              </section>
             ))}
           </div>
         )}
