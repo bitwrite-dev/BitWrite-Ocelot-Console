@@ -21,6 +21,7 @@ import { RoutesPage } from '@/features/routes/routes-page'
 import { RolesPage } from '@/features/roles/roles-page'
 import { RolesCreatePage } from '@/features/roles/roles-create-page'
 import { RolesEditPage } from '@/features/roles/roles-edit-page'
+import { RolesDetailPage } from '@/features/roles/roles-detail-page'
 import { UsersPage } from '@/features/users/users-page'
 import { UsersCreatePage } from '@/features/users/users-create-page'
 import { UsersEditPage } from '@/features/users/users-edit-page'
@@ -59,6 +60,7 @@ const routes = [
       { path: 'roles', element: <RolesPage /> },
       { path: 'roles/new', element: <RolesCreatePage /> },
       { path: 'roles/:id/edit', element: <RolesEditPage /> },
+      { path: 'roles/:id', element: <RolesDetailPage /> },
       { path: 'gateways', element: <GatewaysPage /> },
       { path: 'global-configuration', element: <GlobalConfigurationPage /> },
       { path: 'snapshots', element: <SnapshotsPage /> },
