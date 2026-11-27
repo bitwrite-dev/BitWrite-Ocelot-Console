@@ -878,3 +878,48 @@ export interface GetUserSessionsResponse {
 export interface RevokeSessionResponse {
   sessionId: string
 }
+
+/**
+ * A role, as returned by the role administration endpoints.
+ */
+export interface RoleResponse {
+  id: string
+  name: string
+  description: string | null
+  isSystemRole: boolean
+  status: string
+  permissions: string[]
+  createdAt: string
+  updatedAt: string | null
+  updatedBy: string | null
+}
+
+export interface CreateRoleRequest {
+  name: string
+  description?: string | null
+}
+
+export interface UpdateRoleRequest {
+  name?: string | null
+  description?: string | null
+}
+
+export interface RolePermissionRequest {
+  permissionCode: string
+}
+
+export interface AssignPermissionToRoleResponse {
+  roleId: string
+  permissionCode: string
+  assigned: boolean
+  alreadyAssigned: boolean
+  initiatedBy: string
+  occurredAt: string
+}
+
+export interface RemovePermissionFromRoleResponse {
+  roleId: string
+  permissionCode: string
+  initiatedBy: string
+  occurredAt: string
+}

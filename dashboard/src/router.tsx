@@ -18,6 +18,7 @@ import { AuditLogPage } from '@/features/audit/audit-log-page'
 import { MonitoringPage } from '@/features/monitoring/monitoring-page'
 import { RuntimePage } from '@/features/runtime/RuntimePage'
 import { RoutesPage } from '@/features/routes/routes-page'
+import { RolesPage } from '@/features/roles/roles-page'
 import { UsersPage } from '@/features/users/users-page'
 import { UsersCreatePage } from '@/features/users/users-create-page'
 import { UsersEditPage } from '@/features/users/users-edit-page'
@@ -53,6 +54,7 @@ const routes = [
       { path: 'users/new', element: <UsersCreatePage /> },
       { path: 'users/:id/edit', element: <UsersEditPage /> },
       { path: 'users/:id', element: <UsersDetailPage /> },
+      { path: 'roles', element: <RolesPage /> },
       { path: 'gateways', element: <GatewaysPage /> },
       { path: 'global-configuration', element: <GlobalConfigurationPage /> },
       { path: 'snapshots', element: <SnapshotsPage /> },
