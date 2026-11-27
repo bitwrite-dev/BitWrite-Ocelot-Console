@@ -7,11 +7,12 @@ import { StatusBadge } from '@/components/status-badge'
 import { toneForStatus } from '@/lib/status-tone'
 
 describe('navigation model', () => {
-  it('uses exactly the four sections from spec §53', () => {
+  it('uses the spec sections plus Identity & Access for IAM navigation', () => {
     expect(NAV_SECTIONS.map((s) => s.id)).toEqual([
       'management',
       'configuration',
       'operations',
+      'identity',
       'system',
     ])
   })
@@ -82,16 +83,18 @@ describe('navigation model', () => {
 
 describe('visibleSections', () => {
   it('shows everything when no roles are resolved yet', () => {
-    expect(visibleSections(undefined)).toHaveLength(4)
-    expect(visibleSections([])).toHaveLength(4)
+    expect(visibleSections(undefined)).toHaveLength(NAV_SECTIONS.length)
+    expect(visibleSections([])).toHaveLength(NAV_SECTIONS.length)
   })
 
   it('hides sections a role cannot reach at all', () => {
     const visible = visibleSections(['RouteManager'])
     const ids = visible.map((s) => s.id)
 
-    // RouteManager can reach Routes and Services, but nothing in System.
+    // RouteManager can reach Routes and Services, but nothing in Identity & Access
+    // or the rest of System.
     expect(ids).toContain('management')
+    expect(ids).not.toContain('identity')
     expect(ids).not.toContain('system')
   })
 
