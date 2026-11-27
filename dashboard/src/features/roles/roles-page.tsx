@@ -137,6 +137,7 @@ export function RolesPage() {
           pageSize={rows.length || 1}
           onPageChange={() => undefined}
           isLoading={roles.isPending}
+          onRowClick={(row) => navigate(`/roles/${row.id}`)}
         />
       )}
 
