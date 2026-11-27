@@ -1,5 +1,6 @@
 import type { HttpClient, RequestOptions } from './http'
 import type {
+  AssignUserRoleRequest,
   AuditListResponse,
   AuditStatsResponse,
   AuditResponse,
@@ -39,6 +40,7 @@ import type {
   ReconcileResponse,
   RemovePermissionFromRoleResponse,
   AssignPermissionToRoleResponse,
+  RoleAssignmentResponse,
   RolePermissionRequest,
   RoleResponse,
   RouteEffectiveResponse,
@@ -165,6 +167,10 @@ export function createResources(http: HttpClient) {
       http.post<UserResponse>(`/api/v1/users/${id}/enable`, {}, o),
     disable: (id: string, o?: Options) =>
       http.post<UserResponse>(`/api/v1/users/${id}/disable`, {}, o),
+    assignRole: (id: string, body: AssignUserRoleRequest, o?: Options) =>
+      http.post<RoleAssignmentResponse>(`/api/v1/users/${id}/roles`, body, o),
+    removeRole: (id: string, roleId: string, o?: Options) =>
+      http.delete<RoleAssignmentResponse>(`/api/v1/users/${id}/roles/${roleId}`, o),
   }
 
   const sessions = {
