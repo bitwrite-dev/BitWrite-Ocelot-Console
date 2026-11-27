@@ -182,11 +182,13 @@ jobs:
 
       - name: Install Trivy
         run: |
+          # Runner may include a broken Microsoft apt repo; scope updates to what this job needs.
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
           sudo apt-get update
           sudo apt-get install -y wget gnupg
           wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
           echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
-          sudo apt-get update
+          sudo apt-get update -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/trivy.list -o Dir::Etc::sourceparts="-" -o APT::Get::List-Cleanup="0"
           sudo apt-get install -y trivy
 
       - name: Run Trivy vulnerability scanner
