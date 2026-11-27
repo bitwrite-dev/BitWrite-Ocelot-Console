@@ -62,7 +62,7 @@ export function RolesEditPage() {
     mutations.removePermission.isPending
 
   return (
-    <section className="max-w-3xl">
+    <section className="max-w-6xl">
       <PageHeader title="Edit role" description={`Update ${role.name} and its permission assignments.`} />
       <RoleForm
         initial={initial}

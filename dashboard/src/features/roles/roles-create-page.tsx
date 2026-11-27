@@ -23,7 +23,7 @@ export function RolesCreatePage() {
   }
 
   return (
-    <section className="max-w-3xl">
+    <section className="max-w-6xl">
       <PageHeader title="Create role" description="Define a role and assign catalog permissions." />
       <RoleForm
         initial={null}
