@@ -83,7 +83,7 @@ function NavLinks({
                           />
                           {item.label}
                           {draftCount !== null && draftCount > 0 && (
-                            <Badge variant="destructive" className="ml-auto">
+                            <Badge className="ml-auto border-destructive/30 bg-white text-destructive hover:bg-white">
                               {draftCount}
                             </Badge>
                           )}
