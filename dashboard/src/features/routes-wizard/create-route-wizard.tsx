@@ -339,7 +339,24 @@ function RouteWizard({ mode, routeId }: { mode: 'create' | 'edit'; routeId?: str
                         id="route-service"
                         className="h-9 w-full max-w-sm rounded-md border bg-background px-3 text-sm"
                         value={draft.serviceId}
-                        onChange={(event) => update('serviceId', event.target.value)}
+                        onChange={(event) => {
+                          const serviceId = event.target.value
+                          const selected = (services.data?.services ?? []).find((s) => s.id === serviceId)
+                          const activeTargets = (selected?.downstreamTargets ?? []).filter((t) => t.isActive)
+                          setDraft((current) => ({
+                            ...current,
+                            serviceId,
+                            downstreamTargets:
+                              activeTargets.length > 0
+                                ? activeTargets.map((t) => ({
+                                    host: t.host,
+                                    port: t.port,
+                                    scheme: 'http',
+                                    path: '/',
+                                  }))
+                                : current.downstreamTargets,
+                          }))
+                        }}
                       >
                         <option value="">Select a service…</option>
                         {(services.data?.services ?? []).map((service) => (
@@ -350,136 +367,113 @@ function RouteWizard({ mode, routeId }: { mode: 'create' | 'edit'; routeId?: str
                       </select>
                     </Field>
 
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label>Downstream targets</Label>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={draft.downstreamTargets.length >= 10}
-                          onClick={() =>
-                            update('downstreamTargets', [
-                              ...draft.downstreamTargets,
-                              { host: '', port: '', scheme: 'http', path: '/' },
-                            ])
-                          }
-                        >
-                          Add target
-                        </Button>
-                      </div>
-
-                      {draft.downstreamTargets.map((target, index) => {
-                        const errors = stepErrors.filter((error) =>
-                          error.startsWith(`Target ${index + 1}`),
-                        )
-                        return (
-                          <div key={index} className="grid gap-2 sm:grid-cols-[2fr_1fr_1fr_1fr_auto]">
-                            <Field
-                              label={`Host ${index + 1}`}
-                              htmlFor={`target-host-${index}`}
-                              error={errors.find((e) => e.includes('host'))}
-                            >
-                              <Input
-                                id={`target-host-${index}`}
-                                value={target.host}
-                                onChange={(event) =>
-                                  update(
-                                    'downstreamTargets',
-                                    draft.downstreamTargets.map((item, i) =>
-                                      i === index ? { ...item, host: event.target.value } : item,
-                                    ),
-                                  )
-                                }
-                              />
-                            </Field>
-                            <Field
-                              label="Port"
-                              htmlFor={`target-port-${index}`}
-                              error={errors.find((e) => e.toLowerCase().includes('port'))}
-                            >
-                              <Input
-                                id={`target-port-${index}`}
-                                type="number"
-                                value={target.port}
-                                onChange={(event) =>
-                                  update(
-                                    'downstreamTargets',
-                                    draft.downstreamTargets.map((item, i) =>
-                                      i === index
-                                        ? {
-                                            ...item,
-                                            port:
-                                              event.target.value === ''
-                                                ? ''
-                                                : Number(event.target.value),
-                                          }
-                                        : item,
-                                    ),
-                                  )
-                                }
-                              />
-                            </Field>
-                            <Field label="Scheme" htmlFor={`target-scheme-${index}`}>
-                              <Input
-                                id={`target-scheme-${index}`}
-                                value={target.scheme}
-                                onChange={(event) =>
-                                  update(
-                                    'downstreamTargets',
-                                    draft.downstreamTargets.map((item, i) =>
-                                      i === index ? { ...item, scheme: event.target.value } : item,
-                                    ),
-                                  )
-                                }
-                              />
-                            </Field>
-                            <Field label="Path" htmlFor={`target-path-${index}`}>
-                              <Input
-                                id={`target-path-${index}`}
-                                value={target.path}
-                                onChange={(event) =>
-                                  update(
-                                    'downstreamTargets',
-                                    draft.downstreamTargets.map((item, i) =>
-                                      i === index ? { ...item, path: event.target.value } : item,
-                                    ),
-                                  )
-                                }
-                              />
-                            </Field>
-                            <div className="flex items-end pb-1">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  update(
-                                    'downstreamTargets',
-                                    draft.downstreamTargets.filter((_, i) => i !== index),
-                                  )
-                                }
-                                disabled={draft.downstreamTargets.length === 1}
-                                aria-label={`Remove target ${index + 1}`}
-                              >
-                                Remove
-                              </Button>
-                            </div>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <Label>Downstream targets</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Imported from selected service endpoints (host/port). Scheme is `http` by default; path uses Advanced Options &gt; Downstream path template.
+                            </p>
                           </div>
-                        )
-                      })}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={draft.downstreamTargets.length >= 10}
+                            onClick={() =>
+                              update('downstreamTargets', [
+                                ...draft.downstreamTargets,
+                                { host: '', port: '', scheme: 'http', path: '/' },
+                              ])
+                            }
+                          >
+                            Add target
+                          </Button>
+                        </div>
 
-                      {stepErrors.find((e) => e.startsWith('At least one')) ? (
-                        <p className="text-xs text-destructive">
-                          {stepErrors.find((e) => e.startsWith('At least one'))}
-                        </p>
-                      ) : null}
-                      {stepErrors.find((e) => e.startsWith('A route cannot')) ? (
-                        <p className="text-xs text-destructive">
-                          {stepErrors.find((e) => e.startsWith('A route cannot'))}
-                        </p>
-                      ) : null}
-                    </div>
+                        {draft.downstreamTargets.map((target, index) => {
+                          const errors = stepErrors.filter((error) =>
+                            error.startsWith(`Target ${index + 1}`),
+                          )
+                          return (
+                            <div key={index} className="grid gap-2 sm:grid-cols-[2fr_1fr_auto]">
+                              <Field
+                                label={`Host ${index + 1}`}
+                                htmlFor={`target-host-${index}`}
+                                error={errors.find((e) => e.includes('host'))}
+                              >
+                                <Input
+                                  id={`target-host-${index}`}
+                                  value={target.host}
+                                  onChange={(event) =>
+                                    update(
+                                      'downstreamTargets',
+                                      draft.downstreamTargets.map((item, i) =>
+                                        i === index ? { ...item, host: event.target.value } : item,
+                                      ),
+                                    )
+                                  }
+                                />
+                              </Field>
+                              <Field
+                                label="Port"
+                                htmlFor={`target-port-${index}`}
+                                error={errors.find((e) => e.toLowerCase().includes('port'))}
+                              >
+                                <Input
+                                  id={`target-port-${index}`}
+                                  type="number"
+                                  value={target.port}
+                                  onChange={(event) =>
+                                    update(
+                                      'downstreamTargets',
+                                      draft.downstreamTargets.map((item, i) =>
+                                        i === index
+                                          ? {
+                                              ...item,
+                                              port:
+                                                event.target.value === ''
+                                                  ? ''
+                                                  : Number(event.target.value),
+                                            }
+                                          : item,
+                                      ),
+                                    )
+                                  }
+                                />
+                              </Field>
+                              <div className="flex items-end pb-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    update(
+                                      'downstreamTargets',
+                                      draft.downstreamTargets.filter((_, i) => i !== index),
+                                    )
+                                  }
+                                  disabled={draft.downstreamTargets.length === 1}
+                                  aria-label={`Remove target ${index + 1}`}
+                                >
+                                  Remove
+                                </Button>
+                              </div>
+                            </div>
+                          )
+                        })}
+
+                        {stepErrors.find((e) => e.startsWith('At least one')) ? (
+                          <p className="text-xs text-destructive">
+                            {stepErrors.find((e) => e.startsWith('At least one'))}
+                          </p>
+                        ) : null}
+                        {stepErrors.find((e) => e.startsWith('A route cannot')) ? (
+                          <p className="text-xs text-destructive">
+                            {stepErrors.find((e) => e.startsWith('A route cannot'))}
+                          </p>
+                        ) : null}
+                      </div>
                   </>
                 ) : null}
 
