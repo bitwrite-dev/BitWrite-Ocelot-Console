@@ -1,16 +1,44 @@
 import { useState } from 'react'
+import { CircleHelp } from 'lucide-react'
 
 import { ErrorState } from '@/components/page-state'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   serviceErrorMessage,
   serviceErrorTitle,
   toServiceFieldErrors,
   type ServiceDraft,
 } from './queries'
+
+function FieldLabel({
+  htmlFor,
+  label,
+  hint,
+}: {
+  htmlFor: string
+  label: string
+  hint: string
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Label htmlFor={htmlFor}>{label}</Label>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button type="button" className="text-muted-foreground hover:text-foreground" aria-label={`${label} help`}>
+              <CircleHelp className="size-3.5" aria-hidden="true" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{hint}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+  )
+}
 
 /** A duplicate host and port would be rejected by the domain, so catch it here. */
 export function validateServiceDraft(draft: ServiceDraft): Record<string, string[]> {
@@ -184,11 +212,17 @@ export function ServiceForm({
           </Button>
         </div>
 
-        <ul className="space-y-2">
+        <ul className="space-y-3">
           {draft.downstreamTargets.map((endpoint, index) => (
-            <li key={index} className="grid gap-2 sm:grid-cols-[2fr_1fr_1fr_auto]">
+            <li key={index} className="grid gap-3 rounded-md border p-3 sm:grid-cols-[2fr_1fr_1fr_auto]">
               <div className="space-y-1">
+                <FieldLabel
+                  htmlFor={`endpoint-${index}-host`}
+                  label="Host"
+                  hint="Backend hostname or IP address (e.g. localhost, api.internal)."
+                />
                 <Input
+                  id={`endpoint-${index}-host`}
                   aria-label={`Endpoint ${index + 1} host`}
                   value={endpoint.host}
                   onChange={(event) => setEndpoint(index, { host: event.target.value })}
@@ -201,7 +235,13 @@ export function ServiceForm({
                 ))}
               </div>
               <div className="space-y-1">
+                <FieldLabel
+                  htmlFor={`endpoint-${index}-port`}
+                  label="Port"
+                  hint="TCP port the backend listens on (1-65535)."
+                />
                 <Input
+                  id={`endpoint-${index}-port`}
                   aria-label={`Endpoint ${index + 1} port`}
                   type="number"
                   value={endpoint.port}
@@ -219,7 +259,13 @@ export function ServiceForm({
                 ))}
               </div>
               <div className="space-y-1">
+                <FieldLabel
+                  htmlFor={`endpoint-${index}-weight`}
+                  label="Weight"
+                  hint="Relative load-balancing weight (1-1000). Higher values receive more traffic when supported."
+                />
                 <Input
+                  id={`endpoint-${index}-weight`}
                   aria-label={`Endpoint ${index + 1} weight`}
                   type="number"
                   value={endpoint.weight}
@@ -241,7 +287,6 @@ export function ServiceForm({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  // The last one cannot go: a service always needs an endpoint.
                   disabled={draft.downstreamTargets.length === 1}
                   onClick={() =>
                     setDraft((current) => ({
