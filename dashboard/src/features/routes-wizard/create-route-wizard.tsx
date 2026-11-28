@@ -342,12 +342,13 @@ function RouteWizard({ mode, routeId }: { mode: 'create' | 'edit'; routeId?: str
                         onChange={(event) => {
                           const serviceId = event.target.value
                           const selected = (services.data?.services ?? []).find((s) => s.id === serviceId)
+                          const activeTargets = (selected?.downstreamTargets ?? []).filter((t) => t.isActive)
                           setDraft((current) => ({
                             ...current,
                             serviceId,
                             downstreamTargets:
-                              selected && selected.downstreamTargets.length > 0
-                                ? selected.downstreamTargets.map((t) => ({
+                              activeTargets.length > 0
+                                ? activeTargets.map((t) => ({
                                     host: t.host,
                                     port: t.port,
                                     scheme: 'http',
@@ -371,7 +372,7 @@ function RouteWizard({ mode, routeId }: { mode: 'create' | 'edit'; routeId?: str
                           <div>
                             <Label>Downstream targets</Label>
                             <p className="text-xs text-muted-foreground">
-                              Imported from the selected service. Scheme/path are route-level; adjust path in Advanced Options.
+                              Imported from selected service endpoints (host/port). Scheme is `http` by default; path uses Advanced Options &gt; Downstream path template.
                             </p>
                           </div>
                           <Button
