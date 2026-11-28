@@ -67,6 +67,7 @@ public class GatewayActivationProcessor : BackgroundService
         var gatewayRepository = scope.ServiceProvider.GetRequiredService<IGatewayRepository>();
         var runtimeInstanceRepository = scope.ServiceProvider.GetRequiredService<IRuntimeInstanceRepository>();
         var eventDispatcher = scope.ServiceProvider.GetRequiredService<IDomainEventDispatcher>();
+        var progressRepository = scope.ServiceProvider.GetRequiredService<IPublicationProgressRepository>();
 
         var gateways = await gatewayRepository.GetAllAsync(cancellationToken);
         var gatewayMap = gateways.ToDictionary(g => g.Id, g => g.Name);
@@ -152,7 +153,7 @@ public class GatewayActivationProcessor : BackgroundService
                     await publicationRepository.UpdateAsync(publication, cancellationToken);
 
                     // Update Redis progress cache
-                    await UpdatePublicationProgressCacheAsync(db, publication, gatewayMap, cancellationToken);
+                    await UpdatePublicationProgressCacheAsync(progressRepository, publication, gatewayMap, cancellationToken);
 
                     // Dispatch domain events
                     foreach (var domainEvent in publication.DomainEvents)
@@ -183,38 +184,35 @@ public class GatewayActivationProcessor : BackgroundService
     }
 
     private async Task UpdatePublicationProgressCacheAsync(
-        IDatabase db,
+        IPublicationProgressRepository progressRepository,
         Publication publication,
         Dictionary<GatewayId, string> gatewayMap,
         CancellationToken cancellationToken)
     {
-        var progressKey = $"publication:progress:{publication.Id.Value}";
-        var gatewayProgress = publication.GatewayStates.Select(kvp => new
-        {
-            GatewayId = kvp.Key.Value.ToString(),
-            GatewayName = gatewayMap.TryGetValue(kvp.Key, out var name) ? name : kvp.Key.Value.ToString(),
-            Status = kvp.Value.Status,
-            ReceivedAt = (DateTimeOffset?)kvp.Value.ReceivedAt,
-            ValidatedAt = (DateTimeOffset?)kvp.Value.ValidatedAt,
-            AppliedAt = (DateTimeOffset?)kvp.Value.AppliedAt,
-            HealthyAt = (DateTimeOffset?)kvp.Value.HealthyAt,
-            FailedAt = (DateTimeOffset?)kvp.Value.FailedAt,
-            IsValid = kvp.Value.IsValid,
-            FailureReason = kvp.Value.FailureReason
-        }).ToList();
+        var gatewayProgress = publication.GatewayStates.Select(kvp => new GatewayProgressData(
+            GatewayId: kvp.Key.Value.ToString(),
+            GatewayName: gatewayMap.TryGetValue(kvp.Key, out var name) ? name : kvp.Key.Value.ToString(),
+            Status: kvp.Value.Status,
+            ReceivedAt: kvp.Value.ReceivedAt,
+            ValidatedAt: kvp.Value.ValidatedAt,
+            AppliedAt: kvp.Value.AppliedAt,
+            HealthyAt: kvp.Value.HealthyAt,
+            FailedAt: kvp.Value.FailedAt,
+            IsValid: kvp.Value.IsValid,
+            FailureReason: kvp.Value.FailureReason
+        )).ToList();
 
-        var progressData = new
-        {
-            PublicationId = publication.Id.Value.ToString(),
-            SnapshotVersion = publication.SnapshotVersion.Value,
-            Status = publication.Status.Value,
-            ProgressPercentage = publication.ProgressPercentage,
-            GatewayProgress = gatewayProgress,
-            StartedAt = publication.StartedAt,
-            CompletedAt = publication.CompletedAt,
-            FailureReason = publication.FailureReason
-        };
+        var progressData = new PublicationProgressData(
+            PublicationId: publication.Id.Value.ToString(),
+            SnapshotVersion: publication.SnapshotVersion.Value,
+            Status: publication.Status.Value,
+            ProgressPercentage: publication.ProgressPercentage,
+            GatewayProgress: gatewayProgress,
+            StartedAt: publication.StartedAt,
+            CompletedAt: publication.CompletedAt,
+            FailureReason: publication.FailureReason
+        );
 
-        await db.StringSetAsync(progressKey, System.Text.Json.JsonSerializer.Serialize(progressData), TimeSpan.FromHours(24));
+        await progressRepository.SetProgressAsync(publication.Id, progressData, cancellationToken);
     }
 }
